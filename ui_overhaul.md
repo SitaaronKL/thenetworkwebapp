@@ -1,6 +1,6 @@
-# New User Journey Timeline & Codebase Mapping
+# UI Overhaul Documentation
 
-This document outlines the current flow for a new user visiting the application, including the order of pages and their corresponding codebase locations.
+This document outlines the current flow for a new user visiting the application, including the order of pages and their corresponding codebase locations. It has been updated to reflect the completed UI/UX overhaul based on the `UnboardingUI` Figma designs.
 
 ## 1. Initial Visit (Home Redirect)
 *   **URL:** `/`
@@ -14,95 +14,92 @@ This document outlines the current flow for a new user visiting the application,
 *   **URL:** `/landing`
 *   **Codebase:** `src/app/landing/page.tsx`
 *   **Behavior:**
-    *   Displays value proposition (Logo, Tagline, Trust Badges).
+    *   **Visuals:** Scaled-up logo (5x), "Control who you are online" gradient text.
     *   **Primary Action:** "Claim my Digital DNA" button redirects to `/onboarding`.
+    *   **Implementation:** Tailwind CSS, responsive scaling.
 
 ## 3. Onboarding (Value Prop & Sign In)
 *   **URL:** `/onboarding`
 *   **Codebase:** `src/app/onboarding/page.tsx`
 *   **Behavior:**
-    *   Displays cards explaining the "why" (Social media is draining, etc.).
-    *   **Action:** "Continue with Google" triggers Supabase OAuth sign-in.
-    *   **Context:** `src/contexts/AuthContext.tsx` handles the `signInWithGoogle` function.
+    *   **Visuals:** Horizontal scrollable cards with complex SVG radial gradients and blur filters.
+        *   Card 1: "Social media is draining" (Melting Icon, Red/Orange Gradient)
+        *   Card 2: "Instagram grid is not the real you" (Grid Icon, Blue/Purple Gradient)
+        *   Card 3: "No more performing" (DNA Icon, Green/Blue Gradient)
+    *   **Action:** "Continue ->" button triggers Supabase OAuth sign-in (Google).
+    *   **Implementation:** Custom SVG filters/gradients, Tailwind, standard `<img>` assets.
 
-## 4. Authentication Callback
+## 4. Authentication Callback & Testing Toggle
 *   **URL:** `/auth/callback`
 *   **Codebase:** `src/app/auth/callback/page.tsx`
 *   **Behavior:**
     *   Handles the OAuth redirect from Google.
-    *   Checks if the user is new or has an incomplete profile (checks `profiles` table).
+    *   Checks if the user is new or has an incomplete profile.
+    *   **Testing Toggle:**
+        *   To force the onboarding flow for *all* users (including existing ones), set `const FORCE_ONBOARDING = true;` on line 69.
+        *   Set to `false` for production behavior (skip onboarding if profile exists).
     *   **Logic:**
-        *   If `!profile` or `profile.age === null` -> Redirects to `/profile-setup` (New User Flow).
-        *   If profile exists and is complete -> Redirects to `/` (Home).
+        *   If `FORCE_ONBOARDING` or `!profile` or `profile.age === null` -> Redirects to `/profile-setup` (New User Flow).
+        *   Otherwise -> Redirects to `/` (Home).
 
 ## 5. Profile Setup - Step 1: Basic Info
 *   **URL:** `/profile-setup`
 *   **Codebase:** `src/app/profile-setup/page.tsx`
-*   **Behavior:**
-    *   Collects basic user information:
-        *   Photo (upload or Google default)
-        *   Name
-        *   Age (13-120)
-        *   Location
-        *   One-liner
-    *   **Action:** "Continue" saves data to `profiles` table and redirects to `/profile-setup/signals`.
+*   **Visuals:** "25%" Progress bar, clean form inputs with specific styling.
+*   **Behavior:** Collects Name, Age, Location, Bio.
 
 ## 6. Profile Setup - Step 2: Signals
 *   **URL:** `/profile-setup/signals`
 *   **Codebase:** `src/app/profile-setup/signals/page.tsx`
-*   **Behavior:**
-    *   Allows user to connect external platforms (YouTube, TikTok, etc.).
-    *   Checks if YouTube is already connected via Google Auth.
-    *   **Action:** "Continue" or "Skip" redirects to `/profile-setup/building`.
+*   **Visuals:** "50%" Progress bar, platform connection cards (YouTube, TikTok, etc.).
+*   **Behavior:** Connects external accounts.
 
 ## 7. Profile Setup - Step 3: Building (Processing)
 *   **URL:** `/profile-setup/building`
 *   **Codebase:** `src/app/profile-setup/building/page.tsx`
-*   **Behavior:**
-    *   Displays a "Building your Digital DNA" animation.
-    *   **Background Process:**
-        1.  Syncs YouTube data (`YouTubeService.syncYouTubeData`).
-        2.  Derives interests via Edge Function (`YouTubeService.deriveInterests`).
-    *   **Action:** Automatically redirects to `/profile-setup/wrapped` upon completion or timeout.
-    *   **Service:** `src/services/youtube.ts` contains the logic for syncing and deriving interests.
+*   **Visuals:** "100%" Progress bar, spinner/animation.
+*   **Behavior:** Syncs data in background, redirects to Wrapped upon completion.
 
 ## 8. Profile Setup - Step 4: Wrapped (Presentation)
 *   **URL:** `/profile-setup/wrapped`
 *   **Codebase:** `src/app/profile-setup/wrapped/page.tsx`
-*   **Behavior:**
-    *   Displays a multi-slide, "Spotify Wrapped" style presentation of the user's derived data (Interests, Archetypes, etc.).
-    *   **Action:** Final slide has "Enter Your Network" button which redirects to `/`.
+*   **Visuals:** "Spotify Wrapped" style slide deck with auto-advancing slides and animations.
+*   **Action:** Final slide "Enter Your Network" redirects to `/`.
 
-## 9. Main Application (Home)
-*   **URL:** `/`
-*   **Codebase:** `src/app/page.tsx`
-*   **Behavior:**
-    *   User is now fully authenticated and onboarded.
-    *   Displays the interactive Network Graph with the user at the center.
-    *   Loads connections and friend requests.
+## 9. Main Application (Home / Digital DNA)
+*   **URL:** `/` and `/digital-dna`
+*   **Codebase:** `src/app/page.tsx`, `src/app/digital-dna/page.tsx`
+*   **Visuals:**
+    *   **Home:** 2D Network Graph of connections.
+    *   **Digital DNA:** Interactive 3D Force Graph of user interests (Nodes & Links).
+*   **Implementation:** `react-force-graph-3d`, `three.js`, `three-spritetext`.
+
+## 10. Edit Profile
+*   **URL:** `/edit-profile`
+*   **Codebase:** `src/app/edit-profile/page.tsx`
+*   **Visuals:** Centered "small window" UI, constrained scrolling within the modal.
+*   **Fixes:** Resolved issue where profile images appeared inverted in dark mode.
 
 ---
 
-# New Design Specs (UnboardingUI)
+# Completed Tasks & Fixes
 
-The `UnboardingUI` folder contains the target design assets and React components exported from Figma. These components should serve as the visual reference and source for assets (SVGs, images) for the UI overhaul.
+### UI Overhaul
+*   [x] **Landing Page:** Redesigned with new assets and scaling.
+*   [x] **Onboarding:** Implemented Figma-exact card designs with complex gradients.
+*   [x] **Profile Setup:** Updated styling to match "UnboardingUI" theme.
+*   [x] **Digital DNA:** Integrated 3D graph visualization.
 
-### Component Mapping
+### Bug Fixes
+*   [x] **Inverted Images:** Fixed global CSS that was double-inverting images in dark mode (`src/app/globals.css`, `src/components/Menu.tsx`).
+*   [x] **Edit Profile Scroll:** Fixed "white box" and page scrolling issues by containing scroll within the modal window.
+*   [x] **Landing Page Black Screen:** Fixed issue where logging out left the theme in an inverted state; forced reset on Landing page mount.
+*   [x] **Build Errors:** Resolved missing dependency errors for UI components (`@radix-ui`, `lucide-react`, etc.) and TypeScript errors in `ForceGraph3D`.
 
-| Current Route | New Component Source | Description |
-| :--- | :--- | :--- |
-| **Landing** (`/landing`) | `UnboardingUI/src/imports/LandingPageUnauthenticated.tsx` | Updated landing page with specific gradients and assets. |
-| **Onboarding** (`/onboarding`) | `UnboardingUI/src/imports/Group4.tsx` (exported as `HowItWorksInterstitial`) | The "Social media is draining" card interface. |
-| **Profile Setup** (`/profile-setup`) | `UnboardingUI/src/imports/SetupWizardStepBasedProgressBar.tsx` | Basic Info form with "25%" progress bar and specific styling for inputs. |
-| **Signals** (`/profile-setup/signals`) | `UnboardingUI/src/imports/ConnectAccountsMainConversionStep.tsx` | "Add signals" page with "50%" progress bar and platform logos (LinkedIn, YouTube, etc.). |
-| **Building** (`/profile-setup/building`) | `UnboardingUI/src/imports/BuildingYourDnaShortAnimation.tsx` | "Building your Digital DNA" page with "100%" progress bar and animation placeholder. |
-| **Wrapped** (`/profile-setup/wrapped`) | `UnboardingUI/src/imports/DigitalDnaRevealPayoffMoment*.tsx` | A sequence of components (frames) representing the new "Wrapped" animation flow. |
-
-### Implementation Notes
-
-1.  **Asset Migration:** The `UnboardingUI/src/assets` folder contains all necessary images. These should be moved to `public/` or `src/assets` in the main project.
-2.  **Styling:** The new designs use Tailwind CSS (inferred from class names like `absolute left-[458px]`). The current project uses CSS Modules (`.module.css`). We will need to either:
-    *   Adapt the Tailwind classes to standard CSS in module files.
-    *   OR install Tailwind and use the components more directly (recommended if feasible, but requires config changes).
-    *   *Decision:* Since we are "making no backend changes" and this is a UI overhaul, we should stick to the existing CSS Modules approach to maintain consistency unless a full Tailwind migration is desired. We will translate the specific pixel values and positioning from the Figma exports into responsive CSS where possible, or keep the strict positioning if the design demands it.
-3.  **Wrapped Animation:** The "Wrapped" section in `UnboardingUI` is split across many files (`DigitalDnaRevealPayoffMoment-5-365.tsx`, etc.), indicating a frame-by-frame or state-based animation. We will need to implement this using a unified component with state transitions (similar to the current `wrapped/page.tsx` slide logic) rather than importing 20 separate components.
+### Dependencies Added
+*   `lucide-react`
+*   `recharts`
+*   `embla-carousel-react`
+*   `react-force-graph-3d`, `three`, `three-spritetext`
+*   `@radix-ui/*` (multiple primitives)
+*   `clsx`, `tailwind-merge`
