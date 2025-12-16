@@ -49,7 +49,7 @@ export default function Home() {
   // Auth redirect
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push('/landing');
     }
   }, [user, loading, router]);
 

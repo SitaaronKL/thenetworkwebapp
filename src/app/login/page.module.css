@@ -3,7 +3,122 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Dark Theme (default) */
+.dark {
   background: #000;
+}
+
+.dark .title {
+  color: #fff;
+}
+
+.dark .subtitle {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dark .footer {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dark .logo {
+  background: radial-gradient(circle at 30% 30%, #ffffff, #111827 60%, #0b1220 100%);
+  box-shadow: 0 12px 40px rgba(255, 255, 255, 0.15);
+}
+
+.dark .googleButton {
+  color: #000;
+  background: #fff;
+}
+
+.dark .googleButton:hover {
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2);
+}
+
+.dark .themeToggle {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .themeToggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.dark .loader {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #fff;
+}
+
+/* Light Theme */
+.light {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+}
+
+.light .title {
+  color: #1a1a2e;
+}
+
+.light .subtitle {
+  color: rgba(26, 26, 46, 0.6);
+}
+
+.light .footer {
+  color: rgba(26, 26, 46, 0.5);
+}
+
+.light .logo {
+  background: radial-gradient(circle at 30% 30%, #1a1a2e, #4a4a6e 60%, #2a2a4e 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.light .googleButton {
+  color: #fff;
+  background: #1a1a2e;
+}
+
+.light .googleButton:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.light .themeToggle {
+  color: #1a1a2e;
+  border-color: rgba(26, 26, 46, 0.2);
+}
+
+.light .themeToggle:hover {
+  background: rgba(26, 26, 46, 0.1);
+  border-color: rgba(26, 26, 46, 0.4);
+}
+
+.light .loader {
+  border: 3px solid rgba(26, 26, 46, 0.1);
+  border-top-color: #1a1a2e;
+}
+
+/* Theme Toggle Button */
+.themeToggle {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.themeToggle:active {
+  transform: scale(0.95);
 }
 
 .content {
@@ -21,22 +136,21 @@
   height: 80px;
   margin: 0 auto;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffffff, #111827 60%, #0b1220 100%);
-  box-shadow: 0 12px 40px rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
 .title {
   font-size: 32px;
   font-weight: 600;
-  color: #fff;
   margin: 0 0 8px;
   letter-spacing: -0.5px;
+  transition: color 0.3s ease;
 }
 
 .subtitle {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
   margin: 0 0 48px;
+  transition: color 0.3s ease;
 }
 
 .googleButton {
@@ -48,8 +162,6 @@
   padding: 14px 24px;
   font-size: 16px;
   font-weight: 500;
-  color: #000;
-  background: #fff;
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -58,7 +170,6 @@
 
 .googleButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2);
 }
 
 .googleButton:active {
@@ -72,16 +183,15 @@
 .footer {
   margin-top: 48px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease;
 }
 
 .loader {
   width: 48px;
   height: 48px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #fff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  transition: border-color 0.3s ease;
 }
 
 @keyframes spin {
