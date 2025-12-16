@@ -66,7 +66,7 @@ export default function BuildingPage() {
 
                 // Redirect after a brief success state
                 setTimeout(() => {
-                    router.push('/');
+                    router.push('/profile-setup/wrapped');
                 }, 1500);
 
             } catch (err: any) {
@@ -75,7 +75,7 @@ export default function BuildingPage() {
                 setError('Some data could not be processed');
 
                 setTimeout(() => {
-                    router.push('/');
+                    router.push('/profile-setup/wrapped');
                 }, 2000);
             }
         };
