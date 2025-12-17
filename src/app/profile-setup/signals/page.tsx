@@ -16,10 +16,7 @@ interface Platform {
 const PLATFORMS: Platform[] = [
     { id: 'youtube', name: 'YouTube', iconSrc: '/assets/onboarding/c03b16a838943601b568f85a732d40b331a3645f.png', available: true },
     { id: 'tiktok', name: 'TikTok', iconSrc: '/assets/onboarding/23739bb8c257e76598939f2f873c2af197df83eb.png', available: false },
-    { id: 'linkedin', name: 'LinkedIn', iconSrc: '/assets/onboarding/dd5fb104ecb7bbaa2af9b5448a041c2e082b5baa.png', available: false },
-    { id: 'x', name: 'X', iconSrc: '/assets/onboarding/372a2c70b00fac33e0d306ef60d5feec8563d9fa.png', available: false },
     { id: 'spotify', name: 'Spotify', iconSrc: '/assets/onboarding/6cbcd0541086377a8e76509a362e721b3b5cdf11.png', available: false },
-    { id: 'instagram', name: 'Instagram', iconSrc: '/assets/onboarding/72af0786a62c6330726ca423b8c067aa6f5c4e55.png', available: false },
 ];
 
 export default function SignalsPage() {
@@ -89,7 +86,7 @@ export default function SignalsPage() {
 
     if (loading) {
         return (
-             <div className="flex items-center justify-center min-h-screen bg-white">
+            <div className="flex items-center justify-center min-h-screen bg-white">
                 <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
@@ -97,22 +94,22 @@ export default function SignalsPage() {
 
     return (
         <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
-             {/* Progress Bar Container */}
-             <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
-                 <div className="flex justify-between items-end mb-2">
-                     <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
-                     <span className="text-[15px] font-normal text-black font-display">50%</span>
-                 </div>
-                 <div className="w-full h-[10px] bg-white border border-black relative">
-                     <div className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
-                 </div>
-             </div>
+            {/* Progress Bar Container */}
+            <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
+                <div className="flex justify-between items-end mb-2">
+                    <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
+                    <span className="text-[15px] font-normal text-black font-display">50%</span>
+                </div>
+                <div className="w-full h-[10px] bg-white border border-black relative">
+                    <div className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
+                </div>
+            </div>
 
-             <h1 className="text-[30px] font-bold text-black font-display mb-8">Add signals (optional)</h1>
+            <h1 className="text-[30px] font-bold text-black font-display mb-8">Add signals (optional)</h1>
 
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[600px] justify-items-center">
-                 {PLATFORMS.map(platform => (
-                     <div 
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[600px] justify-items-center">
+                {PLATFORMS.map(platform => (
+                    <div
                         key={platform.id}
                         onClick={() => handlePlatformClick(platform)}
                         className={`
@@ -120,17 +117,17 @@ export default function SignalsPage() {
                             ${connectedPlatforms.includes(platform.id) ? 'bg-gray-100 ring-2 ring-black' : 'bg-white hover:bg-gray-50'}
                             ${!platform.available ? 'opacity-50 grayscale' : ''}
                         `}
-                     >
+                    >
                         <div className="relative w-full h-full p-4">
-                            <Image 
-                                src={platform.iconSrc} 
-                                alt={platform.name} 
-                                fill 
-                                className="object-contain" 
+                            <Image
+                                src={platform.iconSrc}
+                                alt={platform.name}
+                                fill
+                                className="object-contain"
                                 sizes="(max-width: 768px) 50vw, 150px"
                             />
                         </div>
-                        
+
                         {/* Tooltips */}
                         {showTooltip === platform.id && (
                             <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
@@ -147,18 +144,18 @@ export default function SignalsPage() {
                                 Connected via Google!
                             </div>
                         )}
-                     </div>
-                 ))}
-             </div>
+                    </div>
+                ))}
+            </div>
 
-             {/* Continue Button */}
-             <button 
+            {/* Continue Button */}
+            <button
                 onClick={handleContinue}
                 disabled={isProcessing}
                 className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
-             >
+            >
                 {isProcessing ? 'Processing...' : 'Continue →'}
-             </button>
+            </button>
         </div>
     );
 }

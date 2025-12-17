@@ -45,10 +45,12 @@ export default function AuthCallback() {
             });
 
             let userId: string;
+            let session: any;
 
             try {
                 const result = await waitForSession;
                 userId = result.userId;
+                session = result.session;
             } catch (error: any) {
                 console.error('Session error:', error);
                 setStatus('Authentication failed. Redirecting...');
@@ -56,28 +58,70 @@ export default function AuthCallback() {
                 return;
             }
 
-            // Check if this is a new user by checking if they have a profile with interests
+            // Check if this is a new user or partial user
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('id, interests, age')
+                .select('id, interests, personality_archetypes, doppelgangers')
                 .eq('id', userId)
                 .maybeSingle();
 
             // Determine if user needs to complete profile setup
-            // New user = no profile, OR profile exists but hasn't completed setup (no age = hasn't gone through wizard)
-            // FORCE_ONBOARDING: Set to true to always show onboarding for testing
-            const FORCE_ONBOARDING = true;
-            const needsProfileSetup = FORCE_ONBOARDING || !profile || profile.age === null;
 
-            if (needsProfileSetup) {
-                // New user or incomplete profile - send to profile setup wizard
-                console.log('New user detected, redirecting to profile setup...');
+            // Check for interests
+            const hasInterests = profile?.interests && profile.interests.length > 0;
+
+            // Check for new features (archetypes, doppelgangers)
+            // @ts-ignore
+            const hasArchetypes = profile?.personality_archetypes && profile.personality_archetypes.length > 0;
+            // @ts-ignore
+            const hasDoppelgangers = profile?.doppelgangers && profile.doppelgangers.length > 0;
+
+            const isFullyComplete = hasInterests && hasArchetypes && hasDoppelgangers;
+            const isPartial = hasInterests && (!hasArchetypes || !hasDoppelgangers);
+            const isNew = !hasInterests; // No interests means totally new
+
+            const FORCE_ONBOARDING = false;
+
+            if (FORCE_ONBOARDING || isNew) {
+                // New user - needs full setup
+                console.log('New user detected...');
                 setStatus('Setting up your profile...');
-                router.push('/profile-setup');
+
+                // Auto-populate profile from Google metadata
+                const { user } = session;
+                const metadata = user.user_metadata;
+                const fullName = metadata?.full_name || metadata?.name || user.email?.split('@')[0] || 'User';
+                const avatarUrl = metadata?.avatar_url || metadata?.picture || null;
+
+                // Create/Update profile with Google data
+                const { error: upsertError } = await supabase
+                    .from('profiles')
+                    .upsert({
+                        id: userId,
+                        full_name: fullName,
+                        avatar_url: avatarUrl,
+                        star_color: '#8E5BFF', // Default
+                        updated_at: new Date().toISOString(),
+                    }, { onConflict: 'id' });
+
+                if (upsertError) {
+                    console.error('Error auto-creating profile:', upsertError);
+                }
+
+                router.push('/profile-setup/signals');
+
+            } else if (isPartial) {
+                // Partial user - has interests but needs upgrade
+                console.log('Partial profile detected (missing new stats)...');
+                setStatus('Upgrading your profile...');
+                // Send to "Building" page which will detect missing parts and auto-generate them
+                router.push('/profile-setup/building');
+
             } else {
-                // Existing user with complete profile - go to home
-                console.log('Existing user, redirecting to home...');
-                router.push('/');
+                // Existing user with complete profile
+                // Redirect to building page to show "Retrieving DNA" animation -> Wrapped -> Home
+                console.log('Existing user, redirecting to building...');
+                router.push('/profile-setup/building');
             }
         };
 

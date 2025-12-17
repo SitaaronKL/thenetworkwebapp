@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase';
 
 // Helper components for visuals
 const StarIcon = () => (
@@ -20,26 +21,35 @@ const CirclesViz = () => (
     </div>
 );
 
-const IdentityGrid = () => (
-    <div className="grid grid-cols-2 gap-4 w-full max-w-[600px] mt-8">
-        <div className="bg-white/10 rounded-2xl p-6 text-center border border-white/10 backdrop-blur-sm">
-            <div className="text-4xl font-bold mb-2">32%</div>
-            <div className="text-xl">Builder</div>
+interface Archetype {
+    name: string;
+    percentage: number;
+}
+
+interface Doppelganger {
+    name: string;
+}
+
+const IdentityGrid = ({ archetypes = [] }: { archetypes?: Archetype[] }) => {
+    // Fallback if no data
+    const displayArchetypes = archetypes.length > 0 ? archetypes : [
+        { name: 'Unknown', percentage: 0 },
+        { name: 'Unknown', percentage: 0 },
+        { name: 'Unknown', percentage: 0 },
+        { name: 'Unknown', percentage: 0 },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 gap-4 w-full max-w-[600px] mt-8">
+            {displayArchetypes.slice(0, 4).map((arch, i) => (
+                <div key={i} className="bg-white/10 rounded-2xl p-6 text-center border border-white/10 backdrop-blur-sm animate-fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
+                    <div className="text-4xl font-bold mb-2">{arch.percentage}%</div>
+                    <div className="text-xl">{arch.name}</div>
+                </div>
+            ))}
         </div>
-        <div className="bg-white/10 rounded-2xl p-6 text-center border border-white/10 backdrop-blur-sm">
-            <div className="text-4xl font-bold mb-2">24%</div>
-            <div className="text-xl">Night Owl</div>
-        </div>
-        <div className="bg-white/10 rounded-2xl p-6 text-center border border-white/10 backdrop-blur-sm">
-            <div className="text-4xl font-bold mb-2">19%</div>
-            <div className="text-xl">Tech Optimist</div>
-        </div>
-        <div className="bg-white/10 rounded-2xl p-6 text-center border border-white/10 backdrop-blur-sm">
-            <div className="text-4xl font-bold mb-2">25%</div>
-            <div className="text-xl">Chaos Gremlin</div>
-        </div>
-    </div>
-);
+    );
+};
 
 interface Slide {
     id: number;
@@ -53,6 +63,38 @@ export default function WrappedPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+    const [archetypes, setArchetypes] = useState<Archetype[]>([]);
+    const [doppelgangers, setDoppelgangers] = useState<Doppelganger[]>([]);
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/landing');
+        }
+    }, [user, loading, router]);
+
+    // Fetch Profile Data (Archetypes + Doppelgangers)
+    useEffect(() => {
+        if (!user) return;
+        const fetchProfileData = async () => {
+            const supabase = createClient();
+            const { data } = await supabase
+                .from('profiles')
+                .select('personality_archetypes, doppelgangers')
+                .eq('id', user.id)
+                .single();
+
+            if (data?.personality_archetypes) {
+                // @ts-ignore
+                setArchetypes(data.personality_archetypes);
+            }
+
+            if (data?.doppelgangers) {
+                // @ts-ignore
+                setDoppelgangers(data.doppelgangers);
+            }
+        };
+        fetchProfileData();
+    }, [user]);
 
     const SLIDES: Slide[] = [
         // Slide 1
@@ -143,7 +185,7 @@ export default function WrappedPage() {
                     <h1 className="text-[34px] md:text-[48px] font-bold text-black mb-12 font-display">
                         You don't fit in one box. So we gave you four.
                     </h1>
-                    <IdentityGrid />
+                    <IdentityGrid archetypes={archetypes} />
                 </div>
             ),
             type: 'manual'
@@ -159,7 +201,7 @@ export default function WrappedPage() {
                     </h1>
                     <p className="text-[24px] text-gray-400 font-display">
                         Age is just one tiny datapoint in your Digital DNA.
-                        <br/>
+                        <br />
                         What actually matters: what you build, what you binge, and what you're obsessed with.
                     </p>
                 </div>
@@ -178,10 +220,19 @@ export default function WrappedPage() {
                     <p className="text-[24px] text-gray-400 mb-8 font-display">
                         Your Digital DNA is 87% similar to:
                     </p>
-                    <div className="text-[24px] font-bold text-white space-y-2 font-display">
-                        <p>Paul Graham</p>
-                        <p>Emma Chamberlain</p>
-                        <p>Miles Morales</p>
+                    <div className="text-[24px] font-bold text-white space-y-2 font-display min-h-[120px]">
+                        {doppelgangers.length > 0 ? (
+                            doppelgangers.map((d, i) => (
+                                <p key={i} className="animate-fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
+                                    {d.name}
+                                </p>
+                            ))
+                        ) : (
+                            // Fallback if loading or empty
+                            <>
+                                <p>Finding similar profiles...</p>
+                            </>
+                        )}
                     </div>
                     <div className="mt-12">
                         <CirclesViz />
@@ -199,7 +250,7 @@ export default function WrappedPage() {
                     <h1 className="text-[48px] font-bold text-black mb-8 font-display">
                         Welcome to The Network
                     </h1>
-                    <button 
+                    <button
                         onClick={(e) => {
                             e.stopPropagation();
                             router.push('/');
@@ -213,12 +264,6 @@ export default function WrappedPage() {
             type: 'manual'
         }
     ];
-
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push('/landing');
-        }
-    }, [user, loading, router]);
 
     // Auto-advance logic
     useEffect(() => {
@@ -244,10 +289,9 @@ export default function WrappedPage() {
     const currentSlide = SLIDES[currentSlideIndex];
 
     return (
-        <div 
-            className={`min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-500 ${
-                currentSlide.bg === 'dark' ? 'bg-[#252525] text-white' : 'bg-[#f4f3ee] text-black'
-            }`}
+        <div
+            className={`min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-500 ${currentSlide.bg === 'dark' ? 'bg-[#252525] text-white' : 'bg-[#f4f3ee] text-black'
+                }`}
             onClick={currentSlide.type === 'manual' ? handleNext : undefined}
         >
             {/* Content */}
@@ -265,13 +309,12 @@ export default function WrappedPage() {
             {/* Navigation Dots */}
             <div className="absolute bottom-8 right-8 z-20 flex gap-2">
                 {SLIDES.map((_, idx) => (
-                    <div 
+                    <div
                         key={idx}
-                        className={`w-2 h-2 rounded-full transition-colors ${
-                            idx === currentSlideIndex 
-                                ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black') 
+                        className={`w-2 h-2 rounded-full transition-colors ${idx === currentSlideIndex
+                                ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black')
                                 : 'bg-gray-400'
-                        }`}
+                            }`}
                     />
                 ))}
             </div>
