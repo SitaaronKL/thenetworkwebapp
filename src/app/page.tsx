@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Menu from '@/components/Menu';
 import ProfileModal from '@/components/ProfileModal';
+import NetworkGalaxy from '@/components/NetworkGalaxy';
 import { useAuth } from '@/contexts/AuthContext';
 import { NetworkPerson } from '@/types/network';
 import { createClient } from '@/lib/supabase';
@@ -28,23 +29,9 @@ interface Profile {
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<HTMLDivElement>(null);
-
-  const [zoom, setZoom] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [people, setPeople] = useState<NetworkPerson[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<NetworkPerson | null>(null);
   const [isLoadingNetwork, setIsLoadingNetwork] = useState(true);
-
-  // Requests State
-  const [requests, setRequests] = useState<any[]>([]);
-  const [showRequests, setShowRequests] = useState(false);
-
-  const zoomRef = useRef(zoom);
-  const positionRef = useRef(position);
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
 
   // Auth redirect
   useEffect(() => {
@@ -196,71 +183,10 @@ export default function Home() {
     loadNetworkData();
   }, [user]);
 
-  // Keep refs in sync with state
-  useEffect(() => {
-    zoomRef.current = zoom;
-    positionRef.current = position;
-  }, [zoom, position]);
+  // Requests State
+  const [requests, setRequests] = useState<any[]>([]);
+  const [showRequests, setShowRequests] = useState(false);
 
-  const getCanvasCenter = () => {
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      return { x: rect.width / 2, y: rect.height / 2 };
-    }
-    return { x: 0, y: 0 };
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handlePointerDown = (e: PointerEvent) => {
-      if ((e.target as HTMLElement).closest(`.${styles.node}`)) return;
-
-      isDraggingRef.current = true;
-      canvas.setPointerCapture(e.pointerId);
-      const center = getCanvasCenter();
-      dragStartRef.current = {
-        x: e.clientX - center.x - positionRef.current.x * zoomRef.current,
-        y: e.clientY - center.y - positionRef.current.y * zoomRef.current,
-      };
-    };
-
-    const handlePointerMove = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      const center = getCanvasCenter();
-      setPosition({
-        x: (e.clientX - center.x - dragStartRef.current.x) / zoomRef.current,
-        y: (e.clientY - center.y - dragStartRef.current.y) / zoomRef.current,
-      });
-    };
-
-    const endDrag = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      isDraggingRef.current = false;
-      canvas.releasePointerCapture(e.pointerId);
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY < 0 ? 1.08 : 0.92;
-      setZoom((prevZoom) => Math.min(4, Math.max(0.3, prevZoom * delta)));
-    };
-
-    canvas.addEventListener('pointerdown', handlePointerDown);
-    canvas.addEventListener('pointermove', handlePointerMove);
-    canvas.addEventListener('pointerup', endDrag);
-    canvas.addEventListener('pointercancel', endDrag);
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      canvas.removeEventListener('pointerdown', handlePointerDown);
-      canvas.removeEventListener('pointermove', handlePointerMove);
-      canvas.removeEventListener('pointerup', endDrag);
-      canvas.removeEventListener('pointercancel', endDrag);
-      canvas.removeEventListener('wheel', handleWheel);
-    };
-  }, []);
 
   // Accept Handler
   const handleAccept = async (request: any) => {
@@ -284,40 +210,6 @@ export default function Home() {
     }
   };
 
-  // Draw connection lines
-  const renderConnectionLines = () => {
-    const lines: React.ReactElement[] = [];
-    const drawnConnections = new Set<string>();
-
-    people.forEach((person) => {
-      person.connections.forEach((connId) => {
-        const connKey = [person.id, connId].sort().join('-');
-        if (drawnConnections.has(connKey)) return;
-        drawnConnections.add(connKey);
-
-        const connPerson = people.find((p) => p.id === connId);
-        if (!connPerson) return;
-
-        lines.push(
-          <line
-            key={connKey}
-            x1={person.x}
-            y1={person.y}
-            x2={connPerson.x}
-            y2={connPerson.y}
-            stroke="rgba(0, 0, 0, 0.08)"
-            strokeWidth="1"
-          />
-        );
-      });
-    });
-
-    return (
-      <svg className={styles.connectionsSvg}>
-        {lines}
-      </svg>
-    );
-  };
 
   if (loading || isLoadingNetwork) {
     return (
@@ -413,40 +305,11 @@ export default function Home() {
         </div>
       )}
 
-      <div className={styles.canvas} ref={canvasRef}>
-        <div
-          className={styles.graph}
-          ref={graphRef}
-          style={{
-            transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-          }}
-        >
-          {/* Connection lines */}
-          {renderConnectionLines()}
-
-          {/* Person nodes - SIMPLE COLORED DOTS */}
-          {people.map((person) => (
-            <div
-              key={person.id}
-              className={styles.node}
-              style={{
-                left: person.x,
-                top: person.y,
-              }}
-              onClick={() => setSelectedPerson(person)}
-            >
-              {/* Simple colored dot */}
-              <div
-                className={styles.dot}
-                style={{
-                  background: `radial-gradient(circle at 30% 30%, #ffffff, ${person.starColor || '#111827'} 60%, ${person.starColor || '#0b1220'} 100%)`,
-                }}
-              />
-              <div className={styles.nodeName}>{person.name}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <NetworkGalaxy
+        people={people}
+        currentUserId={user.id}
+        onPersonClick={(person) => setSelectedPerson(person)}
+      />
 
       {/* Profile Modal */}
       {selectedPerson && (

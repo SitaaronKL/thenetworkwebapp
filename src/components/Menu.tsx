@@ -9,12 +9,12 @@ import styles from './Menu.module.css';
 const menuItems = [
   { label: 'THENETWORK', href: '/' },
   { label: 'DIGITAL DNA', href: '/digital-dna' },
-  { label: 'EDIT PROFILE', href: '/edit-profile' },
   { label: 'MSG ARIA', href: '/msg-aria' },
 ];
 
 export default function Menu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInverted, setIsInverted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -87,22 +87,32 @@ export default function Menu() {
                 {item.label}
               </Link>
             ))}
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                margin: 0,
-                font: 'inherit',
-                cursor: 'pointer',
-                color: 'inherit',
-                textAlign: 'left',
-                textTransform: 'uppercase'
-              }}
-            >
-              LOGOUT
-            </button>
+
+            {/* Settings Toggle */}
+            <div className={styles.settingsSection}>
+              <button
+                className={styles.settingsToggle}
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              >
+                SETTINGS
+              </button>
+
+              <div className={`${styles.subMenu} ${isSettingsOpen ? styles.show : ''}`}>
+                <Link
+                  href="/edit-profile"
+                  onClick={() => setIsOpen(false)}
+                  className={styles.subMenuItem}
+                >
+                  EDIT PROFILE
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className={styles.subMenuItem}
+                >
+                  LOGOUT
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
