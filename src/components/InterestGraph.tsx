@@ -224,14 +224,16 @@ export default function InterestGraph({
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    fontSize: '18px',
+                    fontSize: '24px', // Slightly larger for Greek glyphs
                     backdropFilter: 'blur(5px)',
+                    fontFamily: '"Times New Roman", serif', // Classic Greek Typography look
+                    lineHeight: 1,
                 }}
                 title={showLabels ? "Hide Labels" : "Show Labels"}
                 onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
                 onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
             >
-                {showLabels ? 'T' : 'Ø'}
+                {showLabels ? 'Θ' : 'λ'}
             </button>
 
             {/* Graph Container with Fade-In */}
