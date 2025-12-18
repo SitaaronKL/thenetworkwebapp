@@ -251,3 +251,14 @@ body {
 .theme-inverted .invert-media {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* Force Sigma.js labels to white on Digital DNA page */
+.sigma-container,
+.react-sigma-container {
+  color: #ffffff !important;
+}
+
+/* Sigma.js canvas text styling */
+.sigma-labels {
+  color: #ffffff !important;
+}

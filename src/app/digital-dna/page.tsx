@@ -6,7 +6,8 @@ import Menu from '@/components/Menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import styles from './page.module.css';
-import InterestGraph from '@/components/InterestGraph';
+import dynamic from 'next/dynamic';
+const InterestGraph = dynamic(() => import('@/components/InterestGraph'), { ssr: false });
 
 export default function DigitalDnaPage() {
     const { user, loading } = useAuth();
@@ -95,7 +96,7 @@ export default function DigitalDnaPage() {
         <div className={styles.wrapper} style={{ background: '#ffffff' }}>
             <Menu />
 
-            <div style={{ width: '100vw', height: '100vh', cursor: 'move' }}>
+            <div style={{ width: '100vw', height: '100vh' }}>
                 <InterestGraph
                     interests={interests}
                     userFullName={userFullName}
