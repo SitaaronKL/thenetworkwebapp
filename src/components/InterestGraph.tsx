@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { SigmaContainer, useLoadGraph, useSigma } from '@react-sigma/core';
+import { SigmaContainer, useLoadGraph, useSigma, useRegisterEvents } from '@react-sigma/core';
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
 import '@react-sigma/core/lib/style.css';
@@ -10,6 +10,7 @@ interface InterestGraphProps {
     interests: string[];
     userFullName?: string;
     onGraphLoaded?: () => void;
+    onInterestClick?: (interest: string) => void;
 }
 
 const GraphController: React.FC<{
@@ -18,9 +19,11 @@ const GraphController: React.FC<{
     onGraphLoaded?: () => void;
     setIsReady: (ready: boolean) => void;
     showLabels: boolean;
-}> = ({ interests, userFullName, onGraphLoaded, setIsReady, showLabels }) => {
+    onInterestClick?: (interest: string) => void;
+}> = ({ interests, userFullName, onGraphLoaded, setIsReady, showLabels, onInterestClick }) => {
     const loadGraph = useLoadGraph();
     const sigma = useSigma();
+    const registerEvents = useRegisterEvents();
 
     // Handle Label Toggle without re-mounting
     useEffect(() => {
@@ -30,7 +33,6 @@ const GraphController: React.FC<{
         // Also force refresh to apply change immediately
         sigma.refresh();
     }, [showLabels, sigma]);
-
     const { assign: assignForceAtlas2 } = useLayoutForceAtlas2({
         iterations: 150,
         settings: {
@@ -41,6 +43,30 @@ const GraphController: React.FC<{
             linLogMode: false,
         },
     });
+
+    useEffect(() => {
+        // Register events
+        registerEvents({
+            clickNode: (event) => {
+                const nodeData = event.node;
+                const nodeAttributes = sigma.getGraph().getNodeAttributes(nodeData);
+
+                if (nodeAttributes.isClusterCenter && onInterestClick) {
+                    onInterestClick(nodeAttributes.label);
+                }
+            },
+            enterNode: (event) => {
+                const nodeData = event.node;
+                const nodeAttributes = sigma.getGraph().getNodeAttributes(nodeData);
+                if (nodeAttributes.isClusterCenter) {
+                    document.body.style.cursor = 'pointer';
+                }
+            },
+            leaveNode: () => {
+                document.body.style.cursor = 'default';
+            }
+        });
+    }, [registerEvents, sigma, onInterestClick]);
 
     useEffect(() => {
         const graph = new Graph();
@@ -180,7 +206,8 @@ const GraphController: React.FC<{
 export default function InterestGraph({
     interests,
     userFullName = 'Me',
-    onGraphLoaded
+    onGraphLoaded,
+    onInterestClick
 }: InterestGraphProps) {
     const [isReady, setIsReady] = useState(false);
     const [showLabels, setShowLabels] = useState(true);
@@ -253,6 +280,7 @@ export default function InterestGraph({
                         onGraphLoaded={onGraphLoaded}
                         setIsReady={setIsReady}
                         showLabels={showLabels}
+                        onInterestClick={onInterestClick}
                     />
                 </SigmaContainer>
             </div>
