@@ -69,19 +69,19 @@ export default function DigitalDnaPage() {
 
     if (loading || isLoadingGraph) {
         return (
-            <div className={styles.wrapper} style={{ background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className={styles.wrapper} style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Menu />
                 <div style={{ textAlign: 'center' }}>
                     <div className="spinner" style={{
                         width: '48px',
                         height: '48px',
-                        border: '3px solid rgba(0, 0, 0, 0.1)',
-                        borderTopColor: '#000',
+                        border: '3px solid rgba(255, 255, 255, 0.1)',
+                        borderTopColor: '#fff',
                         borderRadius: '50%',
                         animation: 'spin 1s linear infinite',
                         margin: '0 auto 16px'
                     }}></div>
-                    <p style={{ color: '#000', fontSize: '16px' }}>Loading your interest graph...</p>
+                    <p style={{ color: '#fff', fontSize: '16px' }}>Loading your interest graph...</p>
                     <style jsx>{`
                         @keyframes spin {
                             to { transform: rotate(360deg); }
@@ -93,7 +93,7 @@ export default function DigitalDnaPage() {
     }
 
     return (
-        <div className={styles.wrapper} style={{ background: '#ffffff' }}>
+        <div className={styles.wrapper} style={{ background: '#000' }}>
             <Menu />
 
             <div style={{ width: '100vw', height: '100vh' }}>

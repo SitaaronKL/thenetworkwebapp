@@ -1,99 +1,175 @@
-:root {
-  --dot-size: 64px;
-  --shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+.container {
+    min-height: 100vh;
+    background-color: #ffffff;
+    /* Becomes Black when inverted */
+    color: #000000;
+    /* Becomes White when inverted */
+    position: relative;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.canvas {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  cursor: grab;
-  touch-action: none;
-  overflow: hidden;
-  background: #ffffff;
+.graphContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% - 482px);
+    height: 100%;
+    z-index: 1;
 }
 
-.canvas:active {
-  cursor: grabbing;
+/* Right Side Panel: Aria's Suggestions */
+.suggestionsPanel {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    transform: translateY(-50%);
+    width: 442px;
+    height: 567px;
+
+    /* Inverted Logic: Glassy White/Light Grey -> Becomes Glassy Dark Grey/Black */
+    background: rgba(250, 250, 250, 1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+
+    border-radius: 40px;
+    /* Soft shadow in light mode -> Soft glow/shadow in dark mode */
+    box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.05);
+
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+    z-index: 10;
 }
 
-.graph {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 800px;
-  height: 1200px;
-  transform-origin: center;
-  user-select: none;
-  touch-action: none;
+.panelTitle {
+    font-size: 28px;
+    font-weight: 700;
+    text-align: left;
+    /* Aligned left as per Figma */
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+    margin-top: 0;
+    color: #000;
+    /* Inverts to White */
 }
 
-.connectionsSvg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+.actionIcons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 30px;
 }
 
-/* Network node */
-.node {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+.iconButton {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    /* Inverts to light border */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.node:hover {
-  transform: translate(-50%, -50%) scale(1.15);
+.iconButton:hover {
+    background: rgba(0, 0, 0, 0.05);
+    /* Slight hover effect */
 }
 
-.node:hover .dot {
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+.suggestionList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    flex: 1;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-/* Simple colored dot - matches original design */
-.dot {
-  width: var(--dot-size);
-  height: var(--dot-size);
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffffff, #111827 60%, #0b1220 100%);
-  box-shadow: var(--shadow);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+.suggestionList::-webkit-scrollbar {
+    display: none;
 }
 
-.nodeName {
-  margin-top: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #333;
-  text-align: center;
+.suggestionCard {
+    width: 100%;
+    height: 100px;
+    /* Slightly shorter to fit nicely */
+    border-radius: 40px;
+    /* High curvature */
+
+    /* Inverted Logic: Light Grey Background -> Dark Grey Card */
+    background: #EAEAEA;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: none;
+    /* Flat style as per screenshot */
+
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.suggestionCard:hover {
+    transform: scale(1.02);
+}
+
+.cardAvatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #ccc;
+    flex-shrink: 0;
+}
+
+.cardInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cardName {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: -0.3px;
+    color: #000;
+}
+
+.cardReason {
+    font-size: 16px;
+    color: rgba(0, 0, 0, 0.6);
+    /* Inverts to slightly dimmed white */
+    font-weight: 400;
+    line-height: 1.3;
 }
 
 /* Loading state */
 .loadingContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #fff;
 }
 
 .loader {
-  width: 48px;
-  height: 48px;
-  border: 3px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #111827;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #111827;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+    to {
+        transform: rotate(360deg);
+    }
 }

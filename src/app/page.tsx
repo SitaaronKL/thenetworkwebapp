@@ -27,12 +27,22 @@ interface Profile {
   interests?: string[];
 }
 
+import AddUserIcon from '@/components/icons/AddUserIcon';
+import SearchIcon from '@/components/icons/SearchIcon';
+
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [people, setPeople] = useState<NetworkPerson[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<NetworkPerson | null>(null);
   const [isLoadingNetwork, setIsLoadingNetwork] = useState(true);
+
+  // Aria's Suggestions State
+  const [suggestions, setSuggestions] = useState<any[]>([
+    { id: '1', name: 'Tristan', reason: 'Also loves tech', avatar: '/assets/onboarding/tn_logo_black.png' },
+    { id: '2', name: 'Dhruv', reason: 'You two both love Warframe!', avatar: '/assets/onboarding/tn_logo_black.png' },
+    { id: '3', name: 'Ayen', reason: 'Big philosopher guy', avatar: '/assets/onboarding/tn_logo_black.png' },
+  ]);
 
   // Auth redirect
   useEffect(() => {
@@ -63,23 +73,6 @@ export default function Home() {
           .select('*')
           .eq('receiver_id', user.id)
           .eq('status', 'pending');
-
-        // Process Pending
-        if (pending && pending.length > 0) {
-          const senderIds = pending.map(p => p.sender_id);
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('id', senderIds);
-
-          const requestsWithProfile = pending.map(p => {
-            const profile = profiles?.find(pr => pr.id === p.sender_id);
-            return { ...p, profile: profile || {} };
-          });
-          setRequests(requestsWithProfile);
-        } else {
-          setRequests([]);
-        }
 
         if (connError) {
           console.error('Error fetching connections:', connError);
@@ -127,7 +120,8 @@ export default function Home() {
       loadedPeople.push(createCurrentUserNode(
         userId,
         currentProfile?.full_name?.split(' ')[0] || 'You',
-        currentProfile?.star_color || '#8E5BFF'
+        currentProfile?.star_color || '#8E5BFF',
+        currentProfile?.avatar_url
       ));
 
       // Get unique friend IDs
@@ -159,6 +153,7 @@ export default function Home() {
             stars: 4, // Default stars
             connections: [userId],
             bio: profile.bio,
+            imageUrl: profile.avatar_url
           });
 
           // Update current user's connections
@@ -171,7 +166,7 @@ export default function Home() {
       setIsLoadingNetwork(false);
     };
 
-    const createCurrentUserNode = (id: string, name: string, color: string): NetworkPerson => ({
+    const createCurrentUserNode = (id: string, name: string, color: string, avatarUrl?: string): NetworkPerson => ({
       id,
       name,
       starColor: color,
@@ -179,38 +174,11 @@ export default function Home() {
       y: 500,
       stars: 5,
       connections: [],
+      imageUrl: avatarUrl
     });
 
     loadNetworkData();
   }, [user]);
-
-  // Requests State
-  const [requests, setRequests] = useState<any[]>([]);
-  const [showRequests, setShowRequests] = useState(false);
-
-
-  // Accept Handler
-  const handleAccept = async (request: any) => {
-    const supabase = createClient();
-    try {
-      const { error } = await supabase
-        .from('user_connections')
-        .update({ status: 'accepted' })
-        .eq('id', request.id);
-
-      if (error) throw error;
-
-      // Remove from list
-      setRequests(prev => prev.filter(r => r.id !== request.id));
-
-      // Reload for safety to show new graph
-      window.location.reload();
-    } catch (e) {
-      console.error('Error accepting:', e);
-      alert('Failed to accept request');
-    }
-  };
-
 
   if (loading || isLoadingNetwork) {
     return (
@@ -225,92 +193,43 @@ export default function Home() {
   }
 
   return (
-    <>
+    <div className={styles.container}>
       <Menu />
 
-      {/* Requests Notification */}
-      <button
-        className={styles.requestsBtn}
-        onClick={() => setShowRequests(true)}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 100,
-          background: requests.length > 0 ? '#ff0050' : '#f0f0f0',
-          color: requests.length > 0 ? 'white' : '#333',
-          border: 'none',
-          padding: '10px 20px',
-          borderRadius: '20px',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-        }}
-      >
-        Requests {requests.length > 0 ? `(${requests.length})` : ''}
-      </button>
+      {/* Network Graph Background */}
+      <div className={styles.graphContainer}>
+        <NetworkGalaxy
+          people={people}
+          currentUserId={user.id}
+          onPersonClick={(person) => setSelectedPerson(person)}
+        />
+      </div>
 
-      {/* Requests Modal */}
-      {showRequests && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          zIndex: 200,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }} onClick={() => setShowRequests(false)}>
-          <div style={{
-            background: 'white',
-            padding: '20px',
-            borderRadius: '16px',
-            width: '90%',
-            maxWidth: '400px',
-            maxHeight: '80vh',
-            overflowY: 'auto'
-          }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0, marginBottom: '20px', color: 'black' }}>Pending Requests</h2>
-            {requests.length === 0 ? (
-              <p style={{ color: 'black' }}>No more requests.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {requests.map(req => (
-                  <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '15px', borderBottom: '1px solid #eee' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '40px', height: '40px', borderRadius: '50%',
-                        background: req.profile?.star_color || '#eee',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'white', fontWeight: 'bold'
-                      }}>
-                        {req.profile?.full_name?.[0] || '?'}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: 'black' }}>{req.profile?.full_name || 'Unknown'}</div>
-                        <div style={{ fontSize: '12px', color: '#666' }}>Wants to connect</div>
-                      </div>
-                    </div>
-                    <button onClick={() => handleAccept(req)} style={{
-                      background: 'black', color: 'white', border: 'none',
-                      padding: '8px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer'
-                    }}>
-                      Accept
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setShowRequests(false)} style={{ marginTop: '20px', width: '100%', padding: '10px', background: '#f5f5f5', border: 'none', borderRadius: '8px', cursor: 'pointer', color: 'black' }}>Close</button>
+      {/* Aria's Suggestions Overlay */}
+      <div className={styles.suggestionsPanel}>
+        <h2 className={styles.panelTitle}>Aria's Suggestions</h2>
+
+        <div className={styles.actionIcons}>
+          <div className={styles.iconButton}>
+            <AddUserIcon />
+          </div>
+          <div className={styles.iconButton}>
+            <SearchIcon />
           </div>
         </div>
-      )}
 
-      <NetworkGalaxy
-        people={people}
-        currentUserId={user.id}
-        onPersonClick={(person) => setSelectedPerson(person)}
-      />
+        <div className={styles.suggestionList}>
+          {suggestions.map((person) => (
+            <div key={person.id} className={styles.suggestionCard}>
+              <img src={person.avatar} alt={person.name} className={styles.cardAvatar} />
+              <div className={styles.cardInfo}>
+                <div className={styles.cardName}>{person.name}</div>
+                <div className={styles.cardReason}>{person.reason}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Profile Modal */}
       {selectedPerson && (
@@ -319,6 +238,6 @@ export default function Home() {
           onClose={() => setSelectedPerson(null)}
         />
       )}
-    </>
+    </div>
   );
 }

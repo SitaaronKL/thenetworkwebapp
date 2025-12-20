@@ -44,8 +44,12 @@
 .menuLines span {
   display: block;
   height: 6px;
-  background: #0f172a;
+  background: #ffffff;
   border-radius: 999px;
+}
+
+.menuButton.inner .menuLines span {
+  background: #0f172a;
 }
 
 .menuPanel {

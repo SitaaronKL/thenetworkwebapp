@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import Menu from '@/components/Menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { AriaService } from '@/services/aria';
-import { AriaMessage } from '@/types/aria';
+import { AriaMessage, RecommendationCandidate } from '@/types/aria';
 import styles from './page.module.css';
-import CandidateCard from '@/components/CandidateCard';
 import { createClient } from '@/lib/supabase';
+import CandidateDetailModal from './CandidateDetailModal';
 
 export default function MsgAriaPage() {
     const { user, loading } = useAuth();
@@ -17,10 +17,15 @@ export default function MsgAriaPage() {
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const [connections, setConnections] = useState<Set<string>>(new Set());
     const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
     const isSending = useRef(false);
+
+    // Accumulated candidates from all messages
+    const [allCandidates, setAllCandidates] = useState<RecommendationCandidate[]>([]);
+    const [selectedCandidate, setSelectedCandidate] = useState<RecommendationCandidate | null>(null);
+
+    // Limit to top 3 candidates
+    const displayCandidates = allCandidates.slice(0, 3);
 
     // Scroll to bottom
     const scrollToBottom = () => {
@@ -31,6 +36,21 @@ export default function MsgAriaPage() {
         scrollToBottom();
     }, [messages, isTyping]);
 
+    // Update candidates list whenever messages change
+    useEffect(() => {
+        const candidatesMap = new Map<string, RecommendationCandidate>();
+        messages.forEach(msg => {
+            if (msg.candidates) {
+                msg.candidates.forEach(c => {
+                    if (!candidatesMap.has(c.id)) {
+                        candidatesMap.set(c.id, c);
+                    }
+                });
+            }
+        });
+        setAllCandidates(Array.from(candidatesMap.values()));
+    }, [messages]);
+
     // Auth redirect
     useEffect(() => {
         if (!loading && !user) {
@@ -38,13 +58,12 @@ export default function MsgAriaPage() {
         }
     }, [user, loading, router]);
 
-    // Load Pending Requests (Connections are now checked per candidate via AriaService)
+    // Load Pending Requests
     useEffect(() => {
         if (!user) return;
         const fetchPendingRequests = async () => {
             const supabase = createClient();
             try {
-                // Fetch pending requests
                 const { data: reqs } = await supabase
                     .from('friend_requests')
                     .select('receiver_id')
@@ -66,8 +85,6 @@ export default function MsgAriaPage() {
         if (!user) return;
         const loadHistory = async () => {
             const history = await AriaService.getHistory(user.id);
-
-            // Deduplicate history
             const uniqueHistory = history.reduce((acc: any[], current: any) => {
                 const isDuplicate = acc.find(item =>
                     (item.id && item.id === current.id) ||
@@ -95,7 +112,7 @@ export default function MsgAriaPage() {
     const handleInvite = async (candidateId: string) => {
         if (!user) return;
         try {
-            if (pendingRequests.has(candidateId)) return; // Only check pending requests locally
+            if (pendingRequests.has(candidateId)) return;
             const supabase = createClient();
             const { error } = await supabase
                 .from('friend_requests')
@@ -115,25 +132,12 @@ export default function MsgAriaPage() {
         }
     };
 
-    const handleSkip = (candidateId: string) => {
-        setMessages(prev => prev.map(msg => {
-            if (msg.candidates) {
-                return {
-                    ...msg,
-                    candidates: msg.candidates.filter(c => c.id !== candidateId)
-                };
-            }
-            return msg;
-        }));
-    };
-
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!input.trim() || !user || isTyping || isSending.current) return;
 
         const userMsgContent = input.trim();
-
-        // Simple dedupe: check if last message is identical
+        // Simple dedupe
         if (messages.length > 0 && messages[messages.length - 1].content === userMsgContent && messages[messages.length - 1].isFromUser) {
             return;
         }
@@ -142,7 +146,6 @@ export default function MsgAriaPage() {
         setIsTyping(true);
         isSending.current = true;
 
-        // Optimistic UI update
         const newUserMsg: AriaMessage = {
             content: userMsgContent,
             isFromUser: true,
@@ -152,15 +155,15 @@ export default function MsgAriaPage() {
         setMessages(prev => [...prev, newUserMsg]);
 
         try {
-            // REMOVED manual storeMessage for usage, assuming backend handles it to prevent duplicates
-            // await AriaService.storeMessage(user.id, userMsgContent, true);
-
             const apiHistory = messages.slice(-10).map(m => ({
                 role: m.isFromUser ? 'user' : 'assistant',
                 content: m.content
             }));
 
-            const result = await AriaService.sendMessage(userMsgContent, apiHistory);
+            // Inject system instruction for concise reasons matching the design
+            const systemInstruction = `\n\n[System: For any candidate recommendations, please keep the reasoning extremely brief (max 6 words). Start with "Also..." or "Similar..." e.g., "Also interested in UI Design". Please try to recommend 3 candidates if possible.]`;
+
+            const result = await AriaService.sendMessage(userMsgContent + systemInstruction, apiHistory);
 
             if (result && (result.response || (result.candidates && result.candidates.length > 0))) {
                 const ariaMsg: AriaMessage = {
@@ -170,11 +173,6 @@ export default function MsgAriaPage() {
                     candidates: result.candidates
                 };
                 setMessages(prev => [...prev, ariaMsg]);
-
-                // REMOVED manual storeMessage for response as well
-                // if (result.response) {
-                //    await AriaService.storeMessage(user.id, result.response, false);
-                // }
             } else {
                 const errorMsg: AriaMessage = {
                     content: "Sorry, I'm having trouble connecting to the network.",
@@ -197,78 +195,66 @@ export default function MsgAriaPage() {
         <div className={styles.container}>
             <Menu />
 
-            <div className={styles.chatWrapper}>
-                <div className={styles.header}>
-                    <div className={styles.avatar}>
-                        <span className={styles.avatarIcon}>✨</span>
-                    </div>
-                    <h1>Aria</h1>
-                </div>
+            <div className={styles.layoutGrid}>
+                <div className={styles.leftColumn}>
+                    {/* Top: People you should meet */}
+                    <div className={`${styles.glassPanel} ${styles.peoplePanel}`}>
+                        <h2 className={styles.columnTitle}>People you should meet</h2>
+                        <div className={`${styles.panelContent} ${styles.peopleList}`}>
+                            {displayCandidates.map((candidate, idx) => {
+                                const isPending = pendingRequests.has(candidate.id) || candidate.isPending;
+                                const isConnected = candidate.isConnected;
 
-                <div className={styles.messagesArea}>
-                    {messages.map((msg, index) => (
-                        <div
-                            key={index}
-                            className={`${styles.messageRow} ${msg.isFromUser ? styles.userRow : styles.ariaRow}`}
-                        >
-                            {!msg.isFromUser && (
-                                <div className={styles.messageAvatar}>
-                                    <span className={styles.avatarIconSmall}>✨</span>
+                                return (
+                                    <div
+                                        key={candidate.id || idx}
+                                        className={styles.personCard}
+                                        onClick={() => setSelectedCandidate(candidate)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <img
+                                            className={styles.personAvatar}
+                                            src={candidate.avatarUrl || '/assets/onboarding/tn_logo_black.png'}
+                                            alt={candidate.name}
+                                            onError={(e) => {
+                                                const target = e.currentTarget;
+                                                const fallback = '/assets/onboarding/tn_logo_black.png';
+                                                if (target.src.includes(fallback)) return;
+                                                target.src = fallback;
+                                            }}
+                                        />
+                                        <div className={styles.personInfo}>
+                                            <div className={styles.personName}>
+                                                {candidate.name || 'Unknown User'}
+                                            </div>
+                                            <div className={styles.personReason}>{candidate.matchReason || candidate.headline || 'Recommended'}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {displayCandidates.length === 0 && (
+                                <div style={{ color: '#888', textAlign: 'center', marginTop: '40px' }}>
+                                    No candidates found yet. Ask Aria to introduce you to someone!
                                 </div>
                             )}
-                            <div className={styles.messageContent}>
-                                <div className={`${styles.bubble} ${msg.isFromUser ? styles.userBubble : styles.ariaBubble}`}>
-                                    {msg.content}
-                                </div>
-
-                                {!msg.isFromUser && msg.candidates && msg.candidates.length > 0 && (
-                                    <div className={styles.candidatesGrid}>
-                                        {msg.candidates.map(candidate => (
-                                            <CandidateCard
-                                                key={candidate.id}
-                                                candidate={candidate}
-                                                connectionStatus={
-                                                    candidate.isConnected ? 'connected' :
-                                                        (pendingRequests.has(candidate.id) || candidate.isPending) ? 'pending' : 'none'
-                                                }
-                                                onInvite={handleInvite}
-                                                onSkip={handleSkip}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
                         </div>
-                    ))}
+                    </div>
 
-                    {isTyping && (
-                        <div className={`${styles.messageRow} ${styles.ariaRow}`}>
-                            <div className={styles.messageAvatar}>
-                                <span className={styles.avatarIconSmall}>✨</span>
-                            </div>
-                            <div className={`${styles.bubble} ${styles.ariaBubble} ${styles.typingBubble}`}>
-                                <span className={styles.dot}></span>
-                                <span className={styles.dot}></span>
-                                <span className={styles.dot}></span>
-                            </div>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
+
                 </div>
 
-                <form className={styles.inputArea} onSubmit={handleSend}>
-                    <input
-                        type="text"
-                        className={styles.input}
-                        placeholder="Message Aria..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                    />
-                    <button type="submit" className={styles.sendButton} disabled={!input.trim() || isTyping}>
-                        ➜
-                    </button>
-                </form>
+
             </div>
+
+            {selectedCandidate && (
+                <CandidateDetailModal
+                    candidate={selectedCandidate}
+                    onClose={() => setSelectedCandidate(null)}
+                    onInvite={handleInvite}
+                    isPending={pendingRequests.has(selectedCandidate.id) || !!selectedCandidate.isPending}
+                    isConnected={!!selectedCandidate.isConnected}
+                />
+            )}
         </div>
     );
 }

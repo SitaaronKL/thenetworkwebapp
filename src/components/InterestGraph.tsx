@@ -189,7 +189,7 @@ export default function InterestGraph({
         labelFont: 'Inter, system-ui, sans-serif',
         labelWeight: '600',
         labelSize: 14,
-        labelColor: { color: '#000000' },
+        labelColor: { color: '#ffffff' },
         renderEdgeLabels: false,
         defaultNodeColor: '#06b6d4',
         defaultEdgeColor: 'rgba(0,0,0,0)',
