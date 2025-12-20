@@ -30,6 +30,13 @@ interface Profile {
 import AddUserIcon from '@/components/icons/AddUserIcon';
 import SearchIcon from '@/components/icons/SearchIcon';
 
+// Helper to resolve avatar URL
+const getAvatarUrl = (path?: string | null) => {
+  if (!path) return undefined;
+  if (path.startsWith('http')) return path;
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-images/${path}`;
+};
+
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -121,7 +128,7 @@ export default function Home() {
         userId,
         currentProfile?.full_name?.split(' ')[0] || 'You',
         currentProfile?.star_color || '#8E5BFF',
-        currentProfile?.avatar_url
+        getAvatarUrl(currentProfile?.avatar_url)
       ));
 
       // Get unique friend IDs
@@ -153,7 +160,7 @@ export default function Home() {
             stars: 4, // Default stars
             connections: [userId],
             bio: profile.bio,
-            imageUrl: profile.avatar_url
+            imageUrl: getAvatarUrl(profile.avatar_url)
           });
 
           // Update current user's connections
@@ -178,7 +185,7 @@ export default function Home() {
     });
 
     loadNetworkData();
-  }, [user]);
+  }, [user?.id]);
 
   if (loading || isLoadingNetwork) {
     return (

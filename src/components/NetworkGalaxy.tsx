@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { SigmaContainer, useLoadGraph, useSigma } from '@react-sigma/core';
-import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
-import Graph from 'graphology';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { NetworkPerson } from '@/types/network';
-import { NodeImageProgram } from '@sigma/node-image';
-import '@react-sigma/core/lib/style.css';
+
+// Dynamically import ForceGraph2D to avoid SSR issues
+const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { 
+    ssr: false,
+    loading: () => <div style={{ height: '100%', width: '100%' }} /> 
+});
 
 interface NetworkGalaxyProps {
     people: NetworkPerson[];
@@ -14,110 +16,202 @@ interface NetworkGalaxyProps {
     onPersonClick?: (person: NetworkPerson) => void;
 }
 
-const GraphController: React.FC<{
-    people: NetworkPerson[];
-    currentUserId: string;
-    onPersonClick?: (person: NetworkPerson) => void;
-}> = ({ people, currentUserId, onPersonClick }) => {
-    const loadGraph = useLoadGraph();
-    const sigma = useSigma();
-    const { assign: assignForceAtlas2 } = useLayoutForceAtlas2({
-        iterations: 100,
-        settings: {
-            gravity: 1,
-            scalingRatio: 7.5, // Reduced from 10 to 7.5 (25% shorter lines)
-            adjustSizes: true,
-        },
-    });
+export default React.memo(function NetworkGalaxy({
+    people,
+    currentUserId,
+    onPersonClick: _ignored
+}: NetworkGalaxyProps) {
+    const [isInverted, setIsInverted] = useState(false);
+    const fgRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
-        const graph = new Graph();
+        const checkInverted = () => {
+            setIsInverted(document.documentElement.classList.contains('theme-inverted'));
+        };
+        checkInverted();
 
-        // Add Nodes
-        people.forEach((person) => {
-            const isUser = person.id === currentUserId;
-            const hasImage = !!person.imageUrl;
-
-            graph.addNode(person.id, {
-                label: person.name,
-                x: Math.random(),
-                y: Math.random(),
-                // Increased sizes: 15->20 (+33%), 8->12 (+50%)
-                size: isUser ? 20 : 12,
-                color: person.starColor || '#8E5BFF',
-                // Use image type if available, otherwise circle
-                type: hasImage ? 'image' : 'circle',
-                image: person.imageUrl,
-                person: person, // Store original data
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    checkInverted();
+                }
             });
         });
 
-        // Add Edges
-        const drawnLinks = new Set<string>();
-        people.forEach((person) => {
-            if (person.connections) {
-                person.connections.forEach((targetId) => {
-                    if (graph.hasNode(targetId)) {
-                        const linkKey = [person.id, targetId].sort().join('-');
-                        if (!drawnLinks.has(linkKey)) {
-                            graph.addEdge(person.id, targetId, {
-                                size: 1,
-                                color: '#e5e7eb',
-                            });
-                            drawnLinks.add(linkKey);
-                        }
-                    }
+        observer.observe(document.documentElement, { attributes: true });
+
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                setDimensions({
+                    width: containerRef.current.offsetWidth,
+                    height: containerRef.current.offsetHeight
                 });
             }
-        });
-
-        loadGraph(graph);
-        assignForceAtlas2();
-
-        // Events
-        sigma.on('clickNode', (event) => {
-            const nodeData = graph.getNodeAttributes(event.node);
-            if (onPersonClick && nodeData.person) {
-                onPersonClick(nodeData.person);
-            }
-        });
-
-        return () => {
-            sigma.removeAllListeners();
         };
-    }, [people, currentUserId, loadGraph, sigma, assignForceAtlas2, onPersonClick]);
 
-    return null;
-};
+        window.addEventListener('resize', updateDimensions);
+        updateDimensions();
 
-export default function NetworkGalaxy({
-    people,
-    currentUserId,
-    onPersonClick
-}: NetworkGalaxyProps) {
+        return () => window.removeEventListener('resize', updateDimensions);
+    }, []);
+
+    const graphData = useMemo(() => {
+        const nodes = people.map((p, i) => {
+            const isUser = p.id === currentUserId;
+            // Initial Positioning: User at center (0, 0), others in a wide circle around
+            
+            let x = isUser ? 0 : 0;
+            let y = isUser ? 0 : 0;
+
+            if (!isUser) {
+                // Distribute others in a wide circle around (0, 0)
+                const count = people.length - 1 || 1;
+                const angle = (i / count) * Math.PI * 2;
+                const radius = 450; // Default spacing
+                x = Math.cos(angle) * radius;
+                y = Math.sin(angle) * radius;
+            }
+
+            return {
+                id: p.id,
+                name: p.name,
+                val: isUser ? 35 : 25, // Default node sizes
+                color: p.starColor || '#8E5BFF',
+                imgUrl: p.imageUrl,
+                img: null as HTMLImageElement | null,
+                x,
+                y
+            };
+        });
+
+        const links: { source: string; target: string }[] = [];
+        const linkSet = new Set<string>();
+        const nodeIds = new Set(nodes.map(n => n.id));
+
+        people.forEach(p => {
+             if (p.connections) {
+                 p.connections.forEach(targetId => {
+                     if (nodeIds.has(targetId)) {
+                         const linkKey = [p.id, targetId].sort().join('-');
+                         if (!linkSet.has(linkKey)) {
+                             linkSet.add(linkKey);
+                             links.push({ source: p.id, target: targetId });
+                         }
+                     }
+                 });
+             }
+        });
+
+        return { nodes, links };
+    }, [people, currentUserId]);
+
+    // Apply Obsidian-like Physics and set initial zoom
+    useEffect(() => {
+        if (fgRef.current) {
+            const fg = fgRef.current;
+            
+            // 1. Charge Force (Repulsion) - Very strong to keep nodes far apart
+            fg.d3Force('charge').strength(-3000).distanceMax(5000);
+
+            // 2. Link Force - Default spring distance
+            fg.d3Force('link').distance(375);
+
+            // 3. Center Force - Very weak to allow open layout
+            fg.d3Force('center').strength(0.01);
+            
+            // Set initial zoom level (0.7 = more zoomed out)
+            fg.zoom(0.7, 0);
+            
+            // Reheat to apply new forces
+            fg.d3ReheatSimulation();
+        }
+    }, [graphData]);
+
+    const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+        const r = node.val;
+        const { x, y } = node;
+
+        // Draw background circle
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, 2 * Math.PI, false);
+        ctx.fillStyle = node.color;
+        ctx.fill();
+
+        // Draw image if available
+        if (node.imgUrl) {
+            if (!node.img) {
+                const img = new Image();
+                img.src = node.imgUrl;
+                img.onload = () => {
+                    node.img = img;
+                };
+                node.img = img;
+            } else if (node.img.complete && node.img.naturalWidth > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, 2 * Math.PI, false);
+                ctx.clip();
+                try {
+                    ctx.drawImage(node.img, x - r, y - r, r * 2, r * 2);
+                } catch (e) {}
+                ctx.restore();
+            }
+        }
+        
+        // Draw Label
+        if (node.name) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = isInverted ? '#ffffff' : '#000000';
+            ctx.font = '600 12px Inter, system-ui, sans-serif';
+            ctx.fillText(node.name, x, y + r + 6);
+        }
+    }, [isInverted]);
+
     return (
-        <div style={{ width: '100%', height: '100%', position: 'relative', background: '#ffffff' }}>
-            <SigmaContainer
-                style={{ height: '100%', width: '100%' }}
-                settings={{
-                    // Register the image program
-                    nodeProgramClasses: { image: NodeImageProgram },
-                    labelFont: 'Inter, system-ui, sans-serif',
-                    labelWeight: '600',
-                    labelSize: 12,
-                    labelColor: { color: '#333' },
-                    renderEdgeLabels: false,
-                    defaultNodeColor: '#8E5BFF',
-                    defaultEdgeColor: '#e5e7eb',
-                    zIndex: true,
-                }}
-            >
-                <GraphController
-                    people={people}
-                    currentUserId={currentUserId}
-                    onPersonClick={onPersonClick}
-                />
-            </SigmaContainer>
+        <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* Background */}
+            <div style={{ position: 'absolute', inset: 0, background: '#ffffff', zIndex: 0 }} />
+
+            {/* Graph Layer */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+                background: 'transparent',
+                filter: isInverted ? 'invert(1) hue-rotate(180deg)' : 'none',
+                transition: 'filter 0.3s'
+            }}>
+                {dimensions.width > 0 && (
+                    <ForceGraph2D
+                        ref={fgRef}
+                        width={dimensions.width}
+                        height={dimensions.height}
+                        graphData={graphData}
+                        nodeLabel={() => ''}
+                        nodeCanvasObject={drawNode}
+                        enableNodeDrag={true} // Dragging enabled
+                        onNodeClick={() => {}} // Click disabled
+                        linkColor={() => '#e5e7eb'}
+                        backgroundColor="transparent"
+                        
+                        // Physics Settings for "Obsidian Feel"
+                        // Lower decay -> Fluid movement, higher velocity decay -> Less bouncy
+                        d3AlphaDecay={0.01} 
+                        d3VelocityDecay={0.4} 
+                        cooldownTicks={Infinity}
+                        
+                        // No warmup ticks - we initialize positions manually
+                        warmupTicks={0} 
+                    />
+                )}
+            </div>
         </div>
     );
-}
+});

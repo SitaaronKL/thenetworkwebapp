@@ -36,11 +36,9 @@ export default function Menu() {
     const applyInvert = (active: boolean) => {
       if (active) {
         document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';
-        document.documentElement.style.backgroundColor = '#111827';
         document.documentElement.classList.add('theme-inverted');
       } else {
         document.documentElement.style.filter = '';
-        document.documentElement.style.backgroundColor = '';
         document.documentElement.classList.remove('theme-inverted');
       }
     };
@@ -57,7 +55,6 @@ export default function Menu() {
     setIsInverted(false);
     localStorage.removeItem('theme_inverted');
     document.documentElement.style.filter = '';
-    document.documentElement.style.backgroundColor = '';
     document.documentElement.classList.remove('theme-inverted');
 
     const supabase = createClient();

@@ -13,7 +13,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100% - 482px);
+    width: 100%;
     height: 100%;
     z-index: 1;
 }
@@ -29,11 +29,10 @@
 
     /* Inverted Logic: Glassy White/Light Grey -> Becomes Glassy Dark Grey/Black */
     background: rgba(250, 250, 250, 1);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: none;
 
     border-radius: 40px;
-    /* Soft shadow in light mode -> Soft glow/shadow in dark mode */
-    box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
 
     display: flex;
     flex-direction: column;
