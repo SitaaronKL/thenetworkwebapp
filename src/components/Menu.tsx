@@ -9,7 +9,7 @@ import styles from './Menu.module.css';
 const menuItems = [
   { label: 'THENETWORK', href: '/' },
   { label: 'DIGITAL DNA', href: '/digital-dna' },
-  { label: 'MSG ARIA', href: '/msg-aria' },
+  { label: 'ARI', href: '/msg-aria' },
 ];
 
 export default function Menu() {

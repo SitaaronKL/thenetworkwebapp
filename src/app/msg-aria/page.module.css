@@ -1,318 +1,199 @@
 .container {
-    height: 100vh;
+    min-height: 100vh;
     background-color: #ffffff;
-    /* Becomes Black when inverted */
     color: #000000;
-    /* Becomes White when inverted */
     display: flex;
-    justify-content: center;
-    /* Centered initially */
+    flex-direction: column;
+    align-items: center;
     padding-top: 40px;
-    /* Add top padding instead of center alignment */
     position: relative;
-    overflow: hidden;
-    /* Enforce no scrolling */
     box-sizing: border-box;
-    /* Include padding in height calculation */
-    /* Use margin-left auto on grid to push it right, instead of padding tricks */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.layoutGrid {
+.memoWrapper {
     display: flex;
     justify-content: center;
-    align-items: center;
-    height: calc(100vh - 60px);
+    align-items: flex-start;
     width: 100%;
-    padding: 0;
-    position: relative;
-    z-index: 1;
+    max-width: 800px;
+    padding: 60px 24px 80px;
+    box-sizing: border-box;
 }
 
-.leftColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    height: 100%;
-    min-width: 0;
-}
-
-.peoplePanel {
-    flex: 1;
-    min-height: 0;
-}
-
-.glassPanel {
-    background: #FAFAFA;
-    /* Inverts to very dark grey (#050505) */
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    /* Inverts to White 0.15 */
-    border-radius: 30px;
-    /* Remove inset shadows for cleaner look, use slight drop shadow if needed */
-    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+.memoCard {
+    background: linear-gradient(145deg, #fafafa 0%, #f0f0f0 100%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 24px;
+    padding: 48px;
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.06),
+        0 1px 2px rgba(0, 0, 0, 0.04);
+    width: 100%;
     position: relative;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
 }
 
-.columnTitle {
-    font-size: 20px;
-    font-weight: 700;
+.memoCard::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 48px;
+    right: 48px;
+    height: 3px;
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.3) 0%,
+            rgba(180, 180, 180, 0.6) 25%,
+            rgba(50, 50, 50, 1) 50%,
+            rgba(180, 180, 180, 0.6) 75%,
+            rgba(255, 255, 255, 0.3) 100%);
+    border-radius: 2px;
+}
+
+.memoHeader {
     text-align: center;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    z-index: 2;
-    position: relative;
-    letter-spacing: -0.15px;
+    margin-bottom: 40px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.panelContent {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 15px 15px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /* Center content horizontally */
+.memoLabel {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #ffffff;
+    margin-bottom: 16px;
+    text-transform: uppercase;
 }
 
-.panelContent::-webkit-scrollbar {
-    display: none;
-}
-
-/* Left Column: Suggestions */
-.suggestionBox {
-    background: #EAEAEA;
-    /* Inverts to Dark Grey (#151515) */
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 24px;
-    /* Reduced radius */
-    height: 100px;
-    /* Reduced height */
-    flex: 1;
-    /* box-shadow: inset 0px -2px 4px 0px rgba(255, 255, 255, 0.2), inset 0px 2px 4px 0px rgba(0, 0, 0, 0.4); */
-}
-
-.suggestionsRow {
-    display: flex;
-    flex-direction: row;
-    gap: 15px;
-    padding: 0 15px 15px;
-    overflow-x: auto;
-    flex-shrink: 0;
-}
-
-.suggestionsRow::-webkit-scrollbar {
-    display: none;
-}
-
-/* Middle Column: People */
-.peopleList {
-    padding-top: 15px;
-    gap: 10px;
-    /* Spacing between cards */
-}
-
-.personCard {
-    /* Dimensions from Figma */
-    width: 514px;
-    height: 90px;
-    /* Reduced height */
-    border-radius: 24px;
-    /* Reduced radius */
-
-    /* Glassmorphism styling matching the panel but nested */
-    background: #EAEAEA;
-    /* Inverts to Dark Grey */
-    /* backdrop-filter: blur(5px); */
-    /* -webkit-backdrop-filter: blur(5px); */
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    /* box-shadow: inset 0px -2px 4px 0px rgba(255, 255, 255, 0.2), inset 0px 2px 4px 0px rgba(0, 0, 0, 0.4); */
-
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    /* Reduced padding */
-    gap: 15px;
-    flex-shrink: 0;
-    /* Prevent shrinking if list is long */
-    transition: transform 0.2s, opacity 0.2s;
-    overflow: hidden;
-    /* Prevent text overflow */
-}
-
-.personCard:hover {
-    transform: scale(1.02);
-}
-
-.personAvatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: #ccc;
-    flex-shrink: 0;
-}
-
-.personInfo {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: left;
-    min-width: 0;
-    /* Enable truncation for children */
-}
-
-.personName {
-    font-size: 18px;
+.memoTitle {
+    font-size: 32px;
     font-weight: 700;
-    margin-bottom: 2px;
-    letter-spacing: -0.11px;
-    color: inherit;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    letter-spacing: -0.5px;
+    margin: 0;
+    background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.personReason {
+.memoContent {
     font-size: 16px;
-    color: rgba(0, 0, 0, 0.8);
-    /* Becomes White 0.8 */
-    font-weight: 400;
-    letter-spacing: -0.11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.8;
+    color: #333;
 }
 
-/* Right Column: Chat */
-.messagesArea {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
+.memoContent p {
+    margin: 0 0 20px 0;
+}
+
+.congratsText {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.highlight {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.question {
+    font-size: 18px;
+    font-weight: 600;
+    font-style: italic;
+    color: #555;
+    margin-top: 32px !important;
+}
+
+.thesisTitle {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 40px 0 24px;
+    color: #1a1a1a;
+    position: relative;
+    display: inline-block;
+}
+
+.thesisTitle::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            rgba(50, 50, 50, 1) 100%);
+    border-radius: 2px;
+}
+
+.emoji {
+    font-style: normal;
+}
+
+.beliefSection {
+    margin-top: 32px;
+    padding: 24px 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+    border-radius: 16px;
+    border-left: 3px solid #6366f1;
+    padding-left: 24px;
+}
+
+.beliefSection p {
+    margin: 0 0 16px 0;
+}
+
+.beliefSection p:last-child {
+    margin-bottom: 0;
+}
+
+.beliefText {
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.signature {
+    margin-top: 48px;
+    padding-top: 32px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 10px;
-    width: 100%;
-    /* Ensure full width usage */
+    align-items: flex-end;
 }
 
-.messagesArea::-webkit-scrollbar {
-    display: none;
+.signatureLine {
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(90deg, #333, transparent);
+    margin-bottom: 12px;
+    border-radius: 2px;
 }
 
-.messageBubble {
-    padding: 12px 16px;
-    border-radius: 16px;
-    font-size: 15px;
-    max-width: 90%;
-    word-wrap: break-word;
-    position: relative;
-    line-height: 1.4;
+.signatureText {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    font-style: italic;
 }
 
-.userBubble {
-    /* Target: Dark Grey Bubble for User */
-    /* Source: Light Grey */
-    background: #C0C0C0;
-    /* Inverts to ~#3F3F3F */
-    color: #000;
-    /* Inverts to White */
-    align-self: flex-end;
-    border-radius: 20px 20px 4px 20px;
-}
-
-.ariaBubble {
-    /* Target: Darker Grey Bubble for Aria */
-    /* Source: Lighter Grey */
-    background: #E0E0E0;
-    /* Inverts to ~#1F1F1F */
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    color: #000;
-    align-self: flex-start;
-    border-radius: 20px 20px 20px 4px;
-}
-
-.inputArea {
-    /* Node 4005:91 -> bg-[rgba(37,37,37,0.3)] border border-[rgba(255,255,255,0.05)] */
-    /* Target: Dark Gray (37).
-       CSS: Light Gray (255-37 = 218).
-       rgba(218, 218, 218, 0.3).
-    */
-    height: 54px;
-    background: rgba(218, 218, 218, 0.3);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    margin-top: auto;
-    width: 100%;
-}
-
-.input {
-    background: transparent;
-    border: none;
-    color: #000;
-    flex: 1;
-    outline: none;
-    font-size: 16px;
-}
-
-.input::placeholder {
-    color: rgba(0, 0, 0, 0.3);
-}
-
-.sendButton {
-    background: none;
-    border: none;
-    color: #000;
-    cursor: pointer;
-    font-size: 18px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-.sendButton:hover {
-    opacity: 1;
-}
-
-.typingBubble {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 12px 16px;
-}
-
-.dot {
-    width: 6px;
-    height: 6px;
-    background: #888;
-    border-radius: 50%;
-    animation: bounce 1.4s infinite ease-in-out both;
-}
-
-.dot:nth-child(1) {
-    animation-delay: -0.32s;
-}
-
-.dot:nth-child(2) {
-    animation-delay: -0.16s;
-}
-
-@keyframes bounce {
-
-    0%,
-    80%,
-    100% {
-        transform: scale(0);
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .memoCard {
+        padding: 32px 24px;
+        border-radius: 16px;
     }
 
-    40% {
-        transform: scale(1);
+    .memoTitle {
+        font-size: 26px;
+    }
+
+    .memoContent {
+        font-size: 15px;
+    }
+
+    .thesisTitle {
+        font-size: 20px;
     }
 }
