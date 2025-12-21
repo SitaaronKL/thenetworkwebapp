@@ -198,7 +198,7 @@ export default function WrappedPage() {
                     .eq('user_id', user.id)
                     .limit(1);
 
-                hasYouTubeData = (existingSubs && existingSubs.length > 0) || (existingLikes && existingLikes.length > 0);
+                hasYouTubeData = Boolean((existingSubs && existingSubs.length > 0) || (existingLikes && existingLikes.length > 0));
 
                 // Only sync if we don't have data yet
                 if (!hasYouTubeData) {
@@ -221,7 +221,7 @@ export default function WrappedPage() {
                     .select('id')
                     .eq('user_id', user.id)
                     .limit(1);
-                hasYouTubeData = (checkSubs && checkSubs.length > 0) || (checkLikes && checkLikes.length > 0);
+                hasYouTubeData = Boolean((checkSubs && checkSubs.length > 0) || (checkLikes && checkLikes.length > 0));
             }
             
             // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
