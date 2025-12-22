@@ -47,7 +47,7 @@ export default function LandingPage() {
 
                 {/* CTA Button */}
                 <button 
-                    onClick={() => router.push('/onboarding')}
+                    onClick={() => router.push('/consent')}
                     className="group relative w-[363px] h-[72px] rounded-[70px] bg-gradient-to-r from-[#333333] via-[#000000] to-[#666666] flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer"
                 >
                     <span className="text-white text-[25px] font-bold font-display">
@@ -62,9 +62,9 @@ export default function LandingPage() {
                     Private by default • You control what you connect • Delete anytime
                 </p>
                 <div className="flex gap-8 text-[#7a7a7a] text-[10px] font-display">
-                    <a href="#" className="hover:text-black">Privacy</a>
-                    <a href="#" className="hover:text-black">Terms of Service</a>
-                    <a href="#" className="hover:text-black">Terms of Use</a>
+                    <a href="/privacy-policy" className="hover:text-black">Privacy</a>
+                    <a href="/terms-of-service" className="hover:text-black">Terms of Service</a>
+                    <a href="/terms-of-use" className="hover:text-black">Terms of Use</a>
                 </div>
             </footer>
         </div>

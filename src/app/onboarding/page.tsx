@@ -319,6 +319,14 @@ export default function OnboardingPage() {
     const { user, loading, signInWithGoogle } = useAuth();
     const router = useRouter();
 
+    // Check if user has consented to policies
+    useEffect(() => {
+        const hasConsented = localStorage.getItem('consent_agreed');
+        if (!hasConsented) {
+            router.push('/consent');
+        }
+    }, [router]);
+
     // If already authenticated, redirect to home
     useEffect(() => {
         if (!loading && user) {
@@ -346,7 +354,7 @@ export default function OnboardingPage() {
                 <div className="flex items-center overflow-clip px-[21px] py-[14px] relative rounded-[100px] shadow-[0px_0px_2px_0px_rgba(0,0,0,0.1),0px_1px_8px_0px_rgba(0,0,0,0.1)] bg-white transition-transform group-hover:scale-105">
                     <div className="absolute inset-0 pointer-events-none shadow-[inset_3px_3px_0.5px_-3.5px_white,inset_2px_2px_0.5px_-2px_#262626,inset_-2px_-2px_0.5px_-2px_#262626,inset_0px_0px_0px_1px_#a6a6a6,inset_0px_0px_8px_0px_#f2f2f2] rounded-[100px]" />
                     <span className="text-[20px] font-semibold text-black font-display tracking-tight mr-2">
-                        Continue
+                        Continue with Google
                     </span>
                     <span className="text-[20px] font-semibold text-black font-display">
                         →

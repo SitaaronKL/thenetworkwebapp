@@ -392,7 +392,7 @@ export default function EditProfile() {
               disabled={deleting}
             >
               {deleting ? 'Deleting...' : 'Delete Account'}
-            </button>
+        </button>
           </div>
         </div>
       </div>
