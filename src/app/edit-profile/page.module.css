@@ -304,3 +304,44 @@
 .deleteBtn:active:not(:disabled) {
   opacity: 0.9;
 }
+
+.legalLinksSection {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.legalLinksTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.legalLinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legalLink {
+  color: #666;
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+
+.legalLink:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+.legalSeparator {
+  color: #999;
+  font-size: 13px;
+}

@@ -394,6 +394,17 @@ export default function EditProfile() {
               {deleting ? 'Deleting...' : 'Delete Account'}
         </button>
           </div>
+
+          <div className={styles.legalLinksSection}>
+            <p className={styles.legalLinksTitle}>Legal</p>
+            <div className={styles.legalLinks}>
+              <a href="/privacy-policy" className={styles.legalLink}>Privacy Policy</a>
+              <span className={styles.legalSeparator}>•</span>
+              <a href="/terms-of-service" className={styles.legalLink}>Terms of Service</a>
+              <span className={styles.legalSeparator}>•</span>
+              <a href="/terms-of-use" className={styles.legalLink}>Terms of Use</a>
+            </div>
+          </div>
         </div>
       </div>
     </>
