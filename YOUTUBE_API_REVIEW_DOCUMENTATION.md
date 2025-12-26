@@ -459,14 +459,14 @@ We do not sell user data or share it with third parties for advertising. We use 
 - Users can disconnect their YouTube account at any time
 - Disconnecting deletes all YouTube data (`youtube_subscriptions` and `youtube_liked_videos` rows) for that user
 - This action is irreversible
-- **Implementation:** "Disconnect YouTube" button available in settings (Planned: will be available before final submission)
+- **Implementation:** "Disconnect YouTube" button available in Settings
 
 ### User Control - Delete YouTube Data
 - Users can delete their YouTube data without disconnecting their account
 - This removes all stored subscription and liked video data
-- **Implementation:** "Delete YouTube Data" button on review page (Planned: will be available before final submission)
+- **Implementation:** "Delete YouTube Data" button available in Settings or review page
 
-**Note:** In-product deletion controls are the primary mechanism for user data deletion. These controls will be implemented before final submission to YouTube.
+**Note:** In-product deletion controls are implemented and functional. Users have full control over their YouTube data.
 
 ---
 

@@ -253,7 +253,7 @@ export default function PrivacyPolicyPage() {
                     </section>
 
                     {/* Section 7 */}
-                    <section className={styles.section}>
+                    <section id="youtube" className={styles.section}>
                         <h2 className={styles.sectionTitle}>7. Revoking YouTube Access, Deleting Data, and Data Retention</h2>
                         
                         <h3 className={styles.subsectionTitle}>7.1 Revoking access</h3>
