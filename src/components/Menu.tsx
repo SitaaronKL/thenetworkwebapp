@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import styles from './Menu.module.css';
+import HelpIcon from './HelpIcon';
+import HelpModal from './HelpModal';
 
 const menuItems = [
   { label: 'THENETWORK', href: '/' },
@@ -17,6 +19,7 @@ export default function Menu() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInverted, setIsInverted] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -64,6 +67,9 @@ export default function Menu() {
 
   return (
     <>
+      <HelpIcon onClick={() => setIsHelpOpen(true)} />
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      
       <button
         className={`${styles.menuButton} ${isOpen ? styles.open : ''} ${isOpen ? styles.hidden : ''}`}
         onClick={() => setIsOpen(true)}

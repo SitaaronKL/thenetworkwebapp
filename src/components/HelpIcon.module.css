@@ -1,0 +1,45 @@
+.helpButton {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  z-index: 18;
+  transition: all 0.2s ease;
+}
+
+.helpButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.helpIcon {
+  width: 20px;
+  height: 20px;
+  color: #000000;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* When theme is inverted (dark mode), adjust colors */
+.theme-inverted .helpButton {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-inverted .helpButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.theme-inverted .helpIcon {
+  color: #ffffff;
+}
+
