@@ -197,9 +197,6 @@ export default function LandingPage() {
                             Claim my Digital DNA
                         </span>
                     </button>
-                    <p className="text-[14px] text-[#7a7a7a] font-display">
-                        Sign in with Google
-                    </p>
                 </div>
              </main>
 
