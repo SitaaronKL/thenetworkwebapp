@@ -17,7 +17,7 @@ export default function BuildingPage() {
     // Redirect if not authenticated
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/landing');
+            router.push('/');
         }
     }, [user, loading, router]);
 

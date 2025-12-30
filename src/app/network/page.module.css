@@ -1,0 +1,201 @@
+.container {
+    min-height: 100vh;
+    background-color: #ffffff;
+    /* Becomes Black when inverted */
+    color: #000000;
+    /* Becomes White when inverted */
+    position: relative;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.graphContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Right Side Panel: Aria's Suggestions */
+.suggestionsPanel {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    transform: translateY(-50%);
+    width: 442px;
+    height: 567px;
+
+    /* Inverted Logic: Glassy White/Light Grey -> Becomes Glassy Dark Grey/Black */
+    background: rgba(250, 250, 250, 1);
+    border: none;
+
+    border-radius: 40px;
+    box-shadow: none;
+
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+    z-index: 10;
+}
+
+.panelTitle {
+    font-size: 28px;
+    font-weight: 700;
+    text-align: left;
+    /* Aligned left as per Figma */
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+    margin-top: 0;
+    color: #000;
+    /* Inverts to White */
+}
+
+.actionIcons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.iconButton {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    /* Inverts to light border */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.iconButton:hover {
+    background: rgba(0, 0, 0, 0.05);
+    /* Slight hover effect */
+}
+
+.suggestionList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    flex: 1;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.suggestionList::-webkit-scrollbar {
+    display: none;
+}
+
+.suggestionCard {
+    width: 100%;
+    min-height: 110px;
+    border-radius: 20px;
+    background: #F5F5F5;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: flex-start;
+    padding: 18px 20px;
+    gap: 14px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.suggestionCard:hover {
+    background: #EEEEEE;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+.cardAvatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #E0E0E0;
+    flex-shrink: 0;
+    border: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.cardInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+}
+
+.cardName {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #000;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.cardReason {
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.7);
+    font-weight: 400;
+    line-height: 1.6;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.readMoreButton {
+    background: none;
+    border: none;
+    color: #000;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 0;
+    margin-top: 2px;
+    text-decoration: none;
+    transition: all 0.2s;
+    align-self: flex-start;
+    opacity: 0.8;
+}
+
+.readMoreButton:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* Loading state */
+.loadingContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #fff;
+}
+
+.loader {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #111827;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

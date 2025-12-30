@@ -44,12 +44,12 @@ export default function YouTubeDataReviewPage() {
     
     useEffect(() => {
         if (!reviewEnabled) {
-            router.push('/');
+            router.push('/network');
             return;
         }
 
         if (!loading && !user) {
-            router.push('/landing');
+            router.push('/');
         }
     }, [user, loading, router, reviewEnabled]);
 
@@ -602,7 +602,7 @@ Inference Rules:
 
             {/* Footer Actions */}
             <div className={styles.footer}>
-                <Link href="/" className={styles.backButton}>
+                <Link href="/network" className={styles.backButton}>
                     ← Back to Home
                 </Link>
                 <p className={styles.footerNote}>

@@ -254,7 +254,7 @@ export default function EditProfile() {
       // Success - sign out and redirect
       alert('Your account has been deleted successfully.');
       await supabase.auth.signOut();
-      router.push('/landing');
+      router.push('/');
     } catch (error: any) {
       console.error('Error deleting account:', error);
       alert(`Error deleting account: ${error.message || 'An unexpected error occurred'}`);
@@ -275,7 +275,7 @@ export default function EditProfile() {
           <h1 className={styles.title}>Edit Profile</h1>
           <button 
             className={styles.closeButton} 
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/network')}
             aria-label="Close"
           >
             ×

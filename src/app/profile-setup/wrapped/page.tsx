@@ -120,7 +120,7 @@ export default function WrappedPage() {
 
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/landing');
+            router.push('/');
         }
     }, [user, loading, router]);
 
@@ -775,7 +775,7 @@ export default function WrappedPage() {
                                 if (reviewEnabled) {
                                     router.push('/youtube-data-review');
                                 } else {
-                                    router.push('/');
+                                    router.push('/network');
                                 }
                             }}
                             className="text-[24px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center gap-2"
@@ -851,7 +851,7 @@ export default function WrappedPage() {
             if (reviewEnabled) {
                 router.push('/youtube-data-review');
             } else {
-                router.push('/');
+                router.push('/network');
             }
         }
     };

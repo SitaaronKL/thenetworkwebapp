@@ -62,7 +62,7 @@ export default function Menu() {
 
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/landing');
+    router.push('/');
   };
 
   return (

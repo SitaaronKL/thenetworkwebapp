@@ -330,7 +330,7 @@ export default function OnboardingPage() {
     // If already authenticated, redirect to home
     useEffect(() => {
         if (!loading && user) {
-            router.push('/');
+            router.push('/network');
         }
     }, [user, loading, router]);
 

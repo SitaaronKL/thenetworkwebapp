@@ -55,7 +55,7 @@ export default function AuthCallback() {
             } catch (error: any) {
                 console.error('Session error:', error);
                 setStatus('Authentication failed. Redirecting...');
-                setTimeout(() => router.push('/landing'), 2000);
+                setTimeout(() => router.push('/'), 2000);
                 return;
             }
 

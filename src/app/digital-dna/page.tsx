@@ -27,7 +27,7 @@ export default function DigitalDnaPage() {
 
     // Auth Redirect
     useEffect(() => {
-        if (!loading && !user) router.push('/landing');
+        if (!loading && !user) router.push('/');
     }, [user, loading, router]);
 
     // Memoize handlers to prevent graph re-renders
