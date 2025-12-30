@@ -126,6 +126,43 @@
   /* Font Family Overrides */
   --font-sans: "Inter", "SF Pro Display", system-ui, sans-serif;
   --font-display: "SF Pro Display", "Inter", system-ui, sans-serif;
+  --font-brand: 'Feature Deck Condensed', 'Saans', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Saans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, 'Apple Color Emoji', Arial, sans-serif, 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+@font-face {
+  font-family: 'Saans';
+  src: url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Regular.woff2') format('woff2'),
+       url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Saans';
+  src: url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Medium.woff2') format('woff2'),
+       url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Saans';
+  src: url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Bold.woff2') format('woff2'),
+       url('/DP_trial_324837/DP_saans_TRIAL/DP_saans_TRIAL/Saans-TRIAL-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Feature Deck Condensed';
+  src: local('Feature Deck Condensed');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 @layer base {
@@ -226,6 +263,82 @@
 
   .animate-pulse-fast {
     animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .font-brand {
+    font-family: var(--font-brand);
+  }
+
+  .font-ui {
+    font-family: var(--font-ui);
+  }
+
+  .hero3d {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .hero3d-static {
+    background-image: url('/3dgraph.png');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.28;
+    filter: saturate(0.3) brightness(1.15);
+  }
+
+  .h-100svh {
+    height: 100svh;
+  }
+
+  .btn-pulse {
+    position: relative;
+    overflow: visible !important;
+    z-index: 0;
+  }
+
+  .btn-pulse::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    transform: translate(-50%, -50%) scale(0.9);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .btn-pulse-active::before {
+    animation: pulse-ring 0.7s ease-out forwards;
+  }
+
+  .btn-glow {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.35), 0 0 40px rgba(255, 255, 255, 0.15);
+    transition: box-shadow 0.3s ease-in-out;
+  }
+
+  .btn-glow-active {
+    box-shadow: 0 0 45px rgba(255, 255, 255, 0.5), 0 0 80px rgba(255, 255, 255, 0.2);
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scale(2);
+      opacity: 0.35;
+    }
+    100% {
+      transform: scale(3);
+      opacity: 0;
+    }
   }
 
   @keyframes fadeIn {
