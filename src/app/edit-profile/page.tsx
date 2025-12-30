@@ -275,115 +275,115 @@ export default function EditProfile() {
           <h1 className={styles.title}>Edit Profile</h1>
           <button 
             className={styles.closeButton} 
-            onClick={() => router.push('/network')}
+            onClick={() => router.push('/')}
             aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        <div className={styles.avatarBlock} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
+          <div className={styles.avatarBlock} onClick={handleAvatarClick} style={{ cursor: 'pointer' }}>
             <div className={`${styles.avatar} invert-media`} style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : {}}></div>
-          <div className={styles.avatarHint}>
-            {uploading ? 'Uploading...' : 'Tap to change photo'}
-          </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-            accept="image/*"
-          />
-        </div>
-
-        <form className={styles.form}>
-          <div className={styles.fieldRow}>
-            <div className={styles.label}>Name</div>
-            <input
-              className={styles.input}
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Check your name"
-              aria-label="Name"
-            />
-          </div>
-
-          <div className={styles.fieldRow}>
-            <div className={styles.label}>School</div>
-            <input
-              className={styles.input}
-              type="text"
-              value={school}
-              onChange={(e) => setSchool(e.target.value)}
-              placeholder="What school do you attend?"
-              aria-label="School"
-            />
-          </div>
-
-          <div className={styles.fieldRow}>
-            <div className={styles.label}>Bio</div>
-            <div>
-              {/* Removed the hint div here */}
-              <textarea
-                aria-label="Bio"
-                placeholder="Bio"
-                className={styles.textarea}
-                value={bio}
-                maxLength={50}
-                onChange={(e) => setBio(e.target.value)}
-                style={{ height: '60px' }}
-              ></textarea>
+            <div className={styles.avatarHint}>
+              {uploading ? 'Uploading...' : 'Tap to change photo'}
             </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              accept="image/*"
+            />
           </div>
 
-          <div className={styles.fieldRow} style={{ marginTop: '20px' }}>
-            <div className={styles.label}>Connections</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+          <form className={styles.form}>
+            <div className={styles.fieldRow}>
+              <div className={styles.label}>Name</div>
+              <input
+                className={styles.input}
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Check your name"
+                aria-label="Name"
+              />
+            </div>
 
-              {/* YouTube */}
-              <div className={styles.connectionCard}>
-                <div className={styles.connectionCardHeader}>
-                  <div className={styles.ytIcon}>YT</div>
-                  <span>YouTube</span>
-                </div>
-                {youtubeConnected ? (
-                  <span className={styles.statusConnected}>Connected</span>
-                ) : (
-                  <span className={styles.statusNotConnected}>Not Connected</span>
-                )}
+            <div className={styles.fieldRow}>
+              <div className={styles.label}>School</div>
+              <input
+                className={styles.input}
+                type="text"
+                value={school}
+                onChange={(e) => setSchool(e.target.value)}
+                placeholder="What school do you attend?"
+                aria-label="School"
+              />
+            </div>
+
+            <div className={styles.fieldRow}>
+              <div className={styles.label}>Bio</div>
+              <div>
+                {/* Removed the hint div here */}
+                <textarea
+                  aria-label="Bio"
+                  placeholder="Bio"
+                  className={styles.textarea}
+                  value={bio}
+                  maxLength={50}
+                  onChange={(e) => setBio(e.target.value)}
+                  style={{ height: '60px' }}
+                ></textarea>
               </div>
-
-              {/* Incoming */}
-              {['TikTok', 'LinkedIn', 'Spotify'].map(platform => (
-                <div key={platform} className={styles.connectionCard} style={{ opacity: 0.7 }}>
-                  <div className={styles.connectionCardHeader}>
-                    <div className={styles.platformIcon}></div>
-                    <span>{platform}</span>
-                  </div>
-                  <span className={styles.statusIncoming}>Incoming</span>
-                </div>
-              ))}
             </div>
+
+            <div className={styles.fieldRow} style={{ marginTop: '20px' }}>
+              <div className={styles.label}>Connections</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+
+                {/* YouTube */}
+                <div className={styles.connectionCard}>
+                  <div className={styles.connectionCardHeader}>
+                    <div className={styles.ytIcon}>YT</div>
+                    <span>YouTube</span>
+                  </div>
+                  {youtubeConnected ? (
+                    <span className={styles.statusConnected}>Connected</span>
+                  ) : (
+                    <span className={styles.statusNotConnected}>Not Connected</span>
+                  )}
+                </div>
+
+                {/* Incoming */}
+                {['TikTok', 'LinkedIn', 'Spotify'].map(platform => (
+                  <div key={platform} className={styles.connectionCard} style={{ opacity: 0.7 }}>
+                    <div className={styles.connectionCardHeader}>
+                      <div className={styles.platformIcon}></div>
+                      <span>{platform}</span>
+                    </div>
+                    <span className={styles.statusIncoming}>Incoming</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </form>
+
+          <div className={styles.footer}>
+            <div className={styles.progress}>
+              <strong className={styles.progressStrong}>Profile Status</strong>
+              <span className={styles.progressSpan}>Up to date</span>
+            </div>
+            <button
+              className={styles.saveBtn}
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
 
-        </form>
-
-      <div className={styles.footer}>
-        <div className={styles.progress}>
-          <strong className={styles.progressStrong}>Profile Status</strong>
-          <span className={styles.progressSpan}>Up to date</span>
-        </div>
-        <button
-          className={styles.saveBtn}
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save Changes'}
-        </button>
-          </div>
-          
           <div className={styles.deleteSection}>
             <button
               className={styles.deleteBtn}
@@ -392,7 +392,7 @@ export default function EditProfile() {
               disabled={deleting}
             >
               {deleting ? 'Deleting...' : 'Delete Account'}
-        </button>
+            </button>
           </div>
 
           <div className={styles.legalLinksSection}>
@@ -403,6 +403,8 @@ export default function EditProfile() {
               <a href="/terms-of-service" className={styles.legalLink}>Terms of Service</a>
               <span className={styles.legalSeparator}>•</span>
               <a href="/terms-of-use" className={styles.legalLink}>Terms of Use</a>
+              <span className={styles.legalSeparator}>•</span>
+              <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className={styles.legalLink}>YouTube Terms</a>
             </div>
           </div>
         </div>

@@ -11,7 +11,7 @@ export default function PrivacyPolicyPage() {
             <div className={styles.content}>
                 {/* Header */}
                 <div className={styles.header}>
-                    <button 
+                    <button
                         className={styles.backButton}
                         onClick={() => router.back()}
                         aria-label="Go back"
@@ -28,8 +28,8 @@ export default function PrivacyPolicyPage() {
                         <strong>Company:</strong> TheNetwork Labs, Inc. ("TheNetwork," "we," "us," or "our")
                     </p>
                     <p className={styles.introText}>
-                        This Privacy Policy explains how TheNetwork collects, uses, stores, and protects information when you use 
-                        our applications, websites, and related services (collectively, the "Services"). It also describes the 
+                        This Privacy Policy explains how TheNetwork collects, uses, stores, and protects information when you use
+                        our applications, websites, and related services (collectively, the "Services"). It also describes the
                         choices and rights you have.
                     </p>
                 </div>
@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
                             <li>when you visit our websites or interact with our emails.</li>
                         </ul>
                         <p className={styles.sectionText}>
-                            This Privacy Policy does not cover third-party services (e.g., YouTube/Google) when used outside our 
+                            This Privacy Policy does not cover third-party services (e.g., YouTube/Google) when used outside our
                             Services. Those services have their own terms and privacy policies.
                         </p>
                     </section>
@@ -58,10 +58,10 @@ export default function PrivacyPolicyPage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>2. Information We Collect</h2>
                         <p className={styles.sectionText}>
-                            We collect information from (A) you, (B) connected platforms you authorize, and (C) your device and 
+                            We collect information from (A) you, (B) connected platforms you authorize, and (C) your device and
                             usage of the Services.
                         </p>
-                        
+
                         <h3 className={styles.subsectionTitle}>2.1 Information You Provide</h3>
                         <p className={styles.sectionText}>We may collect:</p>
                         <ul className={styles.list}>
@@ -73,8 +73,14 @@ export default function PrivacyPolicyPage() {
 
                         <h3 className={styles.subsectionTitle}>2.2 Information From Connected Platforms (YouTube / Google)</h3>
                         <p className={styles.sectionText}>
-                            If you choose to connect your YouTube account, we access data only through Google's official OAuth and 
-                            YouTube Data APIs, and only with the permissions (scopes) you authorize.
+                            <strong>We use YouTube API Services</strong> to access your YouTube data. If you choose to connect your YouTube account,
+                            we access data only through Google's official OAuth and YouTube Data APIs, and only with the permissions (scopes) you authorize.
+                        </p>
+                        <p className={styles.sectionText}>
+                            For more information about how Google handles your data, see{' '}
+                            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                                Google's Privacy Policy
+                            </a>.
                         </p>
                         <p className={styles.sectionText}><strong>Scopes we request (current):</strong></p>
                         <ul className={styles.list}>
@@ -103,12 +109,16 @@ export default function PrivacyPolicyPage() {
                             We do not request access to your YouTube password, and we do not store your YouTube password.
                         </p>
                         <p className={styles.sectionText}>
+                            <strong>Data Storage:</strong> YouTube data is stored on our servers (not on your device) to power your
+                            Digital DNA profile and matching features.
+                        </p>
+                        <p className={styles.sectionText}>
                             <strong>Important note about "private playlists":</strong>
                         </p>
                         <p className={styles.sectionText}>
-                            We do not request scopes intended for broad private YouTube data access beyond read-only access tied 
-                            to your account's subscriptions/likes signals used for personalization. If the API returns information 
-                            that includes non-public items for your own account under <code className={styles.code}>youtube.readonly</code>, we treat it as 
+                            We do not request scopes intended for broad private YouTube data access beyond read-only access tied
+                            to your account's subscriptions/likes signals used for personalization. If the API returns information
+                            that includes non-public items for your own account under <code className={styles.code}>youtube.readonly</code>, we treat it as
                             personal data and protect it under this policy.
                         </p>
 
@@ -126,8 +136,8 @@ export default function PrivacyPolicyPage() {
 
                         <h3 className={styles.subsectionTitle}>2.4 Cookies and Similar Technologies (Web)</h3>
                         <p className={styles.sectionText}>
-                            Our websites may use cookies or similar technologies for login/session management, security, preferences, 
-                            and analytics. You can control cookies via browser settings. Some cookies are required for the Services 
+                            Our websites may use cookies or similar technologies for login/session management, security, preferences,
+                            and analytics. You can control cookies via browser settings. Some cookies are required for the Services
                             to function.
                         </p>
                     </section>
@@ -176,7 +186,7 @@ export default function PrivacyPolicyPage() {
                         </ul>
 
                         <p className={styles.sectionText}>
-                            <strong>No advertising by default:</strong> Your data is not used for third-party targeted advertising, 
+                            <strong>No advertising by default:</strong> Your data is not used for third-party targeted advertising,
                             and we do not sell your personal data.
                         </p>
                     </section>
@@ -184,10 +194,10 @@ export default function PrivacyPolicyPage() {
                     {/* Section 4 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>4. Google / YouTube API Data: Limited Use and Sharing Restrictions</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>4.1 Google API Limited Use Disclosure</h3>
                         <p className={styles.sectionText}>
-                            TheNetwork's use and transfer of information received from Google APIs will adhere to the Google API 
+                            TheNetwork's use and transfer of information received from Google APIs will adhere to the Google API
                             Services User Data Policy, including the Limited Use requirements.
                         </p>
 
@@ -207,6 +217,12 @@ export default function PrivacyPolicyPage() {
                             <li>building profiles for third-party advertising</li>
                             <li>transferring the data to third parties for their independent use</li>
                         </ul>
+                        <p className={styles.sectionText}>
+                            <strong>Derived Data:</strong> This includes data derived from YouTube data, such as interest embeddings,
+                            Digital DNA vectors, personality archetypes, and similarity scores. All derived data is subject to
+                            Google's Limited Use requirements and is used only to provide and improve user-facing features within
+                            TheNetwork (e.g., interest profile and matching), not for advertising, data sales, or transfer to third parties.
+                        </p>
 
                         <h3 className={styles.subsectionTitle}>4.3 When we share data</h3>
                         <p className={styles.sectionText}>We may share limited information only:</p>
@@ -246,8 +262,8 @@ export default function PrivacyPolicyPage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>6. Authentication (Google Sign-In)</h2>
                         <p className={styles.sectionText}>
-                            If you sign in using Google, we receive basic profile information from Google (such as email and profile) 
-                            necessary to authenticate you and maintain your account. The exact information depends on the permissions 
+                            If you sign in using Google, we receive basic profile information from Google (such as email and profile)
+                            necessary to authenticate you and maintain your account. The exact information depends on the permissions
                             you grant.
                         </p>
                     </section>
@@ -255,7 +271,7 @@ export default function PrivacyPolicyPage() {
                     {/* Section 7 */}
                     <section id="youtube" className={styles.section}>
                         <h2 className={styles.sectionTitle}>7. Revoking YouTube Access, Deleting Data, and Data Retention</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>7.1 Revoking access</h3>
                         <p className={styles.sectionText}>
                             You can revoke TheNetwork's access to YouTube at any time:
@@ -264,10 +280,19 @@ export default function PrivacyPolicyPage() {
                             <li>in your TheNetwork account settings (Connected Accounts / Integrations), and/or</li>
                             <li>in your Google Account security permissions (Third-party access)</li>
                         </ul>
+                        <p className={styles.sectionText}>
+                            <strong>To revoke access via Google Account:</strong>
+                        </p>
+                        <ol className={styles.list}>
+                            <li>Go to <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" className={styles.link}>https://myaccount.google.com/permissions</a></li>
+                            <li>Find "TheNetwork" in the list of connected apps</li>
+                            <li>Click "Remove Access" or "Revoke Access"</li>
+                        </ol>
                         <p className={styles.sectionText}><strong>After revocation:</strong></p>
                         <ul className={styles.list}>
                             <li>We stop fetching new data from YouTube.</li>
-                            <li>Existing stored data (if any) remains until you delete it or request account deletion, unless we must retain limited records for security or legal compliance.</li>
+                            <li>We will delete all stored YouTube data (subscriptions, liked videos, and derived data) within 7 calendar days of revocation.</li>
+                            <li>You can also request immediate deletion by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.</li>
                         </ul>
 
                         <h3 className={styles.subsectionTitle}>7.2 Data deletion requests</h3>
@@ -276,7 +301,7 @@ export default function PrivacyPolicyPage() {
                             <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
                         </p>
                         <p className={styles.sectionText}>
-                            We may retain limited information where required by law or for legitimate security purposes (e.g., 
+                            We may retain limited information where required by law or for legitimate security purposes (e.g.,
                             fraud prevention logs) and will protect it under this policy.
                         </p>
 
@@ -292,6 +317,13 @@ export default function PrivacyPolicyPage() {
                         <p className={styles.sectionText}>
                             Retention periods may vary by data type. You may request deletion at any time.
                         </p>
+
+                        <h3 className={styles.subsectionTitle}>7.4 Data Refresh and Retention</h3>
+                        <p className={styles.sectionText}>
+                            We refresh your YouTube data every 30 days to ensure it remains current. If authorization is revoked
+                            or expires, we delete all stored YouTube data within 7 calendar days. You can request deletion of your
+                            YouTube data at any time by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
+                        </p>
                     </section>
 
                     {/* Section 8 */}
@@ -301,7 +333,7 @@ export default function PrivacyPolicyPage() {
                             We use reasonable administrative, technical, and organizational safeguards designed to protect your information.
                         </p>
                         <p className={styles.sectionText}>
-                            Safeguards may include encryption in transit (e.g., TLS) and access controls limiting internal access 
+                            Safeguards may include encryption in transit (e.g., TLS) and access controls limiting internal access
                             to authorized personnel.
                         </p>
                         <p className={styles.sectionText}>
@@ -316,7 +348,7 @@ export default function PrivacyPolicyPage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>9. Third-Party Integrations</h2>
                         <p className={styles.sectionText}>
-                            Our integrations with YouTube and other platforms comply with applicable API terms and policies. You can 
+                            Our integrations with YouTube and other platforms comply with applicable API terms and policies. You can
                             revoke connections at any time. We do not collect or store passwords for third-party platforms.
                         </p>
                     </section>
@@ -325,7 +357,7 @@ export default function PrivacyPolicyPage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>10. International Data Transfers</h2>
                         <p className={styles.sectionText}>
-                            If you access the Services from outside the United States, your data may be transferred and processed in 
+                            If you access the Services from outside the United States, your data may be transferred and processed in
                             the U.S. or other jurisdictions. Where required, we use appropriate safeguards to protect transferred data.
                         </p>
                     </section>
@@ -363,7 +395,7 @@ export default function PrivacyPolicyPage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>13. Changes to This Policy</h2>
                         <p className={styles.sectionText}>
-                            We may update this Privacy Policy to reflect product or legal changes. When we do, we will update the 
+                            We may update this Privacy Policy to reflect product or legal changes. When we do, we will update the
                             "Last Updated" date and may notify users via email or in-app notice where appropriate.
                         </p>
                     </section>
@@ -390,7 +422,7 @@ export default function PrivacyPolicyPage() {
 
                 {/* Footer */}
                 <div className={styles.footer}>
-                    <button 
+                    <button
                         className={styles.backButtonBottom}
                         onClick={() => router.back()}
                     >

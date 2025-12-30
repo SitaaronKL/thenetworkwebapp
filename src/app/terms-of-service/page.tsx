@@ -11,7 +11,7 @@ export default function TermsOfServicePage() {
             <div className={styles.content}>
                 {/* Header */}
                 <div className={styles.header}>
-                    <button 
+                    <button
                         className={styles.backButton}
                         onClick={() => router.back()}
                         aria-label="Go back"
@@ -44,7 +44,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>1. About TheNetwork</h2>
                         <p className={styles.sectionText}>
-                            TheNetwork builds consumer software designed to help users connect, express, and organize preferences through 
+                            TheNetwork builds consumer software designed to help users connect, express, and organize preferences through
                             memory-driven personalization. The Services may include web applications, mobile apps, APIs, and experimental features.
                         </p>
                     </section>
@@ -53,12 +53,12 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>2. Eligibility</h2>
                         <p className={styles.sectionText}>
-                            You must be at least 13 years old to use the Services (or 16 if you reside in the European Economic Area/United 
-                            Kingdom, or a higher age if required by your local law). By using the Services, you represent that you meet the 
+                            You must be at least 13 years old to use the Services (or 16 if you reside in the European Economic Area/United
+                            Kingdom, or a higher age if required by your local law). By using the Services, you represent that you meet the
                             age requirement and have the legal capacity to enter into these Terms.
                         </p>
                         <p className={styles.sectionText}>
-                            If you are using the Services on behalf of an organization, you represent that you are authorized to accept these 
+                            If you are using the Services on behalf of an organization, you represent that you are authorized to accept these
                             Terms on that organization's behalf.
                         </p>
                     </section>
@@ -66,7 +66,7 @@ export default function TermsOfServicePage() {
                     {/* Section 3 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>3. Accounts, Authentication, and Security</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>3.1 Account Creation</h3>
                         <p className={styles.sectionText}>
                             You may need an account to access certain features. You agree to:
@@ -79,13 +79,13 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>3.2 Account Responsibility</h3>
                         <p className={styles.sectionText}>
-                            You are responsible for all activity that occurs under your account. If you believe your account has been compromised, 
+                            You are responsible for all activity that occurs under your account. If you believe your account has been compromised,
                             notify us promptly at <a href="mailto:support@thenetwork.life" className={styles.link}>support@thenetwork.life</a>.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>3.3 Suspensions and Safety</h3>
                         <p className={styles.sectionText}>
-                            We may suspend or restrict access to the Services to protect users, the platform, or the public, including to 
+                            We may suspend or restrict access to the Services to protect users, the platform, or the public, including to
                             investigate suspected abuse, fraud, or security threats.
                         </p>
                     </section>
@@ -93,10 +93,10 @@ export default function TermsOfServicePage() {
                     {/* Section 4 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>4. Your Use of the Services</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>4.1 License to Use</h3>
                         <p className={styles.sectionText}>
-                            Subject to these Terms, we grant you a limited, non-exclusive, non-transferable, revocable license to access and 
+                            Subject to these Terms, we grant you a limited, non-exclusive, non-transferable, revocable license to access and
                             use the Services for your personal, non-commercial use (unless we explicitly allow otherwise).
                         </p>
 
@@ -121,18 +121,21 @@ export default function TermsOfServicePage() {
                     {/* Section 5 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>5. Integrations and Third-Party Services (Including YouTube)</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>5.1 Third-Party Services</h3>
                         <p className={styles.sectionText}>
-                            The Services may allow you to connect third-party accounts (e.g., YouTube, TikTok, Pinterest). If you connect a 
-                            third-party service, you authorize us to access and process data from that service as described in our Privacy 
+                            The Services may allow you to connect third-party accounts (e.g., YouTube, TikTok, Pinterest). If you connect a
+                            third-party service, you authorize us to access and process data from that service as described in our Privacy
                             Policy and as allowed by the permissions you grant.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>5.2 YouTube Terms</h3>
                         <p className={styles.sectionText}>
-                            If you use features that access YouTube data, you also agree to comply with YouTube's Terms of Service (and any 
-                            applicable YouTube API terms and policies). YouTube is a third-party service and is not controlled by TheNetwork.
+                            By using TheNetwork features that access YouTube data, you agree to be bound by{' '}
+                            <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                                YouTube's Terms of Service
+                            </a>. YouTube is a third-party service and is not controlled by TheNetwork. Your use of YouTube
+                            remains subject to YouTube's policies and terms.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>5.3 No Password Collection</h3>
@@ -142,8 +145,8 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>5.4 Revoking Access</h3>
                         <p className={styles.sectionText}>
-                            You can revoke a third-party connection (including YouTube) at any time through your TheNetwork settings and/or 
-                            through the third-party provider's account permissions settings. After revocation, we stop fetching new data from 
+                            You can revoke a third-party connection (including YouTube) at any time through your TheNetwork settings and/or
+                            through the third-party provider's account permissions settings. After revocation, we stop fetching new data from
                             that provider, subject to our Privacy Policy and retention practices.
                         </p>
 
@@ -157,7 +160,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>6. User Content</h2>
                         <p className={styles.sectionText}>
-                            "User Content" means text, images, messages, files, links, and other content you submit, upload, or share through 
+                            "User Content" means text, images, messages, files, links, and other content you submit, upload, or share through
                             the Services.
                         </p>
 
@@ -168,8 +171,8 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>6.2 License to Operate the Services</h3>
                         <p className={styles.sectionText}>
-                            You grant TheNetwork a worldwide, non-exclusive, royalty-free license to host, store, reproduce, process, display, 
-                            and transmit your User Content only as needed to provide, maintain, and improve the Services, operate features you 
+                            You grant TheNetwork a worldwide, non-exclusive, royalty-free license to host, store, reproduce, process, display,
+                            and transmit your User Content only as needed to provide, maintain, and improve the Services, operate features you
                             request (including personalization), and comply with law.
                         </p>
                         <p className={styles.sectionText}>
@@ -209,14 +212,14 @@ export default function TermsOfServicePage() {
                     {/* Section 8 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>8. Intellectual Property</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>8.1 TheNetwork Property</h3>
                         <p className={styles.sectionText}>
-                            The Services, including software, models, algorithms, designs, trademarks, and all related intellectual property, 
+                            The Services, including software, models, algorithms, designs, trademarks, and all related intellectual property,
                             are owned by TheNetwork or its licensors and are protected by applicable laws.
                         </p>
                         <p className={styles.sectionText}>
-                            Except for the limited license in Section 4, nothing in these Terms grants you any right to use TheNetwork's 
+                            Except for the limited license in Section 4, nothing in these Terms grants you any right to use TheNetwork's
                             branding, logos, or proprietary materials without permission.
                         </p>
 
@@ -243,7 +246,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>10. Beta / Experimental Features</h2>
                         <p className={styles.sectionText}>
-                            We may release beta or experimental features. These features may change, be removed, or be unstable. You acknowledge 
+                            We may release beta or experimental features. These features may change, be removed, or be unstable. You acknowledge
                             that beta features are provided "as is" and may contain errors.
                         </p>
                     </section>
@@ -252,7 +255,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>11. Privacy</h2>
                         <p className={styles.sectionText}>
-                            Our Privacy Policy explains how we collect, use, and protect personal data. By using the Services, you consent to 
+                            Our Privacy Policy explains how we collect, use, and protect personal data. By using the Services, you consent to
                             the processing of your data as described in the Privacy Policy.
                         </p>
                     </section>
@@ -260,7 +263,7 @@ export default function TermsOfServicePage() {
                     {/* Section 12 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>12. Termination</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>12.1 Termination by You</h3>
                         <p className={styles.sectionText}>
                             You may stop using the Services at any time. You may request account deletion by contacting{' '}
@@ -281,7 +284,7 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>12.3 Effect of Termination</h3>
                         <p className={styles.sectionText}>
-                            Upon termination, your license to use the Services ends. Certain sections of these Terms survive termination, 
+                            Upon termination, your license to use the Services ends. Certain sections of these Terms survive termination,
                             including intellectual property, disclaimers, limitation of liability, dispute resolution, and indemnification.
                         </p>
                     </section>
@@ -290,8 +293,8 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>13. Disclaimers</h2>
                         <p className={styles.sectionText} style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-                            THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE." TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE NETWORK 
-                            DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+                            THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE." TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE NETWORK
+                            DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
                             PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
                         </p>
                         <p className={styles.sectionText}>We do not guarantee:</p>
@@ -311,13 +314,13 @@ export default function TermsOfServicePage() {
                         </p>
                         <ul className={styles.list}>
                             <li>
-                                <strong>THE NETWORK WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, 
-                                OR FOR LOST PROFITS, LOST REVENUE, OR LOST DATA.</strong>
+                                <strong>THE NETWORK WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES,
+                                    OR FOR LOST PROFITS, LOST REVENUE, OR LOST DATA.</strong>
                             </li>
                             <li>
-                                <strong>OUR TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF OR RELATING TO THE SERVICES WILL NOT EXCEED THE 
-                                GREATER OF (A) $100 USD OR (B) THE AMOUNT YOU PAID US FOR THE SERVICES IN THE 12 MONTHS BEFORE THE EVENT 
-                                GIVING RISE TO LIABILITY.</strong>
+                                <strong>OUR TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF OR RELATING TO THE SERVICES WILL NOT EXCEED THE
+                                    GREATER OF (A) $100 USD OR (B) THE AMOUNT YOU PAID US FOR THE SERVICES IN THE 12 MONTHS BEFORE THE EVENT
+                                    GIVING RISE TO LIABILITY.</strong>
                             </li>
                         </ul>
                         <p className={styles.sectionText}>
@@ -329,7 +332,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>15. Indemnification</h2>
                         <p className={styles.sectionText}>
-                            You agree to indemnify and hold harmless TheNetwork, its affiliates, officers, employees, and contractors from 
+                            You agree to indemnify and hold harmless TheNetwork, its affiliates, officers, employees, and contractors from
                             and against claims, damages, losses, and expenses (including reasonable attorneys' fees) arising out of:
                         </p>
                         <ul className={styles.list}>
@@ -343,17 +346,17 @@ export default function TermsOfServicePage() {
                     {/* Section 16 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>16. Dispute Resolution and Arbitration</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>16.1 Informal Resolution</h3>
                         <p className={styles.sectionText}>
                             Before filing a claim, you agree to contact us at{' '}
-                            <a href="mailto:legal@thenetwork.life" className={styles.link}>legal@thenetwork.life</a> and attempt to resolve 
+                            <a href="mailto:legal@thenetwork.life" className={styles.link}>legal@thenetwork.life</a> and attempt to resolve
                             the dispute informally.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>16.2 Binding Arbitration</h3>
                         <p className={styles.sectionText}>
-                            Except where prohibited by law, any dispute arising out of or relating to these Terms or the Services will be 
+                            Except where prohibited by law, any dispute arising out of or relating to these Terms or the Services will be
                             resolved by binding arbitration administered by the American Arbitration Association (AAA) under its applicable rules.
                         </p>
                         <ul className={styles.list}>
@@ -369,13 +372,13 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>16.4 Class Action Waiver</h3>
                         <p className={styles.sectionText} style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-                            YOU AGREE THAT DISPUTES MUST BE BROUGHT ON AN INDIVIDUAL BASIS ONLY. You may not bring a claim as a plaintiff or 
+                            YOU AGREE THAT DISPUTES MUST BE BROUGHT ON AN INDIVIDUAL BASIS ONLY. You may not bring a claim as a plaintiff or
                             class member in any purported class, collective, or representative proceeding.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>16.5 Exceptions</h3>
                         <p className={styles.sectionText}>
-                            Either party may seek injunctive or equitable relief in court for unauthorized use or infringement of intellectual 
+                            Either party may seek injunctive or equitable relief in court for unauthorized use or infringement of intellectual
                             property or for security-related claims, to the extent permitted by law.
                         </p>
                     </section>
@@ -384,7 +387,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>17. Governing Law</h2>
                         <p className={styles.sectionText}>
-                            These Terms are governed by the laws of the State of Delaware, excluding conflict-of-law rules, except where 
+                            These Terms are governed by the laws of the State of Delaware, excluding conflict-of-law rules, except where
                             consumer protection laws in your jurisdiction require otherwise.
                         </p>
                     </section>
@@ -393,7 +396,7 @@ export default function TermsOfServicePage() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>18. Changes to These Terms</h2>
                         <p className={styles.sectionText}>
-                            We may update these Terms from time to time. If we make material changes, we will notify you by email or in-app 
+                            We may update these Terms from time to time. If we make material changes, we will notify you by email or in-app
                             notice. Continued use of the Services after the effective date of updated Terms constitutes acceptance.
                         </p>
                     </section>
@@ -401,7 +404,7 @@ export default function TermsOfServicePage() {
                     {/* Section 19 */}
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>19. Miscellaneous</h2>
-                        
+
                         <h3 className={styles.subsectionTitle}>19.1 Severability</h3>
                         <p className={styles.sectionText}>
                             If any provision of these Terms is found unenforceable, the remaining provisions remain in effect.
@@ -409,13 +412,13 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>19.2 Assignment</h3>
                         <p className={styles.sectionText}>
-                            You may not assign these Terms without our written consent. We may assign these Terms as part of a merger, 
+                            You may not assign these Terms without our written consent. We may assign these Terms as part of a merger,
                             acquisition, corporate reorganization, or sale of assets.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>19.3 Entire Agreement</h3>
                         <p className={styles.sectionText}>
-                            These Terms and the Privacy Policy constitute the entire agreement between you and TheNetwork regarding the Services 
+                            These Terms and the Privacy Policy constitute the entire agreement between you and TheNetwork regarding the Services
                             and supersede prior agreements relating to the Services.
                         </p>
                     </section>
@@ -446,7 +449,7 @@ export default function TermsOfServicePage() {
 
                 {/* Footer */}
                 <div className={styles.footer}>
-                    <button 
+                    <button
                         className={styles.backButtonBottom}
                         onClick={() => router.back()}
                     >
