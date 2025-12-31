@@ -59,7 +59,7 @@ Claim my Digital DNA
 
 **Main Heading:**
 ```
-We turn your digital DNA into a personalized feed of people, moments, and opportunities that feel unnervingly right.
+We turn your feeds, your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that just feel right.
 ```
 
 **Style:** Large bold text (3xl-6xl), black, left-aligned
@@ -80,7 +80,7 @@ THIS COULD BE YOU!
 
 **Heading:**
 ```
-We turn your digital DNA into a personalized feed of people, moments, and opportunities that feel unnervingly right.
+We turn your feeds, your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that just feel right.
 ```
 
 **Style:** 3xl font, bold, black
@@ -174,7 +174,7 @@ joined the waitlist
 - Join | Home | Privacy
 
 ### 3. Gallery Section
-- **Headline:** We turn your digital DNA into a personalized feed of people, moments, and opportunities that feel unnervingly right.
+- **Headline:** We turn your feeds, your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that just feel right.
 - **Repeating Text:** THIS COULD BE YOU!
 
 ### 4. Signal Intelligence Section
@@ -200,7 +200,7 @@ Claim my Digital DNA
 
 ---
 
-We turn your digital DNA into a personalized feed of people, moments, and opportunities that feel unnervingly right.
+We turn your feeds, your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that just feel right.
 
 THIS COULD BE YOU!
 

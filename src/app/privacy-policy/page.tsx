@@ -78,7 +78,7 @@ export default function PrivacyPolicyPage() {
                         </p>
                         <p className={styles.sectionText}>
                             For more information about how Google handles your data, see{' '}
-                            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                            <a href="https://policies.google.com/privacy?hl=en-US" target="_blank" rel="noopener noreferrer" className={styles.link}>
                                 Google's Privacy Policy
                             </a>.
                         </p>
@@ -350,6 +350,9 @@ export default function PrivacyPolicyPage() {
                         <p className={styles.sectionText}>
                             Our integrations with YouTube and other platforms comply with applicable API terms and policies. You can
                             revoke connections at any time. We do not collect or store passwords for third-party platforms.
+                        </p>
+                        <p className={styles.sectionText}>
+                             Please refer to <a href="https://policies.google.com/privacy?hl=en-US" target="_blank" rel="noopener noreferrer" className={styles.link}>Google's Privacy Policy</a> for more information.
                         </p>
                     </section>
 

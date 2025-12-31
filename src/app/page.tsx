@@ -378,6 +378,21 @@ export default function LandingPage() {
             <div className="h-[1px] bg-black md:bg-white opacity-70 md:opacity-30"></div>
           </div>
           
+          <div className="absolute bottom-4 left-6 z-20 flex gap-8">
+            <Link 
+              href="/privacy-policy" 
+              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              href="/terms-of-service" 
+              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
+            >
+              Terms of Service
+            </Link>
+          </div>
+
           <div className="absolute bottom-4 right-8 z-20 flex gap-8">
             <button 
               onClick={() => router.push('/consent')} 
@@ -391,12 +406,6 @@ export default function LandingPage() {
             >
               Home
             </button>
-            <Link 
-              href="/privacy-policy" 
-              className="text-xs font-ui text-black md:text-white hover:opacity-70 transition-opacity"
-            >
-              Privacy
-            </Link>
           </div>
         </div>
       </nav>
@@ -422,10 +431,8 @@ export default function LandingPage() {
       <section ref={gallerySectionRef} className="relative bg-white overflow-hidden hidden md:block" style={{ minHeight: '200vh' }}>
         <div className="sticky top-0 min-h-screen flex flex-col justify-between py-12 px-6 md:px-12 overflow-hidden" style={{ paddingTop: '80px', paddingBottom: '30px' }}>
           <div className="w-full mb-6">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight text-left max-w-7xl">
-              We turn your digital DNA into a personalized <br className="hidden lg:block" />
-              feed of people, moments, and opportunities  <br className="hidden lg:block" />
-              that feel unnervingly right.
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black leading-tight text-left max-w-7xl">
+              We turn your feeds, starting with your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that feel just right.
             </h2>
           </div>
 
@@ -456,8 +463,8 @@ export default function LandingPage() {
 
       {/* Mobile Gallery */}
       <section className="bg-white px-6 py-10 space-y-8 md:hidden">
-        <h2 className="text-3xl font-bold text-black leading-tight">
-          We turn your digital DNA into a personalized feed of people, moments, and opportunities that feel unnervingly right.
+        <h2 className="text-2xl font-bold text-black leading-tight">
+          We turn your feeds, starting with your YouTube - your digital DNA into a personalized set of people, moments, and opportunities that feel just right.
         </h2>
         <div className="overflow-x-auto flex gap-4 snap-x snap-mandatory pb-2">
           {COMMUNITY_IMAGES.map((src) => (
