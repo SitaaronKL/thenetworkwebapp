@@ -350,6 +350,14 @@ export default function LandingPage() {
           <h1 className="text-white font-brand text-4xl sm:text-5xl md:text-6xl font-bold" style={{ letterSpacing: '-0.02em' }}>
             THE<br />NETWORK.
           </h1>
+          <div className="mt-2 flex gap-4 text-white text-xs sm:text-sm">
+            <Link href="/privacy-policy" className="hover:underline">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-of-service" className="hover:underline">
+              Terms of Service
+            </Link>
+          </div>
         </div>
 
         {/* Center Content */}
