@@ -19,7 +19,7 @@ export default function TermsOfServicePage() {
                         ← Back
                     </button>
                     <h1 className={styles.title}>Terms of Service</h1>
-                    <p className={styles.lastUpdated}>Last Updated: October 2025</p>
+                    <p className={styles.lastUpdated}>Last Updated: December 2025</p>
                 </div>
 
                 {/* Company Info */}
@@ -124,9 +124,12 @@ export default function TermsOfServicePage() {
 
                         <h3 className={styles.subsectionTitle}>5.1 Third-Party Services</h3>
                         <p className={styles.sectionText}>
-                            The Services may allow you to connect third-party accounts (e.g., YouTube, TikTok, Pinterest). If you connect a
+                            <strong>We use YouTube API Services</strong> to access YouTube data. The Services may allow you to connect third-party accounts (e.g., YouTube, TikTok, Pinterest). If you connect a
                             third-party service, you authorize us to access and process data from that service as described in our Privacy
                             Policy and as allowed by the permissions you grant.
+                        </p>
+                        <p className={styles.sectionText}>
+                            We request only the minimum permissions necessary to provide the connected features.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>5.2 YouTube Terms</h3>
@@ -148,6 +151,9 @@ export default function TermsOfServicePage() {
                             You can revoke a third-party connection (including YouTube) at any time through your TheNetwork settings and/or
                             through the third-party provider's account permissions settings. After revocation, we stop fetching new data from
                             that provider, subject to our Privacy Policy and retention practices.
+                        </p>
+                        <p className={styles.sectionText}>
+                            After you revoke access, we stop fetching YouTube data and handle deletion/retention as described in our Privacy Policy.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>5.5 Third-Party Responsibility</h3>
