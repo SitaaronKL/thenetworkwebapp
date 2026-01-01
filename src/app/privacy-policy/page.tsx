@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
                         ← Back
                     </button>
                     <h1 className={styles.title}>Privacy Policy</h1>
-                    <p className={styles.lastUpdated}>Last Updated: October 2025</p>
+                    <p className={styles.lastUpdated}>Last Updated: December 2025</p>
                 </div>
 
                 {/* Company Info */}
@@ -82,6 +82,16 @@ export default function PrivacyPolicyPage() {
                                 Google's Privacy Policy
                             </a>.
                         </p>
+                        <p className={styles.sectionText}>
+                            By using TheNetwork features that access YouTube data, you also agree to be bound by YouTube's{' '}
+                            <a href="https://www.youtube.com/howyoutubeworks/privacy/" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                                Privacy Policy
+                            </a>{' '}
+                            and{' '}
+                            <a href="https://www.youtube.com/static?template=terms" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                                Terms of Service
+                            </a>.
+                        </p>
                         <p className={styles.sectionText}><strong>Scopes we request (current):</strong></p>
                         <ul className={styles.list}>
                             <li><code className={styles.code}>email</code> (basic email address)</li>
@@ -94,7 +104,7 @@ export default function PrivacyPolicyPage() {
                         <ul className={styles.list}>
                             <li>Your channel subscriptions list (channels you are subscribed to)</li>
                             <li>Your liked videos list (via the "Liked videos" playlist, when available through the API)</li>
-                            <li>Public YouTube data needed to interpret the above (e.g., channel/video metadata such as title, category, and description where returned)</li>
+                            <li>Metadata returned by the YouTube Data API for those items (e.g., channel ID, channel title, video ID, video title, thumbnail URL, published date)</li>
                         </ul>
                         <p className={styles.sectionText}>We do not use <code className={styles.code}>youtube.readonly</code> to:</p>
                         <ul className={styles.list}>
@@ -113,13 +123,7 @@ export default function PrivacyPolicyPage() {
                             Digital DNA profile and matching features.
                         </p>
                         <p className={styles.sectionText}>
-                            <strong>Important note about "private playlists":</strong>
-                        </p>
-                        <p className={styles.sectionText}>
-                            We do not request scopes intended for broad private YouTube data access beyond read-only access tied
-                            to your account's subscriptions/likes signals used for personalization. If the API returns information
-                            that includes non-public items for your own account under <code className={styles.code}>youtube.readonly</code>, we treat it as
-                            personal data and protect it under this policy.
+                            We do not request scopes to access your private playlists beyond your own "Liked videos" playlist. We do not fetch other playlists.
                         </p>
 
                         <h3 className={styles.subsectionTitle}>2.3 Device, Log, and Usage Data</h3>
@@ -227,7 +231,7 @@ export default function PrivacyPolicyPage() {
                         <h3 className={styles.subsectionTitle}>4.3 When we share data</h3>
                         <p className={styles.sectionText}>We may share limited information only:</p>
                         <ul className={styles.list}>
-                            <li>with service providers that help us run the Services (e.g., hosting, database, security, analytics) under contractual confidentiality and security obligations, and only as necessary to provide the Services</li>
+                            <li>with service providers that help us run the Services (e.g., hosting/database providers (Supabase), infrastructure and security tooling) under contractual confidentiality and security obligations, and only as necessary to provide the Services</li>
                             <li>when required by law or to protect rights and safety (see Section 8)</li>
                         </ul>
                         <p className={styles.sectionText}>
@@ -292,10 +296,14 @@ export default function PrivacyPolicyPage() {
                         <ul className={styles.list}>
                             <li>We stop fetching new data from YouTube.</li>
                             <li>We will delete all stored YouTube data (subscriptions, liked videos, and derived data) within 7 calendar days of revocation.</li>
-                            <li>You can also request immediate deletion by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.</li>
+                            <li>You can also request immediate deletion from within the app (YouTube Data Review / Settings) or by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.</li>
                         </ul>
 
                         <h3 className={styles.subsectionTitle}>7.2 Data deletion requests</h3>
+                        <p className={styles.sectionText}>
+                            You can delete imported YouTube data from within the app (YouTube Data Review / Settings) or by contacting{' '}
+                            <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
+                        </p>
                         <p className={styles.sectionText}>
                             You can request deletion of your account and associated personal data at any time by contacting{' '}
                             <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
@@ -321,8 +329,7 @@ export default function PrivacyPolicyPage() {
                         <h3 className={styles.subsectionTitle}>7.4 Data Refresh and Retention</h3>
                         <p className={styles.sectionText}>
                             We refresh your YouTube data every 30 days to ensure it remains current. If authorization is revoked
-                            or expires, we delete all stored YouTube data within 7 calendar days. You can request deletion of your
-                            YouTube data at any time by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
+                            or expires, we delete all stored YouTube data within 7 calendar days. You can delete your YouTube data at any time from within the app (YouTube Data Review / Settings) or by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
                         </p>
                     </section>
 
