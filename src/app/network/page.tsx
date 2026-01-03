@@ -56,6 +56,7 @@ export default function Home() {
 
   // Friend Requests Modal State
   const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
   
   // Search User Modal State
   const [showSearchUser, setShowSearchUser] = useState(false);
@@ -681,11 +682,49 @@ export default function Home() {
     }
   }, [user]);
 
+  // Function to check for pending friend requests
+  const checkPendingFriendRequests = useCallback(async () => {
+    if (!user) return;
+    
+    const supabase = createClient();
+    try {
+      // Get current user
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return;
+
+      // Fetch pending friend requests where current user is the receiver
+      const { data: friendRequests, error } = await supabase
+        .from('friend_requests')
+        .select('id')
+        .eq('receiver_id', authUser.id)
+        .eq('status', 'pending');
+
+      if (error) {
+        console.error('Error checking friend requests:', error);
+        setPendingRequestCount(0);
+        return;
+      }
+
+      setPendingRequestCount(friendRequests?.length || 0);
+    } catch (error) {
+      console.error('Error checking friend requests:', error);
+      setPendingRequestCount(0);
+    }
+  }, [user]);
+
   // Load REAL network data from Supabase
   useEffect(() => {
     loadNetworkData();
     loadAriaSuggestions();
-  }, [loadNetworkData, loadAriaSuggestions]);
+    checkPendingFriendRequests();
+  }, [loadNetworkData, loadAriaSuggestions, checkPendingFriendRequests]);
+
+  // Refresh friend request count when modal opens
+  useEffect(() => {
+    if (showFriendRequests) {
+      checkPendingFriendRequests();
+    }
+  }, [showFriendRequests, checkPendingFriendRequests]);
 
   if (loading || isLoadingNetwork) {
     return (
@@ -748,8 +787,11 @@ export default function Home() {
         <h2 className={styles.panelTitle}>Ari's Suggestions</h2>
 
         <div className={styles.actionIcons}>
-          <div className={styles.iconButton} onClick={() => setShowFriendRequests(true)}>
+          <div className={styles.iconButton} onClick={() => setShowFriendRequests(true)} style={{ position: 'relative' }}>
             <AddUserIcon />
+            {pendingRequestCount > 0 && (
+              <span className={styles.notificationBadge}>{pendingRequestCount}</span>
+            )}
           </div>
           <div className={styles.iconButton} onClick={() => setShowSearchUser(true)}>
             <SearchIcon />
@@ -810,8 +852,14 @@ export default function Home() {
       {/* Friend Requests Modal */}
       <FriendRequestsModal
         isOpen={showFriendRequests}
-        onClose={() => setShowFriendRequests(false)}
-        onRequestAccepted={loadNetworkData}
+        onClose={() => {
+          setShowFriendRequests(false);
+          checkPendingFriendRequests(); // Refresh count when modal closes
+        }}
+        onRequestAccepted={() => {
+          loadNetworkData();
+          checkPendingFriendRequests(); // Refresh count when request is accepted
+        }}
       />
 
       {/* Search User Modal */}
@@ -819,8 +867,8 @@ export default function Home() {
         isOpen={showSearchUser}
         onClose={() => setShowSearchUser(false)}
         onRequestSent={() => {
-          // Optionally show a success message or refresh data
-          console.log('Friend request sent successfully');
+          // Refresh friend request count in case user sent a request to someone who might send one back
+          checkPendingFriendRequests();
         }}
       />
 
