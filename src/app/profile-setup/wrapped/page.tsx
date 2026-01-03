@@ -838,7 +838,7 @@ export default function WrappedPage() {
 
                     {/* Right Side Visuals - Hidden on mobile */}
                     <div className="hidden md:block">
-                        <DoppelgangerCircles />
+                    <DoppelgangerCircles />
                     </div>
 
                     {/* TN Logo - White */}
@@ -995,19 +995,19 @@ export default function WrappedPage() {
                         <div className="mb-6 md:mb-8 space-y-4 md:space-y-6 text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
                             <p className="text-white text-[17px] md:text-[20px] font-medium">
                                 Most apps make you explain yourself.
-                            </p>
-                            <p>
+                                </p>
+                                <p>
                                 They ask you to pick categories, write bios, or perform a version of you that fits inside a template. But the things you actually care about do not live in a dropdown menu.
                             </p>
                             <p>
                                 They live in the rabbit holes you return to. The creators you keep up with. The videos that make you stop scrolling and hit like.
-                            </p>
+                                </p>
                             <p className="text-white text-[17px] md:text-[20px] font-medium">
                                 That is why TheNetwork starts somewhere real: your YouTube.
-                            </p>
+                                </p>
                             <p>
                                 Not because we are trying to know everything about you, but because it is the cleanest signal of what you are genuinely into.
-                            </p>
+                                </p>
                         </div>
 
                         {/* What Connecting YouTube Does */}
@@ -1036,7 +1036,7 @@ export default function WrappedPage() {
                                     <p>No long onboarding.</p>
                                     <p>No tell us your interests.</p>
                                     <p>No fake personality quizzes.</p>
-                                </div>
+                            </div>
                                 <p className="pt-2 text-white font-medium">
                                     Just connect, and we map the patterns.
                                 </p>
@@ -1053,22 +1053,22 @@ export default function WrappedPage() {
                                     <p className="text-white font-semibold mb-1 md:mb-2">An interest profile that feels specific</p>
                                     <p className="text-gray-300 italic text-[14px] md:text-[17px]">
                                         Not science. More like quantum computing, aviation deep dives, indie game design, philosophy of mind, football tactics, music production, and more.
-                                    </p>
-                                </div>
+                                </p>
+                            </div>
                                 <div>
                                     <p className="text-white font-semibold mb-1 md:mb-2">Better matches</p>
                                     <p>
                                         You will meet people based on the overlaps that actually matter, the kind that lead to real conversations, not small talk.
-                                    </p>
-                                </div>
-                                <div>
+                                </p>
+                            </div>
+                                    <div>
                                     <p className="text-white font-semibold mb-1 md:mb-2">A more honest starting point</p>
                                     <p>
                                         Your profile is not who you say you are. It is what you repeatedly choose, over time.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                                        </p>
+                                    </div>
+                                    </div>
+                                    </div>
 
                         {/* What This Is Not */}
                         <div className="mb-6 md:mb-8 border-t border-white/10 pt-4 md:pt-6">
@@ -1077,10 +1077,10 @@ export default function WrappedPage() {
                             </h3>
                             <p className="text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
                                 This is not about turning you into data. It is about turning your taste into a map, so you can find your people faster.
-                            </p>
+                                        </p>
                             <p className="text-white font-medium mt-3 md:mt-4 text-[16px] md:text-[18px]">
                                 That is the whole thing.
-                            </p>
+                                        </p>
                         </div>
 
                         {/* The Easter Egg */}

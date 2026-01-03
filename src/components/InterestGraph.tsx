@@ -219,7 +219,7 @@ export default function InterestGraph({
 }: InterestGraphProps) {
     const [isReady, setIsReady] = useState(false);
     const [showLabels, setShowLabels] = useState(true);
-    
+
     // Check mobile once on mount, use ref to avoid re-renders
     const isMobileRef = React.useRef(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
@@ -227,19 +227,19 @@ export default function InterestGraph({
     const settings = useMemo(() => {
         const mobile = isMobileRef.current;
         return {
-            labelFont: 'Inter, system-ui, sans-serif',
-            labelWeight: '600',
+        labelFont: 'Inter, system-ui, sans-serif',
+        labelWeight: '600',
             labelSize: mobile ? 12 : 14,
-            labelColor: { color: '#000000' },
-            renderEdgeLabels: false,
-            defaultNodeColor: '#06b6d4',
-            defaultEdgeColor: 'rgba(0,0,0,0)',
-            labelRenderedSizeThreshold: 0,
-            defaultDrawNodeHover: () => { },
-            // Fine-tune collision grid to allow tight packing
-            labelDensity: 1,
+        labelColor: { color: '#000000' },
+        renderEdgeLabels: false,
+        defaultNodeColor: '#06b6d4',
+        defaultEdgeColor: 'rgba(0,0,0,0)',
+        labelRenderedSizeThreshold: 0,
+        defaultDrawNodeHover: () => { },
+        // Fine-tune collision grid to allow tight packing
+        labelDensity: 1,
             labelGridCellSize: mobile ? 40 : 60, // Smaller on mobile to show more labels
-            zIndex: true
+        zIndex: true
         };
     }, []); // Empty deps - settings are fixed after mount
 

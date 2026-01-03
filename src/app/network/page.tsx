@@ -282,6 +282,15 @@ export default function Home() {
         return;
       }
 
+      // If user has already interacted with 3 or more suggestions, show the message
+      // This ensures once all 3 initial suggestions are handled, no new ones appear
+      if (interactedIds.size >= 3) {
+        setShouldShowMessage(true);
+        setSuggestions([]);
+        setIsLoadingSuggestions(false);
+        return;
+      }
+
       // 2. Get user's profile and DNA v2
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
@@ -334,6 +343,13 @@ export default function Home() {
               .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
               .eq('status', 'accepted');
 
+            // Also get PENDING friend requests to exclude from suggestions
+            const { data: pendingFriendRequests } = await supabase
+              .from('friend_requests')
+              .select('sender_id, receiver_id')
+              .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+              .eq('status', 'pending');
+
             const connectedUserIds = new Set<string>();
             if (existingConnections) {
               existingConnections.forEach((conn: any) => {
@@ -346,6 +362,16 @@ export default function Home() {
             }
             if (acceptedFriendRequests) {
               acceptedFriendRequests.forEach((req: any) => {
+                if (req.sender_id === user.id) {
+                  connectedUserIds.add(req.receiver_id);
+                } else {
+                  connectedUserIds.add(req.sender_id);
+                }
+              });
+            }
+            // Add users with pending friend requests
+            if (pendingFriendRequests) {
+              pendingFriendRequests.forEach((req: any) => {
                 if (req.sender_id === user.id) {
                   connectedUserIds.add(req.receiver_id);
                 } else {
@@ -462,7 +488,15 @@ export default function Home() {
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .eq('status', 'accepted');
 
-      // Combine all connected user IDs
+      // Also check for PENDING friend requests (sent by current user)
+      // These users should not appear in suggestions since a request was already sent
+      const { data: pendingFriendRequests } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .eq('status', 'pending');
+
+      // Combine all connected user IDs AND pending request user IDs
       const connectedUserIds = new Set<string>();
       if (existingConnections) {
         existingConnections.forEach((conn: any) => {
@@ -475,6 +509,16 @@ export default function Home() {
       }
       if (acceptedFriendRequests) {
         acceptedFriendRequests.forEach((req: any) => {
+          if (req.sender_id === user.id) {
+            connectedUserIds.add(req.receiver_id);
+          } else {
+            connectedUserIds.add(req.sender_id);
+          }
+        });
+      }
+      // Add users with pending friend requests (both sent and received)
+      if (pendingFriendRequests) {
+        pendingFriendRequests.forEach((req: any) => {
           if (req.sender_id === user.id) {
             connectedUserIds.add(req.receiver_id);
           } else {
@@ -789,12 +833,14 @@ export default function Home() {
             const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
             setSuggestions(updatedSuggestions);
             
-            // Update interacted IDs
-            setInteractedSuggestionIds(prev => new Set([...prev, suggestionId]));
+            // Update interacted IDs and check total count
+            const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
+            setInteractedSuggestionIds(newInteractedIds);
             
-            // If all suggestions are gone, show the message
-            if (updatedSuggestions.length === 0) {
+            // If user has interacted with 3 total suggestions OR all current suggestions are gone, show the message
+            if (newInteractedIds.size >= 3 || updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
+              setSuggestions([]); // Clear any remaining suggestions
             }
             
             // Close the modal immediately
@@ -873,12 +919,14 @@ export default function Home() {
             const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
             setSuggestions(updatedSuggestions);
             
-            // Update interacted IDs
-            setInteractedSuggestionIds(prev => new Set([...prev, suggestionId]));
+            // Update interacted IDs and check total count
+            const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
+            setInteractedSuggestionIds(newInteractedIds);
             
-            // If all suggestions are gone, show the message
-            if (updatedSuggestions.length === 0) {
+            // If user has interacted with 3 total suggestions OR all current suggestions are gone, show the message
+            if (newInteractedIds.size >= 3 || updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
+              setSuggestions([]); // Clear any remaining suggestions
             }
             
             // Close the modal immediately
