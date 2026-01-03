@@ -219,57 +219,87 @@ export default function InterestGraph({
 }: InterestGraphProps) {
     const [isReady, setIsReady] = useState(false);
     const [showLabels, setShowLabels] = useState(true);
+    
+    // Check mobile once on mount, use ref to avoid re-renders
+    const isMobileRef = React.useRef(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
-    const settings = useMemo(() => ({
-        labelFont: 'Inter, system-ui, sans-serif',
-        labelWeight: '600',
-        labelSize: 14,
-        labelColor: { color: '#000000' },
-        renderEdgeLabels: false,
-        defaultNodeColor: '#06b6d4',
-        defaultEdgeColor: 'rgba(0,0,0,0)',
-        labelRenderedSizeThreshold: 0,
-        defaultDrawNodeHover: () => { },
-        // Fine-tune collision grid to allow tight packing
-        labelDensity: 1,
-        labelGridCellSize: 60, // Much smaller grid cell to prevent aggressive culling
-        zIndex: true
-    }), []); // Dependencies array is EMPTY to prevent remounts
+    // Settings should NOT change after mount to prevent graph re-renders
+    const settings = useMemo(() => {
+        const mobile = isMobileRef.current;
+        return {
+            labelFont: 'Inter, system-ui, sans-serif',
+            labelWeight: '600',
+            labelSize: mobile ? 12 : 14,
+            labelColor: { color: '#000000' },
+            renderEdgeLabels: false,
+            defaultNodeColor: '#06b6d4',
+            defaultEdgeColor: 'rgba(0,0,0,0)',
+            labelRenderedSizeThreshold: 0,
+            defaultDrawNodeHover: () => { },
+            // Fine-tune collision grid to allow tight packing
+            labelDensity: 1,
+            labelGridCellSize: mobile ? 40 : 60, // Smaller on mobile to show more labels
+            zIndex: true
+        };
+    }, []); // Empty deps - settings are fixed after mount
+
+    // For button styling, we can use a simple check
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', background: '#ffffff' }}>
 
-            {/* Label Toggle */}
+            {/* Label Toggle - use CSS media queries via className instead */}
             <button
                 onClick={() => setShowLabels(!showLabels)}
-                style={{
-                    position: 'absolute',
-                    right: '20px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    zIndex: 2000,
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    fontSize: '24px', // Slightly larger for Greek glyphs
-                    backdropFilter: 'blur(5px)',
-                    fontFamily: '"Times New Roman", serif', // Classic Greek Typography look
-                    lineHeight: 1,
-                }}
+                className="interest-graph-toggle-btn"
                 title={showLabels ? "Hide Labels" : "Show Labels"}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
             >
                 {showLabels ? 'Θ' : 'λ'}
             </button>
+            
+            {/* Inline styles for the toggle button with media query support */}
+            <style jsx>{`
+                .interest-graph-toggle-btn {
+                    position: absolute;
+                    right: 20px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    z-index: 2000;
+                    background: rgba(0, 0, 0, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    color: #fff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    font-size: 24px;
+                    backdrop-filter: blur(5px);
+                    font-family: "Times New Roman", serif;
+                    line-height: 1;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                }
+                
+                .interest-graph-toggle-btn:hover {
+                    background: rgba(0, 0, 0, 0.8);
+                }
+                
+                @media (max-width: 768px) {
+                    .interest-graph-toggle-btn {
+                        right: 16px;
+                        top: auto;
+                        bottom: 24px;
+                        transform: none;
+                        width: 48px;
+                        height: 48px;
+                        font-size: 22px;
+                    }
+                }
+            `}</style>
 
             {/* Graph Container - No fade, instant display */}
             <div style={{

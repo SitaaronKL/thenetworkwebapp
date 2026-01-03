@@ -8,6 +8,14 @@
   overflow: hidden;
 }
 
+/* Mobile: Full screen container */
+@media (max-width: 768px) {
+  .container {
+    padding: 60px 0 0 0;
+    align-items: flex-start;
+  }
+}
+
 .window {
   width: 100%;
   max-width: 480px;
@@ -27,6 +35,18 @@
   -ms-overflow-style: none; /* IE and Edge */
 }
 
+/* Mobile: Full width window */
+@media (max-width: 768px) {
+  .window {
+    max-width: 100%;
+    max-height: calc(100vh - 60px);
+    border-radius: 0;
+    border: none;
+    padding: 24px 20px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .window::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
@@ -40,6 +60,13 @@
   flex-shrink: 0;
 }
 
+/* Mobile: Smaller header margin */
+@media (max-width: 768px) {
+  .header {
+    margin-bottom: 20px;
+  }
+}
+
 .title {
   font-size: 24px;
   font-weight: 700;
@@ -47,6 +74,13 @@
   text-align: center;
   flex: 1;
   margin: 0;
+}
+
+/* Mobile: Smaller title */
+@media (max-width: 768px) {
+  .title {
+    font-size: 20px;
+  }
 }
 
 .closeButton {
@@ -82,6 +116,14 @@
   flex-shrink: 0;
 }
 
+/* Mobile: Center avatar on mobile */
+@media (max-width: 768px) {
+  .avatarBlock {
+    align-items: center;
+    margin-bottom: 24px;
+  }
+}
+
 .avatar {
   width: 100px;
   height: 100px;
@@ -93,10 +135,26 @@
   border: 1px solid #e0e0e0;
 }
 
+/* Mobile: Slightly smaller avatar */
+@media (max-width: 768px) {
+  .avatar {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 10px;
+  }
+}
+
 .avatarHint {
   color: #666;
   font-size: 13px;
   font-weight: 500;
+}
+
+/* Mobile: Smaller hint */
+@media (max-width: 768px) {
+  .avatarHint {
+    font-size: 12px;
+  }
 }
 
 .form {
@@ -106,16 +164,37 @@
   flex-shrink: 0;
 }
 
+/* Mobile: Smaller gap */
+@media (max-width: 768px) {
+  .form {
+    gap: 16px;
+  }
+}
+
 .fieldRow {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+/* Mobile: Smaller gap */
+@media (max-width: 768px) {
+  .fieldRow {
+    gap: 6px;
+  }
+}
+
 .label {
   font-size: 14px;
   font-weight: 600;
   color: #333;
+}
+
+/* Mobile: Smaller label */
+@media (max-width: 768px) {
+  .label {
+    font-size: 13px;
+  }
 }
 
 .input {
@@ -128,6 +207,15 @@
   font-size: 15px;
   outline: none;
   transition: all 0.2s;
+}
+
+/* Mobile: Slightly smaller input */
+@media (max-width: 768px) {
+  .input {
+    padding: 10px 14px;
+    font-size: 16px; /* 16px prevents iOS zoom on focus */
+    border-radius: 10px;
+  }
 }
 
 .input:focus {
@@ -153,6 +241,15 @@
   transition: all 0.2s;
 }
 
+/* Mobile: Slightly smaller textarea */
+@media (max-width: 768px) {
+  .textarea {
+    padding: 10px 14px;
+    font-size: 16px; /* 16px prevents iOS zoom on focus */
+    border-radius: 10px;
+  }
+}
+
 .textarea:focus {
   border-color: #000;
   background: #fff;
@@ -176,6 +273,17 @@
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* Mobile: Stack footer items */
+@media (max-width: 768px) {
+  .footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
 }
 
 .progress {
@@ -206,6 +314,16 @@
   transition: opacity 0.2s;
 }
 
+/* Mobile: Full width save button */
+@media (max-width: 768px) {
+  .saveBtn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+}
+
 .saveBtn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -225,33 +343,33 @@
   border: 1px solid #e0e0e0;
 }
 
+/* Mobile: Smaller padding */
+@media (max-width: 768px) {
+  .connectionCard {
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+}
+
 .connectionCardHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: #000;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
 }
 
-.ytIcon {
-  width: 24px;
-  height: 24px;
-  background: #ff0000;
-  color: white;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 800;
+.connectionCardHeader svg {
+  flex-shrink: 0;
 }
 
-.platformIcon {
-  width: 24px;
-  height: 24px;
-  background: #ddd;
-  border-radius: 4px;
+/* Mobile: Slightly smaller text */
+@media (max-width: 768px) {
+  .connectionCardHeader {
+    gap: 10px;
+    font-size: 14px;
+  }
 }
 
 .statusConnected {
@@ -284,9 +402,12 @@
 }
 
 .statusIncoming {
-  color: #999;
+  color: #888;
   font-size: 12px;
-  font-style: italic;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
 .deleteSection {
@@ -296,6 +417,15 @@
   display: flex;
   justify-content: flex-start; /* Changed from center */
   flex-shrink: 0;
+}
+
+/* Mobile: Center delete section */
+@media (max-width: 768px) {
+  .deleteSection {
+    margin-top: 20px;
+    padding-top: 20px;
+    justify-content: center;
+  }
 }
 
 .deleteBtn {
@@ -308,6 +438,16 @@
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+/* Mobile: Full width delete button */
+@media (max-width: 768px) {
+  .deleteBtn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
 }
 
 .deleteBtn:hover {
@@ -333,11 +473,28 @@
   flex-shrink: 0;
 }
 
+/* Mobile: Smaller margin */
+@media (max-width: 768px) {
+  .legalLinksSection {
+    margin-top: 24px;
+    padding-top: 20px;
+    gap: 10px;
+  }
+}
+
 .legalLinksTitle {
   font-size: 14px;
   font-weight: 600;
   color: #333;
   margin: 0;
+}
+
+/* Mobile: Center title */
+@media (max-width: 768px) {
+  .legalLinksTitle {
+    font-size: 13px;
+    text-align: center;
+  }
 }
 
 .legalLinks {
@@ -347,11 +504,26 @@
   flex-wrap: wrap;
 }
 
+/* Mobile: Center links */
+@media (max-width: 768px) {
+  .legalLinks {
+    justify-content: center;
+    gap: 6px;
+  }
+}
+
 .legalLink {
   color: #666;
   text-decoration: none;
   font-size: 13px;
   transition: color 0.2s;
+}
+
+/* Mobile: Smaller links */
+@media (max-width: 768px) {
+  .legalLink {
+    font-size: 12px;
+  }
 }
 
 .legalLink:hover {
@@ -362,6 +534,13 @@
 .legalSeparator {
   color: #999;
   font-size: 13px;
+}
+
+/* Mobile: Smaller separator */
+@media (max-width: 768px) {
+  .legalSeparator {
+    font-size: 12px;
+  }
 }
 
 /* Modal Styles */
@@ -379,6 +558,14 @@
   padding: 20px;
 }
 
+/* Mobile: Less padding */
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: 16px;
+    align-items: flex-end;
+  }
+}
+
 .modalContent {
   background: #ffffff;
   border-radius: 20px;
@@ -391,9 +578,26 @@
   flex-direction: column;
 }
 
+/* Mobile: Full width modal from bottom */
+@media (max-width: 768px) {
+  .modalContent {
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+    margin-bottom: 0;
+  }
+}
+
 .modalHeader {
   padding: 24px 24px 16px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+/* Mobile: Smaller header */
+@media (max-width: 768px) {
+  .modalHeader {
+    padding: 20px 20px 14px;
+  }
 }
 
 .modalTitle {
@@ -403,10 +607,24 @@
   margin: 0;
 }
 
+/* Mobile: Smaller title */
+@media (max-width: 768px) {
+  .modalTitle {
+    font-size: 18px;
+  }
+}
+
 .modalBody {
   padding: 24px;
   flex: 1;
   overflow-y: auto;
+}
+
+/* Mobile: Smaller body padding */
+@media (max-width: 768px) {
+  .modalBody {
+    padding: 20px;
+  }
 }
 
 .modalWarning {
@@ -444,6 +662,15 @@
   justify-content: flex-end;
 }
 
+/* Mobile: Stack buttons */
+@media (max-width: 768px) {
+  .modalActions {
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+}
+
 .modalCancelBtn {
   background: transparent;
   border: 1px solid #999;
@@ -454,6 +681,15 @@
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+/* Mobile: Full width button */
+@media (max-width: 768px) {
+  .modalCancelBtn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 15px;
+  }
 }
 
 .modalCancelBtn:hover:not(:disabled) {
@@ -477,6 +713,15 @@
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+/* Mobile: Full width button */
+@media (max-width: 768px) {
+  .modalConfirmBtn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 15px;
+  }
 }
 
 .modalConfirmBtn:hover:not(:disabled) {
