@@ -63,6 +63,9 @@ export default function Home() {
   // Suggestion Detail Modal State
   const [selectedSuggestion, setSelectedSuggestion] = useState<any | null>(null);
 
+  // Mobile suggestions panel state
+  const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
+
   // Helper function to create current user node
   const createCurrentUserNode = (id: string, name: string, color: string, avatarUrl?: string): NetworkPerson => ({
     id,
@@ -663,8 +666,34 @@ export default function Home() {
         />
       </div>
 
+      {/* Mobile button to open suggestions */}
+      <button 
+        className={styles.mobileSuggestionsButton}
+        onClick={() => setShowMobileSuggestions(true)}
+        aria-label="Open suggestions"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      </button>
+
       {/* Ari's Suggestions Overlay */}
-      <div className={styles.suggestionsPanel}>
+      <div className={`${styles.suggestionsPanel} ${showMobileSuggestions ? styles.mobileOpen : ''}`}>
+        {/* Mobile close button */}
+        <button 
+          className={styles.mobileCloseButton}
+          onClick={() => setShowMobileSuggestions(false)}
+          aria-label="Close suggestions"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
         <h2 className={styles.panelTitle}>Ari's Suggestions</h2>
 
         <div className={styles.actionIcons}>

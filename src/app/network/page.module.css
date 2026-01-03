@@ -40,6 +40,110 @@
     z-index: 10;
 }
 
+/* Mobile: Hide suggestions panel by default, show as modal overlay */
+@media (max-width: 768px) {
+    .suggestionsPanel {
+        display: none;
+    }
+    
+    .suggestionsPanel.mobileOpen {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        transform: none;
+        border-radius: 0;
+        padding: 60px 16px 20px 16px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        z-index: 100;
+        animation: slideInRight 0.3s ease-out;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Mobile toggle button for suggestions */
+.mobileSuggestionsButton {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobileSuggestionsButton {
+        display: flex;
+        position: fixed;
+        bottom: 24px;
+        right: 16px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #000;
+        border: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .mobileSuggestionsButton:active {
+        transform: scale(0.95);
+    }
+    
+    .mobileSuggestionsButton svg {
+        width: 24px;
+        height: 24px;
+        color: #fff;
+    }
+}
+
+/* Mobile close button for suggestions modal */
+.mobileCloseButton {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobileCloseButton {
+        display: flex;
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.1);
+        border: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 101;
+        transition: background 0.2s;
+    }
+    
+    .mobileCloseButton:active {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .mobileCloseButton svg {
+        width: 20px;
+        height: 20px;
+        color: #000;
+    }
+}
+
 .panelTitle {
     font-size: 28px;
     font-weight: 700;
@@ -52,10 +156,26 @@
     /* Inverts to White */
 }
 
+/* Mobile: Title styling */
+@media (max-width: 768px) {
+    .panelTitle {
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+}
+
 .actionIcons {
     display: flex;
     gap: 12px;
     margin-bottom: 30px;
+}
+
+/* Mobile: Smaller action icons */
+@media (max-width: 768px) {
+    .actionIcons {
+        margin-bottom: 20px;
+        gap: 10px;
+    }
 }
 
 .iconButton {
@@ -72,6 +192,14 @@
     transition: all 0.2s;
 }
 
+/* Mobile: Smaller icon buttons */
+@media (max-width: 768px) {
+    .iconButton {
+        width: 42px;
+        height: 42px;
+    }
+}
+
 .iconButton:hover {
     background: rgba(0, 0, 0, 0.05);
     /* Slight hover effect */
@@ -86,6 +214,13 @@
     /* Hide scrollbar */
     scrollbar-width: none;
     -ms-overflow-style: none;
+}
+
+/* Mobile: Smaller gap */
+@media (max-width: 768px) {
+    .suggestionList {
+        gap: 12px;
+    }
 }
 
 .suggestionList::-webkit-scrollbar {
@@ -108,11 +243,33 @@
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Mobile: Smaller cards */
+@media (max-width: 768px) {
+    .suggestionCard {
+        min-height: 90px;
+        border-radius: 16px;
+        padding: 14px 16px;
+        gap: 12px;
+    }
+}
+
 .suggestionCard:hover {
     background: #EEEEEE;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Mobile: No hover transform on touch devices */
+@media (max-width: 768px) {
+    .suggestionCard:hover {
+        transform: none;
+    }
+    
+    .suggestionCard:active {
+        background: #EEEEEE;
+        transform: scale(0.98);
+    }
 }
 
 .cardAvatar {
@@ -125,6 +282,14 @@
     border: 2px solid rgba(0, 0, 0, 0.05);
 }
 
+/* Mobile: Smaller avatar */
+@media (max-width: 768px) {
+    .cardAvatar {
+        width: 48px;
+        height: 48px;
+    }
+}
+
 .cardInfo {
     display: flex;
     flex-direction: column;
@@ -134,6 +299,13 @@
     gap: 6px;
 }
 
+/* Mobile: Smaller gap */
+@media (max-width: 768px) {
+    .cardInfo {
+        gap: 4px;
+    }
+}
+
 .cardName {
     font-size: 17px;
     font-weight: 700;
@@ -141,6 +313,13 @@
     color: #000;
     margin: 0;
     line-height: 1.3;
+}
+
+/* Mobile: Smaller name */
+@media (max-width: 768px) {
+    .cardName {
+        font-size: 15px;
+    }
 }
 
 .cardReason {
@@ -156,6 +335,14 @@
     text-overflow: ellipsis;
 }
 
+/* Mobile: Smaller reason text */
+@media (max-width: 768px) {
+    .cardReason {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+}
+
 .readMoreButton {
     background: none;
     border: none;
@@ -169,6 +356,14 @@
     transition: all 0.2s;
     align-self: flex-start;
     opacity: 0.8;
+}
+
+/* Mobile: Smaller read more button */
+@media (max-width: 768px) {
+    .readMoreButton {
+        font-size: 13px;
+        padding: 2px 0;
+    }
 }
 
 .readMoreButton:hover {

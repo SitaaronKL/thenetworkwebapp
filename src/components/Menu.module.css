@@ -3,6 +3,14 @@
   --menu-button-size: 96px;
 }
 
+/* Mobile: Smaller menu */
+@media (max-width: 768px) {
+  :root {
+    --menu-width: 100vw;
+    --menu-button-size: 64px;
+  }
+}
+
 .menuButton {
   position: fixed;
   top: 14px;
@@ -20,6 +28,14 @@
   transition: transform 0.2s ease;
 }
 
+/* Mobile: Smaller button position */
+@media (max-width: 768px) {
+  .menuButton {
+    top: 10px;
+    left: 10px;
+  }
+}
+
 .menuButton.hidden {
   display: none;
 }
@@ -34,11 +50,32 @@
   display: none;
 }
 
+/* Mobile: Smaller inner button */
+@media (max-width: 768px) {
+  .menuButton.inner {
+    right: 10px;
+    top: 10px;
+  }
+}
+
 .menuLines {
   width: 48px;
   height: 32px;
   display: grid;
   gap: 10px;
+}
+
+/* Mobile: Smaller menu lines */
+@media (max-width: 768px) {
+  .menuLines {
+    width: 32px;
+    height: 22px;
+    gap: 7px;
+  }
+  
+  .menuLines span {
+    height: 4px !important;
+  }
 }
 
 .menuLines span {
@@ -69,6 +106,13 @@
   padding: 20px;
 }
 
+/* Mobile: Full width panel */
+@media (max-width: 768px) {
+  .menuPanel {
+    padding: 16px;
+  }
+}
+
 .menuPanel.open {
   transform: translateX(0);
 }
@@ -77,12 +121,26 @@
   transform: translateX(calc(var(--menu-width) - var(--menu-button-size) - 34px));
 }
 
+/* Mobile: Don't transform the button on open */
+@media (max-width: 768px) {
+  .menuButton.open {
+    transform: translateX(0);
+  }
+}
+
 .menuTitle {
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 72px;
   font-weight: 800;
   color: #0f172a;
   letter-spacing: 0.01em;
+}
+
+/* Mobile: Smaller title */
+@media (max-width: 768px) {
+  .menuTitle {
+    font-size: 36px;
+  }
 }
 
 .menuContent {
@@ -95,6 +153,15 @@
   font-weight: 800;
   color: #0f172a;
   letter-spacing: 0.01em;
+}
+
+/* Mobile: Smaller menu content */
+@media (max-width: 768px) {
+  .menuContent {
+    font-size: 32px;
+    gap: 12px;
+    margin-top: 12px;
+  }
 }
 
 .menuContent a {
@@ -206,6 +273,14 @@
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.15s ease;
+}
+
+/* Mobile: Smaller sub menu items */
+@media (max-width: 768px) {
+  .subMenuItem {
+    font-size: 18px;
+    padding-left: 12px;
+  }
 }
 
 .subMenuItem:hover {

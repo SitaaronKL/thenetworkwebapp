@@ -16,6 +16,16 @@
   transition: all 0.2s ease;
 }
 
+/* Mobile: Smaller help button */
+@media (max-width: 768px) {
+  .helpButton {
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
 .helpButton:hover {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.3);

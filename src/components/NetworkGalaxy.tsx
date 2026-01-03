@@ -18,16 +18,19 @@ export default React.memo(function NetworkGalaxy({
     const [isInverted, setIsInverted] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    // Use ref to track mobile state without causing re-renders that break useEffect
+    const isMobileRef = useRef(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
     // D3 state (mirrors the Observable example structure)
     const svgRef = useRef<SVGSVGElement | null>(null);
     const simulationRef = useRef<d3.Simulation<any, undefined> | null>(null);
     const linkSelRef = useRef<d3.Selection<SVGLineElement, any, SVGGElement, unknown> | null>(null);
     const nodeSelRef = useRef<d3.Selection<SVGGElement, any, SVGGElement, unknown> | null>(null);
-    // Bigger = more zoomed out (show more of the graph)
-    const VIEWBOX_SCALE = 1.8;
-    // Positive value shifts the camera right (so the graph appears a bit more left on screen)
-    const VIEWBOX_OFFSET_X_PX = 180;
+    
+    // Helper function to get viewbox scale based on current mobile state
+    const getViewboxScale = () => isMobileRef.current ? 2.2 : 1.8;
+    // Helper function to get viewbox offset based on current mobile state
+    const getViewboxOffsetX = () => isMobileRef.current ? 0 : 180;
 
     useEffect(() => {
         const checkInverted = () => {
@@ -56,6 +59,8 @@ export default React.memo(function NetworkGalaxy({
                     height: containerRef.current.offsetHeight
                 });
             }
+            // Update mobile ref (doesn't cause re-render)
+            isMobileRef.current = window.innerWidth <= 768;
         };
 
         window.addEventListener('resize', updateDimensions);
@@ -128,9 +133,11 @@ export default React.memo(function NetworkGalaxy({
 
         const width = Math.max(1, dimensions.width || 1);
         const height = Math.max(1, dimensions.height || 1);
-        const vbW = width * VIEWBOX_SCALE;
-        const vbH = height * VIEWBOX_SCALE;
-        const vbOffsetX = VIEWBOX_OFFSET_X_PX * VIEWBOX_SCALE;
+        const viewboxScale = getViewboxScale();
+        const viewboxOffsetX = getViewboxOffsetX();
+        const vbW = width * viewboxScale;
+        const vbH = height * viewboxScale;
+        const vbOffsetX = viewboxOffsetX * viewboxScale;
 
         // Reduce spacing by ~33% (closer nodes + shorter links)
         const simulation = d3.forceSimulation<any>()
@@ -313,9 +320,11 @@ export default React.memo(function NetworkGalaxy({
         const svg = d3.select(svgRef.current);
         const width = Math.max(1, dimensions.width || 1);
         const height = Math.max(1, dimensions.height || 1);
-        const vbW = width * VIEWBOX_SCALE;
-        const vbH = height * VIEWBOX_SCALE;
-        const vbOffsetX = VIEWBOX_OFFSET_X_PX * VIEWBOX_SCALE;
+        const viewboxScale = getViewboxScale();
+        const viewboxOffsetX = getViewboxOffsetX();
+        const vbW = width * viewboxScale;
+        const vbH = height * viewboxScale;
+        const vbOffsetX = viewboxOffsetX * viewboxScale;
         svg.attr('width', width)
             .attr('height', height)
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH]);

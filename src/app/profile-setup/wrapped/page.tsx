@@ -959,7 +959,7 @@ export default function WrappedPage() {
 
         return (
             <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm"
                 onClick={(e) => {
                     if (e.target === e.currentTarget) {
                         setShowInterestModal(false);
@@ -967,276 +967,146 @@ export default function WrappedPage() {
                 }}
             >
                 <div
-                    className="relative bg-[#1a1a1a] border border-white/10 rounded-[24px] max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+                    className="relative bg-[#1a1a1a] border border-white/10 rounded-t-[24px] md:rounded-[24px] max-w-4xl w-full md:mx-4 max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
                     onClick={(e) => e.stopPropagation()}
                 >
+                    {/* Mobile drag handle */}
+                    <div className="md:hidden flex justify-center pt-3 pb-1 sticky top-0 bg-[#1a1a1a] z-10">
+                        <div className="w-10 h-1 bg-white/30 rounded-full"></div>
+                    </div>
+
                     {/* Close Button */}
                     <button
                         onClick={() => setShowInterestModal(false)}
-                        className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                        className="absolute top-3 md:top-4 right-4 w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors z-20"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
 
-                    <div className="p-8 md:p-12">
+                    <div className="p-5 md:p-12 pt-2 md:pt-12">
                         {/* Header */}
-                        <h2 className="text-[32px] md:text-[40px] font-bold text-white font-display mb-6">
-                            How We Use Your YouTube Data
+                        <h2 className="text-[24px] md:text-[40px] font-bold text-white font-display mb-6 md:mb-8 leading-tight pr-8">
+                            Your Interests, Without the Guesswork
                         </h2>
 
-                        {/* Section 0: Why We Need YouTube API Access */}
-                        <div className="mb-8 bg-[#0a0a0a] border border-white/10 rounded-[16px] p-6">
-                            <h3 className="text-[24px] font-bold text-white font-display mb-4">
-                                Why YouTube API Access Is Required
-                            </h3>
-                            <div className="space-y-4 text-gray-300 font-display text-[16px] leading-relaxed">
-                                <p>
-                                    <strong className="text-white">The Problem We Solve:</strong> Traditional social platforms match users based on superficial profiles, demographics, or self-reported interests. These methods fail to capture authentic intellectual passions and deep interests that drive meaningful connections.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Why YouTube Data Is Essential:</strong> YouTube viewing behavior provides the most accurate, authentic representation of a person's true interests because:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4">
-                                    <li><strong className="text-white">Subscriptions reveal recurring interests:</strong> The channels you actively subscribe to represent topics you're committed to following over time, not just casual viewing</li>
-                                    <li><strong className="text-white">Liked videos show genuine engagement:</strong> Unlike passive viewing, liking a video requires active engagement, indicating genuine interest and intellectual investment in the content</li>
-                                    <li><strong className="text-white">Behavioral data is more authentic than self-reports:</strong> What you actually watch and engage with reveals your true passions more accurately than what you claim to be interested in</li>
-                                    <li><strong className="text-white">Volume enables pattern recognition:</strong> With {actualYoutubeCounts.subscriptions || youtubeStatus.subscriptionsTotal || youtubeStatus.subscriptionsCount || 0} subscriptions and {actualYoutubeCounts.likedVideos || youtubeStatus.likedVideosTotal || youtubeStatus.likedVideosCount || 0} liked videos, we can identify patterns and themes that would be impossible to detect with smaller datasets</li>
-                                </ul>
-                                <p>
-                                    <strong className="text-white">Why We Need the YouTube API:</strong> This data cannot be obtained through any other means. Users cannot manually provide this information because:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4">
-                                    <li>Most users cannot recall all their subscriptions or liked videos</li>
-                                    <li>Manual entry would be time-consuming and error-prone</li>
-                                    <li>The volume of data (hundreds of subscriptions and liked videos) makes manual collection impractical</li>
-                                    <li>We need historical data to identify patterns over time</li>
-                                </ul>
-                                <p className="mt-4 pt-4 border-t border-white/10">
-                                    <strong className="text-white">Data Minimization:</strong> We request only the <code className="text-white/80 bg-white/5 px-1 rounded">youtube.readonly</code> scope, which provides the minimum access necessary. We do NOT request or use:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4">
-                                    <li>Video content or thumbnails</li>
-                                    <li>Comments or social interactions</li>
-                                    <li>Watch history (beyond liked videos)</li>
-                                    <li>Playlists or other metadata</li>
-                                    <li>Any write permissions</li>
-                                </ul>
-                                <p className="mt-4">
-                                    <strong className="text-white">Conclusion:</strong> YouTube API access with the <code className="text-white/80 bg-white/5 px-1 rounded">youtube.readonly</code> scope is the only way to obtain the subscription and liked video data necessary for our interest generation and matching service. Without this API access, our service cannot function as designed.
-                                </p>
-                            </div>
+                        {/* Main Branding Section */}
+                        <div className="mb-6 md:mb-8 space-y-4 md:space-y-6 text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
+                            <p className="text-white text-[17px] md:text-[20px] font-medium">
+                                Most apps make you explain yourself.
+                            </p>
+                            <p>
+                                They ask you to pick categories, write bios, or perform a version of you that fits inside a template. But the things you actually care about do not live in a dropdown menu.
+                            </p>
+                            <p>
+                                They live in the rabbit holes you return to. The creators you keep up with. The videos that make you stop scrolling and hit like.
+                            </p>
+                            <p className="text-white text-[17px] md:text-[20px] font-medium">
+                                That is why TheNetwork starts somewhere real: your YouTube.
+                            </p>
+                            <p>
+                                Not because we are trying to know everything about you, but because it is the cleanest signal of what you are genuinely into.
+                            </p>
                         </div>
 
-                        {/* Section 1: Data Collection and Storage */}
-                        <div className="mb-8">
-                            <h3 className="text-[24px] font-bold text-white font-display mb-4">
-                                Data Collection and Secure Storage
+                        {/* What Connecting YouTube Does */}
+                        <div className="mb-6 md:mb-8 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/10 rounded-[16px] md:rounded-[20px] p-4 md:p-8">
+                            <h3 className="text-[20px] md:text-[24px] font-bold text-white font-display mb-3 md:mb-4">
+                                What Connecting YouTube Does
                             </h3>
-                            <div className="space-y-4 text-gray-300 font-display text-[16px] leading-relaxed">
+                            <div className="space-y-3 md:space-y-4 text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
                                 <p>
-                                    When you connect your YouTube account, we collect and securely store the following data:
+                                    When you connect YouTube, we use two simple signals:
                                 </p>
-                                <ul className="list-disc list-inside space-y-3 ml-4">
-                                    <li>
-                                        <strong className="text-white">
-                                            {actualYoutubeCounts.subscriptions || youtubeStatus.subscriptionsTotal || youtubeStatus.subscriptionsCount || 0} Subscribed Channels:
-                                        </strong>{' '}
-                                        We retrieve the list of channels you subscribe to via the YouTube Data API v3 (using the <code className="text-white/80 bg-white/5 px-1 rounded">youtube.readonly</code> scope). This data is stored securely in our database, including channel titles and subscription metadata. We analyze these channel subscriptions to identify recurring themes, topics, and content categories that indicate your areas of interest and passion.
+                                <ul className="space-y-2 md:space-y-3 ml-2 md:ml-4">
+                                    <li className="flex items-start">
+                                        <span className="text-white mr-2 md:mr-3">•</span>
+                                        <span><strong className="text-white">Channels you follow</strong> show what you choose to keep in your orbit.</span>
                                     </li>
-                                    <li>
-                                        <strong className="text-white">
-                                            {actualYoutubeCounts.likedVideos || youtubeStatus.likedVideosTotal || youtubeStatus.likedVideosCount || 0} Liked Videos:
-                                        </strong>{' '}
-                                        We retrieve your liked videos history via the YouTube Data API v3 (using the <code className="text-white/80 bg-white/5 px-1 rounded">youtube.readonly</code> scope). This includes video titles, channel information, and timestamps. This data is stored securely in our database. We examine the patterns in your liked videos to discover your content preferences, intellectual interests, and viewing behaviors that reveal your authentic passions.
+                                    <li className="flex items-start">
+                                        <span className="text-white mr-2 md:mr-3">•</span>
+                                        <span><strong className="text-white">Videos you like</strong> show what you actively engage with.</span>
                                     </li>
                                 </ul>
-                                <p className="mt-4">
-                                    <strong className="text-white">Data Storage:</strong> All YouTube data is stored securely in our encrypted database. We only store the data necessary for interest analysis: channel titles, video titles, and channel information. We do not store video content, thumbnails, or any personal identifiers beyond what is required for the analysis. This data is retained only as long as your account is active and is deleted immediately upon account deletion or YouTube disconnection.
+                                <p className="pt-2">
+                                    Those two signals together are how we build something that feels like you, without you doing any work.
                                 </p>
-                                <p className="mt-4 pt-4 border-t border-white/10">
-                                    <strong className="text-white">Complete Data Inventory:</strong> The following is a complete list of ALL YouTube data we collect, store, and use:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4 mt-2">
-                                    <li><strong className="text-white">From Subscriptions:</strong> Channel title only (e.g., "Veritasium", "3Blue1Brown")</li>
-                                    <li><strong className="text-white">From Liked Videos:</strong> Video title and channel title only (e.g., "The Science of Sleep" by "SciShow")</li>
-                                    <li><strong className="text-white">Metadata:</strong> Timestamps for when subscriptions/likes were added (for pattern analysis over time)</li>
-                                </ul>
-                                <p className="mt-4">
-                                    <strong className="text-white">What We Do NOT Collect:</strong> We explicitly do NOT collect, store, or use: video descriptions, video content, thumbnails, comments, view counts, subscriber counts, playlist data, watch history (beyond liked videos), user channel information, or any other YouTube data beyond what is listed above.
+                                <div className="pt-3 md:pt-4 space-y-1 md:space-y-2 text-gray-300">
+                                    <p>No long onboarding.</p>
+                                    <p>No tell us your interests.</p>
+                                    <p>No fake personality quizzes.</p>
+                                </div>
+                                <p className="pt-2 text-white font-medium">
+                                    Just connect, and we map the patterns.
                                 </p>
                             </div>
                         </div>
 
-                        {/* Section 2: Interest Generation Process */}
-                        <div className="mb-8 border-t border-white/10 pt-8">
-                            <h3 className="text-[24px] font-bold text-white font-display mb-4">
-                                Interest Generation Process
+                        {/* What You Get */}
+                        <div className="mb-6 md:mb-8 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/10 rounded-[16px] md:rounded-[20px] p-4 md:p-8">
+                            <h3 className="text-[20px] md:text-[24px] font-bold text-white font-display mb-3 md:mb-4">
+                                What You Get
                             </h3>
-                            <div className="space-y-4 text-gray-300 font-display text-[16px] leading-relaxed">
-                                <p>
-                                    <strong className="text-white">Step 1: Data Processing</strong>
-                                </p>
-                                <p>
-                                    We process your stored YouTube data (subscriptions and liked videos) by extracting text content (channel titles and video titles) and preparing it for analysis. This text data is anonymized and sent to our AI processing service.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Step 2: AI Analysis</strong>
-                                </p>
-                                <p>
-                                    Using OpenAI's GPT models, we analyze the aggregated text data from your subscriptions and liked videos. The AI system identifies patterns, themes, and recurring topics across your viewing behavior. It looks for:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4">
-                                    <li>Recurring topics and subject matter across multiple channels and videos</li>
-                                    <li>Specific interests that go beyond generic categories (e.g., "Quantum Computing" rather than just "Science")</li>
-                                    <li>Intellectual depth and specificity in your content consumption patterns</li>
-                                    <li>Connections between different areas of interest</li>
-                                </ul>
-                                <p>
-                                    <strong className="text-white">Step 3: Interest Extraction</strong>
-                                </p>
-                                <p>
-                                    The AI generates a list of <strong className="text-white">{interests.length || 15} unique, non-overlapping interests</strong> that represent your authentic passions. These interests are specific and meaningful (e.g., "Indie Game Development," "Philosophy of Mind," "Entrepreneurship") rather than generic categories. The system ensures each interest is distinct and represents a genuine aspect of your intellectual identity.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Step 4: Storage of Derived Data</strong>
-                                </p>
-                                <p>
-                                    The generated interests are stored in your user profile. We store only the final list of interest labels—we do not store the raw analysis, intermediate processing steps, or any connection to specific YouTube videos or channels. The interests become abstract representations of your passions, disconnected from the original YouTube data.
-                                </p>
-                                <p className="mt-4 pt-4 border-t border-white/10">
-                                    <strong className="text-white">Why This Data Is Essential:</strong> The accuracy and quality of our interest generation depends entirely on having access to both subscription and liked video data:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4 mt-2">
-                                    <li><strong className="text-white">Subscriptions alone are insufficient:</strong> Subscriptions show what you follow, but not what you actively engage with. A user might subscribe to a channel but rarely watch it, or might watch content without subscribing.</li>
-                                    <li><strong className="text-white">Liked videos alone are insufficient:</strong> Liked videos show engagement, but without subscription data, we miss the recurring themes and long-term interests that subscriptions reveal.</li>
-                                    <li><strong className="text-white">Combined data enables accurate analysis:</strong> Only by analyzing BOTH subscriptions (recurring interests) AND liked videos (active engagement) can we identify patterns that reveal authentic, deep interests rather than casual viewing habits.</li>
-                                    <li><strong className="text-white">Volume matters:</strong> With {actualYoutubeCounts.subscriptions || youtubeStatus.subscriptionsTotal || youtubeStatus.subscriptionsCount || 0} subscriptions and {actualYoutubeCounts.likedVideos || youtubeStatus.likedVideosTotal || youtubeStatus.likedVideosCount || 0} liked videos, we have sufficient data points to identify meaningful patterns. Smaller datasets would produce inaccurate or generic interest profiles.</li>
-                                </ul>
-                                <p className="mt-4">
-                                    <strong className="text-white">Service Dependency:</strong> Our service cannot function without YouTube API access because:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4 mt-2">
-                                    <li>There is no alternative source for this behavioral data</li>
-                                    <li>Manual entry would be impractical and inaccurate</li>
-                                    <li>The volume of data required makes manual collection impossible</li>
-                                    <li>Historical data is necessary to identify patterns over time</li>
-                                    <li>Without this data, we cannot generate accurate interest profiles, and without interest profiles, our matching service cannot function</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        {/* Section 3: Matching Algorithm */}
-                        <div className="mb-8 border-t border-white/10 pt-8">
-                            <h3 className="text-[24px] font-bold text-white font-display mb-4">
-                                How We Use Interests for Matching
-                            </h3>
-                            <div className="space-y-4 text-gray-300 font-display text-[16px] leading-relaxed">
-                                <p>
-                                    <strong className="text-white">Matching Process:</strong> Your derived interests (the abstract labels generated from your YouTube data) are used exclusively for matching you with other users who have similar interests. This matching process operates entirely on the derived interest data—we do not use your raw YouTube data (channel names, video titles, etc.) for matching purposes.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Compatibility Calculation:</strong> When comparing your interests with another user's interests, we calculate a compatibility score based on:
-                                </p>
-                                <ul className="list-disc list-inside space-y-2 ml-4">
-                                    <li><strong className="text-white">Shared Interest Count:</strong> The number of interests that appear in both users' interest lists</li>
-                                    <li><strong className="text-white">Interest Specificity:</strong> More specific interests (e.g., "Quantum Computing") are weighted higher than generic ones (e.g., "Science") when calculating compatibility</li>
-                                    <li><strong className="text-white">Interest Overlap Quality:</strong> The depth and meaningfulness of shared interests—users with overlapping specific interests are considered more compatible than those with only generic category overlaps</li>
-                                </ul>
-                                <p>
-                                    <strong className="text-white">Privacy in Matching:</strong> When you are matched with another user, they only see your derived interests (e.g., "Entrepreneurship," "Philosophy")—they never see your YouTube channel subscriptions, liked videos, or any other YouTube data. The matching system operates on abstract interest labels only.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Purpose of Matching:</strong> The goal is to connect you with people who share your deep intellectual interests and passions, enabling meaningful conversations and relationships based on authentic common ground rather than superficial similarities.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Section 4: Example */}
-                        <div className="mb-8 border-t border-white/10 pt-8">
-                            <h3 className="text-[24px] font-bold text-white font-display mb-4">
-                                Example: How Matching Works
-                            </h3>
-                            <div className="space-y-4 text-gray-300 font-display text-[16px] leading-relaxed mb-4">
-                                <p>
-                                    Below is a concrete example of how the matching algorithm compares derived interests between two users:
-                                </p>
-                            </div>
-                            <div className="bg-[#0a0a0a] border border-white/5 rounded-[16px] p-6 space-y-4">
-                                <div className="space-y-3 text-gray-300 font-display text-[16px]">
-                                    <div>
-                                        <p className="text-white font-semibold mb-2">Your Derived Interests (from your YouTube data):</p>
-                                        <p className="text-gray-400">
-                                            {interests.length > 0 
-                                                ? `${interests.slice(0, 5).join(', ')}${interests.length > 5 ? '...' : ''}`
-                                                : 'Quantum Computing, Indie Game Development, Philosophy, Creative Writing, Machine Learning'
-                                            }
-                                        </p>
-                                        <p className="text-gray-500 text-sm mt-1 italic">
-                                            (These are abstract labels generated from your YouTube viewing behavior)
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center justify-center py-2">
-                                        <svg className="w-6 h-6 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="text-white font-semibold mb-2">Potential Match's Derived Interests (from their YouTube data):</p>
-                                        <p className="text-gray-400">
-                                            {interests.length > 0 
-                                                ? `${interests.slice(0, 3).join(', ')}, Philosophy, Creative Writing`
-                                                : 'Quantum Computing, Indie Game Development, Philosophy, Creative Writing, Music Production'
-                                            }
-                                        </p>
-                                        <p className="text-gray-500 text-sm mt-1 italic">
-                                            (These are abstract labels generated from their YouTube viewing behavior)
-                                        </p>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-white/10">
-                                        <p className="text-white font-semibold">Compatibility Calculation:</p>
-                                        <p className="text-white font-semibold mt-2">Match Score: <span className="text-[#4ADE80]">87%</span></p>
-                                        <p className="text-gray-400 text-sm mt-2">
-                                            <strong className="text-white">Analysis:</strong> You share {interests.length > 0 ? Math.min(interests.slice(0, 3).length, 3) : 3} core interests ({interests.length > 0 ? interests.slice(0, 3).join(', ') : 'Quantum Computing, Indie Game Development, Philosophy'}). The algorithm identified these as specific, meaningful interests (not generic categories), which increases the compatibility weight. The shared interests indicate strong intellectual alignment, making this a high-quality match for meaningful connections.
-                                        </p>
-                                        <p className="text-gray-500 text-sm mt-2 italic">
-                                            Note: Neither user sees the other's YouTube data—only the derived interest labels are used for matching and visibility.
-                                        </p>
-                                    </div>
+                            <div className="space-y-3 md:space-y-4 text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
+                                <div>
+                                    <p className="text-white font-semibold mb-1 md:mb-2">An interest profile that feels specific</p>
+                                    <p className="text-gray-300 italic text-[14px] md:text-[17px]">
+                                        Not science. More like quantum computing, aviation deep dives, indie game design, philosophy of mind, football tactics, music production, and more.
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-white font-semibold mb-1 md:mb-2">Better matches</p>
+                                    <p>
+                                        You will meet people based on the overlaps that actually matter, the kind that lead to real conversations, not small talk.
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-white font-semibold mb-1 md:mb-2">A more honest starting point</p>
+                                    <p>
+                                        Your profile is not who you say you are. It is what you repeatedly choose, over time.
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Section 5: Data Privacy and Usage */}
-                        <div className="mb-8 border-t border-white/10 pt-8">
-                            <h3 className="text-[24px] font-bold text-white font-display mb-4">
-                                Data Privacy and Usage
+                        {/* What This Is Not */}
+                        <div className="mb-6 md:mb-8 border-t border-white/10 pt-4 md:pt-6">
+                            <h3 className="text-[20px] md:text-[24px] font-bold text-white font-display mb-3 md:mb-4">
+                                What This Is Not
                             </h3>
-                            <div className="space-y-4 text-gray-300 font-display text-[16px] leading-relaxed">
-                                <p>
-                                    <strong className="text-white">Data Usage Scope:</strong> Your YouTube data is used exclusively for the purpose of generating your interest profile and matching you with compatible users. We do not use this data for advertising, marketing, or any other purposes beyond user matching.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Data Sharing:</strong> We never share your raw YouTube data (channel subscriptions, liked videos, video titles, etc.) with other users or third parties. Only the derived interest labels (e.g., "Entrepreneurship," "Philosophy") are used in the matching process and may be visible to matched users.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Data Retention:</strong> Your YouTube data is retained only as long as your account is active. When you disconnect your YouTube account or delete your account, all associated YouTube data (subscriptions, liked videos) is immediately and permanently deleted from our systems. The derived interests may be retained if you choose to keep your account, but they become disconnected from the original YouTube data.
-                                </p>
-                                <p>
-                                    <strong className="text-white">Data Security:</strong> All YouTube data is stored in encrypted databases with access controls. We follow industry-standard security practices to protect your data from unauthorized access, disclosure, or misuse.
-                                </p>
-                                <p>
-                                    <strong className="text-white">User Control:</strong> You have full control over your YouTube data. You can disconnect your YouTube account at any time, which will immediately stop data collection and trigger deletion of stored YouTube data. You can also delete your account entirely, which removes all associated data.
-                                </p>
-                            </div>
+                            <p className="text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
+                                This is not about turning you into data. It is about turning your taste into a map, so you can find your people faster.
+                            </p>
+                            <p className="text-white font-medium mt-3 md:mt-4 text-[16px] md:text-[18px]">
+                                That is the whole thing.
+                            </p>
                         </div>
 
-                        {/* Footer Note */}
-                        <div className="mt-8 pt-6 border-t border-white/10">
-                            <p className="text-gray-400 text-sm font-display leading-relaxed">
-                                <strong className="text-white">Summary:</strong> This process transforms your YouTube viewing behavior into abstract interest labels through secure, AI-powered analysis. These interest labels are then used exclusively for matching you with users who share similar intellectual passions. Your raw YouTube data remains private, secure, and is never shared with other users or used for purposes beyond interest generation and user matching.
-                            </p>
+                        {/* The Easter Egg */}
+                        <div className="mb-6 md:mb-8 bg-gradient-to-br from-[#2a1a1a] to-[#1a0a0a] border border-white/20 rounded-[16px] md:rounded-[20px] p-4 md:p-8">
+                            <h3 className="text-[20px] md:text-[24px] font-bold text-white font-display mb-3 md:mb-4">
+                                The Easter Egg
+                            </h3>
+                            <div className="space-y-3 md:space-y-4 text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
+                                <p>
+                                    If you are the type of person who reads the fine print for fun, you are probably our type of person.
+                                </p>
+                                <p>
+                                    Come say hi in the Discord. We are building this in public, early, messy, and with people who care.
+                                </p>
+                                <a
+                                    href="https://discord.gg/HrRjafUG"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 mt-3 md:mt-4 px-5 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-100 transition-all hover:scale-105 text-[14px] md:text-[16px]"
+                                >
+                                    Join the Discord
+                                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
