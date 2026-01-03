@@ -126,6 +126,8 @@ export default function WrappedPage() {
         subscriptions: 0,
         likedVideos: 0
     });
+    const [showNoYouTubeDataModal, setShowNoYouTubeDataModal] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -451,6 +453,13 @@ export default function WrappedPage() {
                 }));
             }
             
+            // Check if user has no YouTube data after sync - if so, delete account and redirect
+            if (!hasYouTubeData) {
+                console.log('No YouTube data found after sync - showing message and deleting account');
+                setShowNoYouTubeDataModal(true);
+                return; // Stop processing, modal will handle account deletion
+            }
+            
             // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
             if (hasYouTubeData) {
                 console.log('Deriving interests...');
@@ -513,7 +522,7 @@ export default function WrappedPage() {
             
             // If we already know we have YouTube data from earlier, use that
             // Otherwise do a fresh check
-            let shouldComputeDna = hasYouTubeData;
+            let shouldComputeDna: boolean = hasYouTubeData;
             
             if (!shouldComputeDna) {
                 // Fresh check with proper error handling
@@ -1371,13 +1380,81 @@ export default function WrappedPage() {
         );
     };
 
+    // Handle account deletion when no YouTube data is found
+    const handleDeleteAccountNoYouTubeData = async () => {
+        if (!user || !session || deletingAccount) return;
+        
+        setDeletingAccount(true);
+        const supabase = createClient();
+        
+        try {
+            // Call the delete-account edge function
+            const { data, error } = await supabase.functions.invoke('delete-account', {
+                body: {},
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            if (data?.error) {
+                throw new Error(data.error);
+            }
+
+            // Success - sign out and redirect to login
+            await supabase.auth.signOut();
+            router.push('/');
+        } catch (error: any) {
+            console.error('Error deleting account:', error);
+            alert(`Error deleting account: ${error.message || 'An unexpected error occurred'}`);
+            setDeletingAccount(false);
+        }
+    };
+
+    // No YouTube Data Modal Component
+    const NoYouTubeDataModal = () => {
+        if (!showNoYouTubeDataModal) return null;
+
+        return (
+            <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+            >
+                <div
+                    className="relative bg-[#1a1a1a] border border-white/10 rounded-[24px] max-w-lg w-full mx-4 p-8"
+                >
+                    <h2 className="text-[28px] font-bold text-white font-display mb-4 leading-tight">
+                        No YouTube Data Found
+                    </h2>
+                    <p className="text-gray-200 font-display text-[16px] leading-relaxed mb-6">
+                        We couldn't find any YouTube subscriptions or liked videos on your account. 
+                        TheNetwork requires YouTube data to create your profile and find meaningful connections.
+                    </p>
+                    <p className="text-gray-300 font-display text-[14px] leading-relaxed mb-6">
+                        Your account will be deleted and you'll be redirected to the login page. 
+                        You can sign up again once you have YouTube activity.
+                    </p>
+                    <button
+                        onClick={handleDeleteAccountNoYouTubeData}
+                        disabled={deletingAccount}
+                        className="w-full px-6 py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-[16px]"
+                    >
+                        {deletingAccount ? 'Deleting Account...' : 'Continue'}
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     // Check if current slide can be advanced
     const canAdvanceSlide = () => {
         // For slide 7 (Interest Graph), only allow advance if interests are loaded
         if (currentSlideIndex === 6 && interests.length === 0) {
             return false;
         }
-        return currentSlide.type === 'manual' && !showInterestModal;
+        return currentSlide.type === 'manual' && !showInterestModal && !showNoYouTubeDataModal;
     };
 
     return (
@@ -1426,6 +1503,9 @@ export default function WrappedPage() {
 
             {/* Interest Explanation Modal */}
             <InterestExplanationModal />
+            
+            {/* No YouTube Data Modal */}
+            <NoYouTubeDataModal />
         </div>
     );
 }
