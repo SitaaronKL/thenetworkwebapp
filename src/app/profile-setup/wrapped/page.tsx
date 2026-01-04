@@ -146,14 +146,14 @@ export default function WrappedPage() {
             all.push(...result.items);
             pageToken = result.nextPageToken;
             pageCount++;
-            
+
             // Update progress every page
-            setYoutubeStatus(prev => ({ 
-                ...prev, 
+            setYoutubeStatus(prev => ({
+                ...prev,
                 subscriptionsCount: all.length,
                 subscriptionsTotal: result.nextPageToken ? null : all.length // null means still loading
             }));
-            
+
             // Small delay to show progress
             if (result.nextPageToken) {
                 await new Promise(r => setTimeout(r, 300));
@@ -170,19 +170,19 @@ export default function WrappedPage() {
 
         do {
             if (all.length >= maxItems) break;
-            
+
             const effectivePageSize = Math.min(50, maxItems - all.length);
             const result = await YouTubeService.fetchLikedVideos(accessToken, effectivePageSize, pageToken);
             all.push(...result.items);
             pageToken = result.nextPageToken;
-            
+
             // Update progress every page
-            setYoutubeStatus(prev => ({ 
-                ...prev, 
+            setYoutubeStatus(prev => ({
+                ...prev,
                 likedVideosCount: all.length,
                 likedVideosTotal: result.nextPageToken ? null : all.length
             }));
-            
+
             // Small delay to show progress
             if (result.nextPageToken && all.length < maxItems) {
                 await new Promise(r => setTimeout(r, 300));
@@ -202,12 +202,12 @@ export default function WrappedPage() {
                     .from('youtube_subscriptions')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id);
-                
+
                 const { count: likesCount } = await supabase
                     .from('youtube_liked_videos')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id);
-                
+
                 setActualYoutubeCounts({
                     subscriptions: subsCount || 0,
                     likedVideos: likesCount || 0
@@ -224,7 +224,7 @@ export default function WrappedPage() {
         if (!user) return;
         const checkAndProcess = async () => {
             const supabase = createClient();
-            
+
             // Check existing profile data
             const { data: profile } = await supabase
                 .from('profiles')
@@ -285,14 +285,14 @@ export default function WrappedPage() {
     useEffect(() => {
         // Must have user AND session before processing
         if (!user || !session || processingComplete.current) return;
-        
+
         // Start processing when we reach slide index 3 or later (Slide 4: "Connecting to YouTube...")
         // Slides are 0-indexed: 0=Slide1, 1=Slide2, 2=Slide3, 3=Slide4
         // We use >= 3 to handle race condition where checkAndProcess might not have completed yet
         // Also check isNewUser OR if we're still at the initial state (isNewUser not yet determined)
-        const shouldProcess = processingStatus.isNewUser || 
+        const shouldProcess = processingStatus.isNewUser ||
             (!processingStatus.interests && !processingStatus.hierarchicalInterests && !processingStatus.dnaV2);
-        
+
         if (currentSlideIndex >= 3 && !hasStartedProcessing.current && shouldProcess) {
             console.log('Starting DNA processing at slide index:', currentSlideIndex, 'processingStatus:', processingStatus);
             console.log('Session available:', !!session, 'User ID:', user.id);
@@ -304,20 +304,20 @@ export default function WrappedPage() {
     // New function with YouTube progress tracking
     const processUserDataWithYouTubeProgress = async () => {
         if (!user || processingComplete.current) return;
-        
+
         // Verify we have a valid session from auth context
         if (!session) {
             console.error('No session available from auth context');
             return;
         }
-        
+
         console.log('Starting processUserDataWithYouTubeProgress');
         console.log('User ID from context:', user.id);
         console.log('Session user ID:', session.user.id);
         console.log('Session access token available:', !!session.access_token);
-        
+
         const supabase = createClient();
-        
+
         // Verify the supabase client can see the session
         const { data: { session: clientSession }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
@@ -339,7 +339,7 @@ export default function WrappedPage() {
         } else {
             console.log('Supabase client session established, user:', clientSession.user.id);
         }
-        
+
         try {
             // Step 1: Check YouTube connection (Slide 4)
             console.log('Checking YouTube connection...');
@@ -357,14 +357,14 @@ export default function WrappedPage() {
             let hasYouTubeData = false;
             try {
                 console.log('Checking existing YouTube data for user:', user.id);
-                
+
                 // Check if YouTube data already exists
                 const { data: existingSubs, error: existingSubsError } = await supabase
                     .from('youtube_subscriptions')
                     .select('user_id')
                     .eq('user_id', user.id)
                     .limit(1);
-                
+
                 const { data: existingLikes, error: existingLikesError } = await supabase
                     .from('youtube_liked_videos')
                     .select('user_id')
@@ -387,21 +387,21 @@ export default function WrappedPage() {
                 // Only sync if we don't have data yet
                 if (!hasYouTubeData && accessToken) {
                     console.log('No YouTube data found, syncing with progress...');
-                    
+
                     // Fetch subscriptions with progress updates
                     const subscriptions = await fetchSubscriptionsWithProgress(accessToken);
                     console.log('Fetched subscriptions:', subscriptions.length);
-                    setYoutubeStatus(prev => ({ 
-                        ...prev, 
+                    setYoutubeStatus(prev => ({
+                        ...prev,
                         subscriptionsCount: subscriptions.length,
                         subscriptionsTotal: subscriptions.length
                     }));
-                    
+
                     // Fetch liked videos with progress updates
                     const likedVideos = await fetchLikedVideosWithProgress(accessToken);
                     console.log('Fetched liked videos:', likedVideos.length);
-                    setYoutubeStatus(prev => ({ 
-                        ...prev, 
+                    setYoutubeStatus(prev => ({
+                        ...prev,
                         likedVideosCount: likedVideos.length,
                         likedVideosTotal: likedVideos.length
                     }));
@@ -410,18 +410,18 @@ export default function WrappedPage() {
                     console.log('Syncing subscriptions to database...');
                     const subsCount = await YouTubeService.syncSubscriptionsToSupabase(user.id, subscriptions);
                     console.log('Synced subscriptions:', subsCount);
-                    
+
                     console.log('Syncing liked videos to database...');
                     const likesCount = await YouTubeService.syncLikedVideosToSupabase(user.id, likedVideos);
                     console.log('Synced liked videos:', likesCount);
-                    
+
                     // Only set hasYouTubeData if we actually synced something
                     hasYouTubeData = (subsCount > 0 || likesCount > 0);
                     console.log('YouTube sync complete, hasYouTubeData:', hasYouTubeData);
                 } else if (hasYouTubeData) {
                     console.log('YouTube data already exists, using existing counts');
-                    setYoutubeStatus(prev => ({ 
-                        ...prev, 
+                    setYoutubeStatus(prev => ({
+                        ...prev,
                         subscriptionsCount: existingSubsCount,
                         subscriptionsTotal: existingSubsCount,
                         likedVideosCount: existingLikesCount,
@@ -444,22 +444,22 @@ export default function WrappedPage() {
                 const subsCount = checkSubs?.length || 0;
                 const likesCount = checkLikes?.length || 0;
                 hasYouTubeData = subsCount > 0 || likesCount > 0;
-                setYoutubeStatus(prev => ({ 
-                    ...prev, 
+                setYoutubeStatus(prev => ({
+                    ...prev,
                     subscriptionsCount: subsCount,
                     subscriptionsTotal: subsCount,
                     likedVideosCount: likesCount,
                     likedVideosTotal: likesCount
                 }));
             }
-            
+
             // Check if user has no YouTube data after sync - if so, delete account and redirect
             if (!hasYouTubeData) {
                 console.log('No YouTube data found after sync - showing message and deleting account');
                 setShowNoYouTubeDataModal(true);
                 return; // Stop processing, modal will handle account deletion
             }
-            
+
             // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
             if (hasYouTubeData) {
                 console.log('Deriving interests...');
@@ -475,43 +475,43 @@ export default function WrappedPage() {
                 // Mark as ready since we can't derive without YouTube data
                 setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
             }
-            
+
             // Poll for interests and hierarchical interests (only if derivation was attempted)
             let interestsReady = false;
             let hierarchicalReady = false;
             let pollCount = 0;
             const maxPolls = 30; // 30 seconds max
-            
+
             while (pollCount < maxPolls && (!interestsReady || !hierarchicalReady)) {
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('interests, hierarchical_interests')
                     .eq('id', user.id)
                     .single();
-                
+
                 const interests = (profile?.interests as string[]) || [];
                 const hierarchical = (profile?.hierarchical_interests as any[]) || [];
-                
+
                 if (interests.length > 0) {
                     interestsReady = true;
                     setInterests(interests); // Update interests state for the graph
                     setProcessingStatus(prev => ({ ...prev, interests: true }));
                 }
-                
+
                 if (hierarchical.length > 0) {
                     hierarchicalReady = true;
                     setProcessingStatus(prev => ({ ...prev, hierarchicalInterests: true }));
                 }
-                
+
                 // If we've been polling for a while and still nothing, mark as ready to continue
                 if (pollCount >= 10 && !interestsReady && !hierarchicalReady) {
                     console.log('Polling timeout - marking interests as ready to continue flow');
                     setProcessingStatus(prev => ({ ...prev, interests: true, hierarchicalInterests: true }));
                     break;
                 }
-                
+
                 if (interestsReady && hierarchicalReady) break;
-                
+
                 await new Promise(r => setTimeout(r, 1000));
                 pollCount++;
             }
@@ -519,11 +519,11 @@ export default function WrappedPage() {
             // Step 3: Trigger DNA v2 computation
             // Use hasYouTubeData flag which we already computed, or re-check if needed
             console.log('Checking YouTube data for DNA v2 computation, hasYouTubeData:', hasYouTubeData);
-            
+
             // If we already know we have YouTube data from earlier, use that
             // Otherwise do a fresh check
             let shouldComputeDna: boolean = hasYouTubeData;
-            
+
             if (!shouldComputeDna) {
                 // Fresh check with proper error handling
                 const { data: ytSubs, error: ytSubsError } = await supabase
@@ -531,36 +531,36 @@ export default function WrappedPage() {
                     .select('user_id')
                     .eq('user_id', user.id)
                     .limit(1);
-                
+
                 const { data: ytLikes, error: ytLikesError } = await supabase
                     .from('youtube_liked_videos')
                     .select('user_id')
                     .eq('user_id', user.id)
                     .limit(1);
-                
+
                 if (ytSubsError) {
                     console.error('Error checking youtube_subscriptions:', ytSubsError);
                 }
                 if (ytLikesError) {
                     console.error('Error checking youtube_liked_videos:', ytLikesError);
                 }
-                
+
                 shouldComputeDna = (ytSubs?.length ?? 0) > 0 || (ytLikes?.length ?? 0) > 0;
-                console.log('Fresh YouTube data check result:', { 
-                    subsCount: ytSubs?.length || 0, 
+                console.log('Fresh YouTube data check result:', {
+                    subsCount: ytSubs?.length || 0,
                     likesCount: ytLikes?.length || 0,
-                    shouldComputeDna 
+                    shouldComputeDna
                 });
             }
 
             if (shouldComputeDna) {
                 console.log('Triggering compute-dna-v2 for user:', user.id);
-                
+
                 // Retry logic for DNA computation with delay
                 const maxDnaRetries = 5;
                 let dnaRetries = 0;
                 let dnaTriggered = false;
-                
+
                 while (dnaRetries < maxDnaRetries && !dnaTriggered) {
                     try {
                         // Add a small delay to ensure data is committed
@@ -568,7 +568,7 @@ export default function WrappedPage() {
                             console.log(`DNA v2 retry ${dnaRetries}/${maxDnaRetries}, waiting 2 seconds...`);
                             await new Promise(r => setTimeout(r, 2000));
                         }
-                        
+
                         const response = await fetch('/api/compute-dna-v2', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -578,20 +578,20 @@ export default function WrappedPage() {
                             })
                         });
                         const dnaResult = await response.json();
-                        
+
                         if (response.status === 202 && dnaResult.status === 'pending') {
                             // YouTube data not ready yet, retry
                             console.log('YouTube data not ready yet, will retry...');
                             dnaRetries++;
                             continue;
                         }
-                        
+
                         if (!response.ok) {
                             console.error('DNA v2 computation error:', dnaResult.error);
                             dnaRetries++;
                             continue;
                         }
-                        
+
                         console.log('DNA v2 computation triggered successfully:', dnaResult);
                         dnaTriggered = true;
                     } catch (dnaError) {
@@ -599,7 +599,7 @@ export default function WrappedPage() {
                         dnaRetries++;
                     }
                 }
-                
+
                 if (!dnaTriggered) {
                     console.warn('DNA v2 computation could not be triggered after retries');
                 }
@@ -613,18 +613,18 @@ export default function WrappedPage() {
                         .select('id')
                         .eq('user_id', user.id)
                         .maybeSingle();
-                    
+
                     if (dnaV2) {
                         dnaReady = true;
                         console.log('DNA v2 computation completed!');
                         setProcessingStatus(prev => ({ ...prev, dnaV2: true }));
                         break;
                     }
-                    
+
                     await new Promise(r => setTimeout(r, 1000));
                     pollCount++;
                 }
-                
+
                 if (!dnaReady) {
                     console.warn('DNA v2 polling timed out after', maxPolls, 'seconds');
                 }
@@ -679,7 +679,7 @@ export default function WrappedPage() {
 
                     {/* Floating Orbs - smaller on mobile */}
                     <div className="absolute right-[5%] md:right-[10%] bottom-0 w-[150px] h-[150px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
-                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                        <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
                     <div className="absolute right-[5%] top-[35%] md:top-[40%] w-[50px] h-[50px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
@@ -711,9 +711,9 @@ export default function WrappedPage() {
                         </p>
                     </div>
 
-                     {/* Floating Orbs - smaller on mobile */}
+                    {/* Floating Orbs - smaller on mobile */}
                     <div className="absolute right-[5%] md:right-[10%] bottom-0 w-[150px] h-[150px] md:w-[400px] md:h-[400px] translate-y-1/4 animate-float-slow opacity-90 pointer-events-none">
-                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
+                        <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
                     </div>
                     <div className="absolute right-[5%] top-[35%] md:top-[40%] w-[50px] h-[50px] md:w-[100px] md:h-[100px] animate-float-medium opacity-80 pointer-events-none">
                         <Image src="/assets/onboarding/bubble.png" alt="" fill className="object-contain" />
@@ -752,7 +752,7 @@ export default function WrappedPage() {
                     <div className="absolute right-[5%] top-[8%] md:top-[5%] text-gray-300 animate-pulse-medium delay-100">
                         <StarFourPoint className="w-[35px] h-[35px] md:w-[60px] md:h-[60px]" />
                     </div>
-                     <div className="absolute right-[15%] md:right-[12%] top-[22%] md:top-[18%] text-gray-500 animate-pulse-fast delay-200">
+                    <div className="absolute right-[15%] md:right-[12%] top-[22%] md:top-[18%] text-gray-500 animate-pulse-fast delay-200">
                         <StarFourPoint className="w-[25px] h-[25px] md:w-[40px] md:h-[40px]" />
                     </div>
 
@@ -797,7 +797,7 @@ export default function WrappedPage() {
                     </h1>
                     {youtubeStatus.subscriptionsCount > 0 && (
                         <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
-                            {youtubeStatus.subscriptionsTotal !== null 
+                            {youtubeStatus.subscriptionsTotal !== null
                                 ? `Fetched ${youtubeStatus.subscriptionsCount} subscriptions`
                                 : `Fetched ${youtubeStatus.subscriptionsCount}...`}
                         </p>
@@ -826,7 +826,7 @@ export default function WrappedPage() {
                     </h1>
                     {youtubeStatus.likedVideosCount > 0 && (
                         <p className="text-[16px] md:text-[22px] text-gray-400 font-display text-center">
-                            {youtubeStatus.likedVideosTotal !== null 
+                            {youtubeStatus.likedVideosTotal !== null
                                 ? `Fetched ${youtubeStatus.likedVideosCount} videos`
                                 : `Fetched ${youtubeStatus.likedVideosCount}...`}
                         </p>
@@ -874,19 +874,19 @@ export default function WrappedPage() {
                                         <div className="absolute inset-0 w-16 h-16 rounded-full border-2 border-transparent border-t-white/60 animate-spin"></div>
                                         <div className="absolute inset-2 w-12 h-12 rounded-full border-2 border-transparent border-b-white/30 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
                                     </div>
-                                    
+
                                     {/* Loading text */}
                                     <p className="text-gray-400 font-display text-[14px] md:text-base animate-pulse">
                                         Analyzing your interests...
                                     </p>
-                                    
+
                                     {/* Skeleton pills */}
                                     <div className="flex flex-wrap gap-2 md:gap-3 justify-center items-center max-w-[600px]">
                                         {[120, 80, 100, 90, 110, 70, 95, 85, 105, 75].map((width, index) => (
                                             <div
                                                 key={index}
                                                 className="h-10 md:h-12 rounded-full bg-white/5 animate-pulse"
-                                                style={{ 
+                                                style={{
                                                     width: `${width}px`,
                                                     animationDelay: `${index * 100}ms`,
                                                     animationDuration: '1.5s'
@@ -926,17 +926,17 @@ export default function WrappedPage() {
             bg: 'dark',
             content: (
                 <div className="relative w-full h-full flex flex-col items-center md:items-start justify-center px-6 md:px-20">
-                    <div 
+                    <div
                         className="max-w-[1000px] text-center md:text-left transition-transform duration-75"
                         style={{ transform: typeof window !== 'undefined' && window.innerWidth >= 768 ? `translate(202px, -158px)` : 'none' }}
                     >
-                        <h1 
+                        <h1
                             className="font-bold text-white mb-6 md:mb-8 font-display leading-tight tracking-tight text-[28px] md:text-[45px]"
                         >
                             You don't fit in one box. So we gave you four.
                         </h1>
                         {/* Custom Left-Aligned Identity Line Wrapper */}
-                        <div 
+                        <div
                             className="flex flex-wrap justify-center md:justify-start gap-x-2 md:gap-x-3 w-full font-bold font-display leading-tight tracking-tight text-[16px] md:text-[25px]"
                         >
                             {(() => {
@@ -947,7 +947,7 @@ export default function WrappedPage() {
                                     { name: 'Tech Optimist', percentage: 19 },
                                     { name: 'Chaos Gremlin', percentage: 25 },
                                 ];
-                                
+
                                 const colors = [
                                     'text-[#D4AF37]', // Gold
                                     'text-[#9F9FFF]', // Periwinkle
@@ -988,9 +988,9 @@ export default function WrappedPage() {
                         <div className="space-y-2">
                             {doppelgangers.length > 0 ? (
                                 doppelgangers.map((d, i) => (
-                                    <p 
-                                        key={i} 
-                                        className="text-[20px] md:text-[36px] font-bold text-[#b3b3b3] font-display animate-fade-in-up" 
+                                    <p
+                                        key={i}
+                                        className="text-[20px] md:text-[36px] font-bold text-[#b3b3b3] font-display animate-fade-in-up"
                                         style={{ animationDelay: `${i * 100}ms` }}
                                     >
                                         {d.name}
@@ -1009,7 +1009,7 @@ export default function WrappedPage() {
 
                     {/* Right Side Visuals - Hidden on mobile */}
                     <div className="hidden md:block">
-                    <DoppelgangerCircles />
+                        <DoppelgangerCircles />
                     </div>
 
                     {/* TN Logo - White */}
@@ -1026,7 +1026,7 @@ export default function WrappedPage() {
             bg: 'dark',
             content: (
                 <div className="w-full h-full relative flex flex-col items-center md:items-start justify-center px-6 md:p-20">
-                     <div className="max-w-[800px] text-center md:text-left">
+                    <div className="max-w-[800px] text-center md:text-left">
                         <h1 className="text-[28px] md:text-[60px] font-bold text-white mb-6 md:mb-4 font-display leading-tight tracking-tight">
                             Ready to meet more people like you?
                         </h1>
@@ -1034,36 +1034,36 @@ export default function WrappedPage() {
                             onClick={async (e) => {
                                 e.stopPropagation();
                                 localStorage.setItem('theme_inverted', 'true');
-                                
+
                                 if (user) {
                                     const supabase = createClient();
-                                    
+
                                     // Mark onboarding as completed in the database
                                     await supabase
                                         .from('profiles')
                                         .update({ has_completed_onboarding: true })
                                         .eq('id', user.id);
-                                    
+
                                     // Ensure DNA v2 is computed even if user clicked through quickly
                                     const { data: existingDna } = await supabase
                                         .from('digital_dna_v2')
                                         .select('id')
                                         .eq('user_id', user.id)
                                         .maybeSingle();
-                                    
+
                                     if (!existingDna) {
                                         const { data: ytSubs } = await supabase
                                             .from('youtube_subscriptions')
                                             .select('user_id')
                                             .eq('user_id', user.id)
                                             .limit(1);
-                                        
+
                                         const { data: ytLikes } = await supabase
                                             .from('youtube_liked_videos')
                                             .select('user_id')
                                             .eq('user_id', user.id)
                                             .limit(1);
-                                        
+
                                         if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
                                             console.log('DNA v2 not found, triggering background computation...');
                                             fetch('/api/compute-dna-v2', {
@@ -1079,7 +1079,7 @@ export default function WrappedPage() {
                                         }
                                     }
                                 }
-                                
+
                                 // Check feature flag and redirect to review page if enabled
                                 const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
                                 if (reviewEnabled) {
@@ -1110,7 +1110,7 @@ export default function WrappedPage() {
         if (slide?.type === 'auto-advance') {
             // Calculate dynamic duration based on processing status
             let duration = slide.duration || 3000;
-            
+
             // For YouTube slides (4, 5, 6), wait for YouTube API calls to complete
             if (processingStatus.isNewUser && slide.id >= 4 && slide.id <= 6) {
                 if (slide.id === 4) {
@@ -1143,7 +1143,7 @@ export default function WrappedPage() {
                 // For existing users, still show the slides but with shorter duration
                 duration = slide.duration || 2000;
             }
-            
+
             const timer = setTimeout(() => {
                 handleNext();
             }, duration);
@@ -1156,16 +1156,16 @@ export default function WrappedPage() {
             setCurrentSlideIndex(prev => prev + 1);
         } else {
             localStorage.setItem('theme_inverted', 'true');
-            
+
             if (user) {
                 const supabase = createClient();
-                
+
                 // Mark onboarding as completed in the database
                 await supabase
                     .from('profiles')
                     .update({ has_completed_onboarding: true })
                     .eq('id', user.id);
-                
+
                 // Ensure DNA v2 is computed even if user clicked through quickly
                 // Check if DNA v2 exists, if not trigger computation in background
                 const { data: existingDna } = await supabase
@@ -1173,7 +1173,7 @@ export default function WrappedPage() {
                     .select('id')
                     .eq('user_id', user.id)
                     .maybeSingle();
-                
+
                 if (!existingDna) {
                     // Check if user has YouTube data
                     const { data: ytSubs } = await supabase
@@ -1181,13 +1181,13 @@ export default function WrappedPage() {
                         .select('user_id')
                         .eq('user_id', user.id)
                         .limit(1);
-                    
+
                     const { data: ytLikes } = await supabase
                         .from('youtube_liked_videos')
                         .select('user_id')
                         .eq('user_id', user.id)
                         .limit(1);
-                    
+
                     if ((ytSubs && ytSubs.length > 0) || (ytLikes && ytLikes.length > 0)) {
                         // Trigger DNA v2 computation in background (don't await)
                         console.log('DNA v2 not found, triggering background computation...');
@@ -1204,7 +1204,7 @@ export default function WrappedPage() {
                     }
                 }
             }
-            
+
             // Check feature flag and redirect to review page if enabled
             const reviewEnabled = process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true';
             if (reviewEnabled) {
@@ -1261,19 +1261,19 @@ export default function WrappedPage() {
                         <div className="mb-6 md:mb-8 space-y-4 md:space-y-6 text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
                             <p className="text-white text-[17px] md:text-[20px] font-medium">
                                 Most apps make you explain yourself.
-                                </p>
-                                <p>
+                            </p>
+                            <p>
                                 They ask you to pick categories, write bios, or perform a version of you that fits inside a template. But the things you actually care about do not live in a dropdown menu.
                             </p>
                             <p>
                                 They live in the rabbit holes you return to. The creators you keep up with. The videos that make you stop scrolling and hit like.
-                                </p>
+                            </p>
                             <p className="text-white text-[17px] md:text-[20px] font-medium">
                                 That is why TheNetwork starts somewhere real: your YouTube.
-                                </p>
+                            </p>
                             <p>
                                 Not because we are trying to know everything about you, but because it is the cleanest signal of what you are genuinely into.
-                                </p>
+                            </p>
                         </div>
 
                         {/* What Connecting YouTube Does */}
@@ -1302,7 +1302,7 @@ export default function WrappedPage() {
                                     <p>No long onboarding.</p>
                                     <p>No tell us your interests.</p>
                                     <p>No fake personality quizzes.</p>
-                            </div>
+                                </div>
                                 <p className="pt-2 text-white font-medium">
                                     Just connect, and we map the patterns.
                                 </p>
@@ -1319,22 +1319,22 @@ export default function WrappedPage() {
                                     <p className="text-white font-semibold mb-1 md:mb-2">An interest profile that feels specific</p>
                                     <p className="text-gray-300 italic text-[14px] md:text-[17px]">
                                         Not science. More like quantum computing, aviation deep dives, indie game design, philosophy of mind, football tactics, music production, and more.
-                                </p>
-                            </div>
+                                    </p>
+                                </div>
                                 <div>
                                     <p className="text-white font-semibold mb-1 md:mb-2">Better matches</p>
                                     <p>
                                         You will meet people based on the overlaps that actually matter, the kind that lead to real conversations, not small talk.
-                                </p>
-                            </div>
-                                    <div>
+                                    </p>
+                                </div>
+                                <div>
                                     <p className="text-white font-semibold mb-1 md:mb-2">A more honest starting point</p>
                                     <p>
                                         Your profile is not who you say you are. It is what you repeatedly choose, over time.
-                                        </p>
-                                    </div>
-                                    </div>
-                                    </div>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* What This Is Not */}
                         <div className="mb-6 md:mb-8 border-t border-white/10 pt-4 md:pt-6">
@@ -1343,10 +1343,10 @@ export default function WrappedPage() {
                             </h3>
                             <p className="text-gray-200 font-display text-[15px] md:text-[17px] leading-relaxed">
                                 This is not about turning you into data. It is about turning your taste into a map, so you can find your people faster.
-                                        </p>
+                            </p>
                             <p className="text-white font-medium mt-3 md:mt-4 text-[16px] md:text-[18px]">
                                 That is the whole thing.
-                                        </p>
+                            </p>
                         </div>
 
                         {/* The Easter Egg */}
@@ -1383,10 +1383,10 @@ export default function WrappedPage() {
     // Handle account deletion when no YouTube data is found
     const handleDeleteAccountNoYouTubeData = async () => {
         if (!user || !session || deletingAccount) return;
-        
+
         setDeletingAccount(true);
         const supabase = createClient();
-        
+
         try {
             // Call the delete-account edge function
             const { data, error } = await supabase.functions.invoke('delete-account', {
@@ -1429,11 +1429,11 @@ export default function WrappedPage() {
                         No YouTube Data Found
                     </h2>
                     <p className="text-gray-200 font-display text-[16px] leading-relaxed mb-6">
-                        We couldn't find any YouTube subscriptions or liked videos on your account. 
+                        We couldn't find any YouTube subscriptions or liked videos on your account.
                         TheNetwork requires YouTube data to create your profile and find meaningful connections.
                     </p>
                     <p className="text-gray-300 font-display text-[14px] leading-relaxed mb-6">
-                        Your account will be deleted and you'll be redirected to the login page. 
+                        Your account will be deleted and you'll be redirected to the login page.
                         You can sign up again once you have YouTube activity.
                     </p>
                     <button
@@ -1476,13 +1476,13 @@ export default function WrappedPage() {
             </div>
 
             {/* Tap Indicator - Moved lower and centered */}
-            {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 && 
-             // For slide 7 (Interest Graph), only show indicator when interests are loaded
-             (currentSlideIndex !== 6 || interests.length > 0) && (
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
-                    Tap to continue
-                </div>
-            )}
+            {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 &&
+                // For slide 7 (Interest Graph), only show indicator when interests are loaded
+                (currentSlideIndex !== 6 || interests.length > 0) && (
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
+                        Tap to continue
+                    </div>
+                )}
 
             {/* Navigation Dots - Top Center */}
             <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
@@ -1494,8 +1494,8 @@ export default function WrappedPage() {
                             setCurrentSlideIndex(idx);
                         }}
                         className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${idx === currentSlideIndex
-                                ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black')
-                                : 'bg-gray-600'
+                            ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black')
+                            : 'bg-gray-600'
                             }`}
                     />
                 ))}
@@ -1503,7 +1503,7 @@ export default function WrappedPage() {
 
             {/* Interest Explanation Modal */}
             <InterestExplanationModal />
-            
+
             {/* No YouTube Data Modal */}
             <NoYouTubeDataModal />
         </div>

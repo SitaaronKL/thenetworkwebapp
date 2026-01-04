@@ -57,10 +57,10 @@ export default function Home() {
   // Friend Requests Modal State
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
-  
+
   // Search User Modal State
   const [showSearchUser, setShowSearchUser] = useState(false);
-  
+
   // Suggestion Detail Modal State
   const [selectedSuggestion, setSelectedSuggestion] = useState<any | null>(null);
 
@@ -80,74 +80,74 @@ export default function Home() {
   });
 
   // Helper function to process connections and build network
-    const processConnections = async (
-      supabase: ReturnType<typeof createClient>,
-      connections: Connection[],
-      userId: string
-    ) => {
-      const loadedPeople: NetworkPerson[] = [];
+  const processConnections = async (
+    supabase: ReturnType<typeof createClient>,
+    connections: Connection[],
+    userId: string
+  ) => {
+    const loadedPeople: NetworkPerson[] = [];
 
-      // Get current user's profile
-      const { data: currentProfile } = await supabase
+    // Get current user's profile
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    // Add current user at center
+    loadedPeople.push(createCurrentUserNode(
+      userId,
+      currentProfile?.full_name?.split(' ')[0] || 'You',
+      currentProfile?.star_color || '#8E5BFF',
+      getAvatarUrl(currentProfile?.avatar_url)
+    ));
+
+    // Get unique friend IDs
+    const friendIds = [...new Set(connections.map(conn =>
+      conn.sender_id === userId ? conn.receiver_id : conn.sender_id
+    ))];
+
+    // Fetch friend profiles
+    if (friendIds.length > 0) {
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
-        .single();
+        .in('id', friendIds);
 
-      // Add current user at center
-      loadedPeople.push(createCurrentUserNode(
-        userId,
-        currentProfile?.full_name?.split(' ')[0] || 'You',
-        currentProfile?.star_color || '#8E5BFF',
-        getAvatarUrl(currentProfile?.avatar_url)
-      ));
+      // Position friends in a spiral pattern around center
+      let index = 1;
+      for (const profile of (profiles || [])) {
+        const angle = (index * 2.4) + Math.random() * 0.5;
+        const radius = 120 + (index * 30) + Math.random() * 50;
+        const x = 400 + Math.cos(angle) * radius;
+        const y = 500 + Math.sin(angle) * radius;
 
-      // Get unique friend IDs
-      const friendIds = [...new Set(connections.map(conn =>
-        conn.sender_id === userId ? conn.receiver_id : conn.sender_id
-      ))];
+        loadedPeople.push({
+          id: profile.id,
+          name: profile.full_name?.split(' ')[0] || 'Friend',
+          starColor: profile.star_color || '#8E5BFF',
+          x,
+          y,
+          stars: 4, // Default stars
+          connections: [userId],
+          bio: profile.bio,
+          imageUrl: getAvatarUrl(profile.avatar_url)
+        });
 
-      // Fetch friend profiles
-      if (friendIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', friendIds);
-
-        // Position friends in a spiral pattern around center
-        let index = 1;
-        for (const profile of (profiles || [])) {
-          const angle = (index * 2.4) + Math.random() * 0.5;
-          const radius = 120 + (index * 30) + Math.random() * 50;
-          const x = 400 + Math.cos(angle) * radius;
-          const y = 500 + Math.sin(angle) * radius;
-
-          loadedPeople.push({
-            id: profile.id,
-            name: profile.full_name?.split(' ')[0] || 'Friend',
-            starColor: profile.star_color || '#8E5BFF',
-            x,
-            y,
-            stars: 4, // Default stars
-            connections: [userId],
-            bio: profile.bio,
-            imageUrl: getAvatarUrl(profile.avatar_url)
-          });
-
-          // Update current user's connections
-          loadedPeople[0].connections.push(profile.id);
-          index++;
-        }
+        // Update current user's connections
+        loadedPeople[0].connections.push(profile.id);
+        index++;
       }
+    }
 
-      setPeople(loadedPeople);
-      setIsLoadingNetwork(false);
-    };
+    setPeople(loadedPeople);
+    setIsLoadingNetwork(false);
+  };
 
   // Function to load network data
   const loadNetworkData = useCallback(async () => {
     if (!user) return;
-    
+
     setIsLoadingNetwork(true);
     const supabase = createClient();
 
@@ -204,7 +204,7 @@ export default function Home() {
   // Function to load Ari's suggestions based on similarity
   const loadAriaSuggestions = useCallback(async () => {
     if (!user) return;
-    
+
     setIsLoadingSuggestions(true);
     const supabase = createClient();
 
@@ -235,7 +235,7 @@ export default function Home() {
       if (authError) {
         console.error('Auth error when loading interactions:', authError);
       }
-      
+
       let interactedIds = new Set<string>();
       try {
         // Verify auth.uid() matches user.id
@@ -244,19 +244,19 @@ export default function Home() {
           auth_uid: authUser?.id,
           match: user.id === authUser?.id
         });
-        
+
         // Try querying with explicit error handling
         const query = supabase
           .from('suggestion_interactions')
           .select('suggested_user_id')
           .eq('user_id', user.id);
-        
+
         const { data: interactions, error: interactionsError } = await query;
 
         if (interactionsError) {
           // Only log real errors, ignore empty objects or expected "not found" issues
           if (Object.keys(interactionsError).length > 0 || interactionsError.message) {
-             console.warn('Suggestion interactions fetch issue (non-critical):', interactionsError.message || interactionsError);
+            console.warn('Suggestion interactions fetch issue (non-critical):', interactionsError.message || interactionsError);
           }
           interactedIds = new Set<string>();
         } else {
@@ -272,7 +272,7 @@ export default function Home() {
         // Continue with empty set if exception occurs
         interactedIds = new Set<string>();
       }
-      
+
       setInteractedSuggestionIds(interactedIds);
 
       // Only show suggestions if user has 4 or fewer connections AND hasn't interacted with all suggestions
@@ -316,7 +316,7 @@ export default function Home() {
       // 3. If user has no DNA v2, fallback to DNA v1, then interest-based matching
       let useDnaV1 = false;
       let userDnaV1: any = null;
-      
+
       if (!userDnaV2 || !userDnaV2.composite_vector) {
         // Try DNA v1 as fallback
         const { data: dnaV1 } = await supabase
@@ -456,7 +456,7 @@ export default function Home() {
                   console.error('Error generating reason:', error);
                   return null; // Don't show suggestion on error
                 }
-                
+
                 return {
                   id: profile.id,
                   name: profile.full_name?.split(' ')[0] || 'User',
@@ -464,7 +464,7 @@ export default function Home() {
                   avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png'
                 };
               });
-              
+
               const formatted = await Promise.all(formattedPromises);
               setSuggestions(formatted);
               setIsLoadingSuggestions(false);
@@ -534,18 +534,18 @@ export default function Home() {
       // Prefer DNA v2 (composite_vector) for deeper matching, fallback to DNA v1 (interest_vector)
       const { data: matchedProfiles, error: matchError } = useDnaV1
         ? await supabase.rpc('match_profiles', {
-            query_embedding: userDnaV1.interest_vector,
-            match_threshold: 0.3,
-            match_count: 20,
-            ignore_user_id: user.id
-          })
+          query_embedding: userDnaV1.interest_vector,
+          match_threshold: 0.3,
+          match_count: 20,
+          ignore_user_id: user.id
+        })
         : (userDnaV2?.composite_vector)
           ? await supabase.rpc('match_profiles_v2', {
-              query_embedding: userDnaV2.composite_vector,
-              match_threshold: 0.3, // Minimum similarity threshold (0.3 = 30% similarity)
-              match_count: 20, // Get more candidates to filter out network connections
-              ignore_user_id: user.id
-            })
+            query_embedding: userDnaV2.composite_vector,
+            match_threshold: 0.3, // Minimum similarity threshold (0.3 = 30% similarity)
+            match_count: 20, // Get more candidates to filter out network connections
+            ignore_user_id: user.id
+          })
           : { data: null, error: { message: 'No DNA v2 available' } };
 
       if (matchError || !matchedProfiles || matchedProfiles.length === 0) {
@@ -660,7 +660,7 @@ export default function Home() {
 
       // Calculate how many suggestions we should show (3 minus how many they've interacted with)
       const remainingSuggestionSlots = Math.max(0, 3 - interactedIds.size);
-      
+
       const formattedSuggestions = (await Promise.all(formattedSuggestionsPromises))
         .filter((s: any) => s !== null)
         .filter((s: any) => !interactedIds.has(s.id)) // Filter out already interacted suggestions
@@ -685,7 +685,7 @@ export default function Home() {
   // Function to check for pending friend requests
   const checkPendingFriendRequests = useCallback(async () => {
     if (!user) return;
-    
+
     const supabase = createClient();
     try {
       // Get current user
@@ -757,7 +757,7 @@ export default function Home() {
       </div>
 
       {/* Mobile button to open suggestions */}
-      <button 
+      <button
         className={styles.mobileSuggestionsButton}
         onClick={() => setShowMobileSuggestions(true)}
         aria-label="Open suggestions"
@@ -773,7 +773,7 @@ export default function Home() {
       {/* Ari's Suggestions Overlay */}
       <div className={`${styles.suggestionsPanel} ${showMobileSuggestions ? styles.mobileOpen : ''}`}>
         {/* Mobile close button */}
-        <button 
+        <button
           className={styles.mobileCloseButton}
           onClick={() => setShowMobileSuggestions(false)}
           aria-label="Close suggestions"
@@ -813,17 +813,17 @@ export default function Home() {
             suggestions.map((person) => {
               // Check if reason is long enough to need truncation
               const hasMore = person.reason.length > 120 || person.reason.split('.').length > 2;
-              
+
               return (
-            <div key={person.id} className={styles.suggestionCard}>
-              <img src={person.avatar} alt={person.name} className={styles.cardAvatar} />
-              <div className={styles.cardInfo}>
-                <div className={styles.cardName}>{person.name}</div>
+                <div key={person.id} className={styles.suggestionCard}>
+                  <img src={person.avatar} alt={person.name} className={styles.cardAvatar} />
+                  <div className={styles.cardInfo}>
+                    <div className={styles.cardName}>{person.name}</div>
                     <div className={styles.cardReason}>
                       {person.reason}
                     </div>
                     {hasMore && (
-                      <button 
+                      <button
                         className={styles.readMoreButton}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -833,8 +833,8 @@ export default function Home() {
                         Read more
                       </button>
                     )}
-              </div>
-            </div>
+                  </div>
+                </div>
               );
             })
           )}
@@ -883,24 +883,24 @@ export default function Home() {
           // Track interaction when user sends a request
           if (selectedSuggestion) {
             const suggestionId = selectedSuggestion.id;
-            
+
             // Immediately remove the suggestion from the list (before async operations)
             const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
             setSuggestions(updatedSuggestions);
-            
+
             // Update interacted IDs and check total count
             const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
             setInteractedSuggestionIds(newInteractedIds);
-            
+
             // If user has interacted with 3 total suggestions OR all current suggestions are gone, show the message
             if (newInteractedIds.size >= 3 || updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
               setSuggestions([]); // Clear any remaining suggestions
             }
-            
+
             // Close the modal immediately
             setSelectedSuggestion(null);
-            
+
             // Track in database (non-blocking, fire-and-forget)
             (async () => {
               try {
@@ -914,13 +914,13 @@ export default function Home() {
                   console.error('No current user found for interaction tracking');
                   return;
                 }
-                
+
                 console.log('Attempting to insert suggestion interaction:', {
                   user_id: currentUser.id,
                   suggested_user_id: suggestionId,
                   interaction_type: 'connected'
                 });
-                
+
                 const { data: insertData, error: insertError } = await supabase
                   .from('suggestion_interactions')
                   .upsert({
@@ -929,7 +929,7 @@ export default function Home() {
                     interaction_type: 'connected'
                   }, { onConflict: 'user_id,suggested_user_id' })
                   .select();
-                
+
                 if (insertError) {
                   console.error('Error inserting suggestion interaction:', {
                     error: insertError,
@@ -941,7 +941,7 @@ export default function Home() {
                   });
                 } else {
                   console.log('Successfully tracked suggestion interaction:', insertData);
-                  
+
                   // Verify the insert worked by querying it back
                   const { data: verifyData, error: verifyError } = await supabase
                     .from('suggestion_interactions')
@@ -949,7 +949,7 @@ export default function Home() {
                     .eq('user_id', currentUser.id)
                     .eq('suggested_user_id', suggestionId)
                     .single();
-                  
+
                   if (verifyError) {
                     console.error('Warning: Could not verify inserted interaction:', verifyError);
                   } else {
@@ -960,7 +960,7 @@ export default function Home() {
                 console.error('Error tracking interaction:', err);
               }
             })();
-            
+
             // Refresh network data to show new connections
             loadNetworkData();
           }
@@ -969,24 +969,24 @@ export default function Home() {
           // Track interaction when user dismisses
           if (selectedSuggestion) {
             const suggestionId = selectedSuggestion.id;
-            
+
             // Immediately remove the suggestion from the list (before async operations)
             const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
             setSuggestions(updatedSuggestions);
-            
+
             // Update interacted IDs and check total count
             const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
             setInteractedSuggestionIds(newInteractedIds);
-            
+
             // If user has interacted with 3 total suggestions OR all current suggestions are gone, show the message
             if (newInteractedIds.size >= 3 || updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
               setSuggestions([]); // Clear any remaining suggestions
             }
-            
+
             // Close the modal immediately
             setSelectedSuggestion(null);
-            
+
             // Track in database (non-blocking, fire-and-forget)
             (async () => {
               try {
@@ -1000,13 +1000,13 @@ export default function Home() {
                   console.error('No current user found for interaction tracking');
                   return;
                 }
-                
+
                 console.log('Attempting to insert suggestion interaction:', {
                   user_id: currentUser.id,
                   suggested_user_id: suggestionId,
                   interaction_type: 'skipped'
                 });
-                
+
                 const { data: insertData, error: insertError } = await supabase
                   .from('suggestion_interactions')
                   .upsert({
@@ -1015,7 +1015,7 @@ export default function Home() {
                     interaction_type: 'skipped'
                   }, { onConflict: 'user_id,suggested_user_id' })
                   .select();
-                
+
                 if (insertError) {
                   console.error('Error inserting suggestion interaction:', {
                     error: insertError,
@@ -1027,7 +1027,7 @@ export default function Home() {
                   });
                 } else {
                   console.log('Successfully tracked suggestion interaction:', insertData);
-                  
+
                   // Verify the insert worked by querying it back
                   const { data: verifyData, error: verifyError } = await supabase
                     .from('suggestion_interactions')
@@ -1035,7 +1035,7 @@ export default function Home() {
                     .eq('user_id', currentUser.id)
                     .eq('suggested_user_id', suggestionId)
                     .single();
-                  
+
                   if (verifyError) {
                     console.error('Warning: Could not verify inserted interaction:', verifyError);
                   } else {

@@ -105,7 +105,7 @@ export default function AuthCallback() {
                 const googleName = userMetadata.name || userMetadata.full_name;
                 const googlePicture = userMetadata.picture || userMetadata.avatar_url;
 
-                const needsUpdate = 
+                const needsUpdate =
                     (googleName && profileData.full_name !== googleName) ||
                     (googlePicture && profileData.avatar_url !== googlePicture);
 
@@ -171,7 +171,7 @@ export default function AuthCallback() {
                 // New user - needs full setup
                 console.log('New user detected...');
                 setStatus('Setting up your profile...');
-                
+
                 // Redirect to Profile Setup (Step 1)
                 // router.push('/profile-setup');
                 router.push('/profile-setup/wrapped');

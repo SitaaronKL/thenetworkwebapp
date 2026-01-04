@@ -39,32 +39,32 @@ export const YouTubeService = {
    */
   async getAccessToken(): Promise<string | null> {
     const supabase = createClient();
-    
+
     // Get current session
     let { data: { session }, error } = await supabase.auth.getSession();
-    
+
     if (error) {
       console.error('Error getting session:', error);
       return null;
     }
-    
+
     // Check if provider_token is available
     if (session?.provider_token) {
       return session.provider_token;
     }
-    
+
     // Try to refresh the session
     const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-    
+
     if (refreshError) {
       console.error('Error refreshing session:', refreshError);
       return null;
     }
-    
+
     if (refreshedSession?.provider_token) {
       return refreshedSession.provider_token;
     }
-    
+
     // If still no token, check URL hash (OAuth callback might have it)
     if (typeof window !== 'undefined') {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -73,7 +73,7 @@ export const YouTubeService = {
         return accessToken;
       }
     }
-    
+
     console.warn('No provider token found in session. User may need to sign in again.');
     return null;
   },
@@ -162,7 +162,7 @@ export const YouTubeService = {
 
     do {
       if (maxItems > 0 && all.length >= maxItems) break;
-      
+
       let effectivePageSize = pageSize;
       if (maxItems > 0) {
         const remaining = maxItems - all.length;
@@ -185,12 +185,12 @@ export const YouTubeService = {
    */
   async syncSubscriptionsToSupabase(userId: string, subscriptions: YouTubeSubscription[]): Promise<number> {
     const supabase = createClient();
-    
+
     const rows = subscriptions
       .map((item) => {
         const channelId = item.snippet?.resourceId?.channelId;
         if (!channelId) return null;
-        
+
         return {
           user_id: userId,
           channel_id: channelId,
@@ -225,12 +225,12 @@ export const YouTubeService = {
    */
   async syncLikedVideosToSupabase(userId: string, likedVideos: YouTubeLikedVideo[]): Promise<number> {
     const supabase = createClient();
-    
+
     const rows = likedVideos
       .map((item) => {
         const videoId = item.snippet?.resourceId?.videoId;
         if (!videoId) return null;
-        
+
         return {
           user_id: userId,
           video_id: videoId,
@@ -297,7 +297,7 @@ export const YouTubeService = {
    */
   async verifyYouTubeData(userId: string): Promise<{ hasSubs: boolean; hasLikes: boolean; subsCount: number; likesCount: number }> {
     const supabase = createClient();
-    
+
     try {
       // Simple check - just see if we can get any rows
       const [subsData, likesData] = await Promise.all([
@@ -312,17 +312,17 @@ export const YouTubeService = {
           .eq('user_id', userId)
           .limit(1),
       ]);
-      
+
       const subsCount = subsData.data?.length || 0;
       const likesCount = likesData.data?.length || 0;
-      
+
       console.log('Verification result:', {
         subsError: subsData.error,
         likesError: likesData.error,
         subsCount,
         likesCount
       });
-      
+
       return {
         hasSubs: subsCount > 0,
         hasLikes: likesCount > 0,
@@ -350,7 +350,7 @@ export const YouTubeService = {
     }
 
     const supabase = createClient();
-    
+
     // Ensure we have a valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
@@ -372,11 +372,11 @@ export const YouTubeService = {
         body: { user_id: userId, max_interests: 15 },
       });
 
-      console.log('Edge function response:', { 
-        hasData: !!data, 
+      console.log('Edge function response:', {
+        hasData: !!data,
         hasError: !!error,
         dataKeys: data ? Object.keys(data) : [],
-        errorMessage: error?.message 
+        errorMessage: error?.message
       });
 
       if (error) {
@@ -386,7 +386,7 @@ export const YouTubeService = {
           status: error.status,
           fullError: JSON.stringify(error, null, 2)
         });
-        
+
         // Try to get more details from the error response
         let errorDetails = error.message || 'Unknown error';
         if (error.context) {
@@ -399,19 +399,19 @@ export const YouTubeService = {
             // Ignore parsing errors
           }
         }
-        
+
         // If the Supabase client method fails, try direct fetch as fallback
         if (error.message?.includes('Failed to send') || error.message?.includes('CORS')) {
           console.log('Attempting direct fetch to edge function...');
           return await this.deriveInterestsDirectFetch(userId, session.access_token);
         }
-        
+
         throw new Error(`Failed to derive interests: ${errorDetails}`);
       }
-      
+
       // Log the full response for debugging
       console.log('Full edge function data:', JSON.stringify(data, null, 2));
-      
+
       // Check if the response contains an error (even with 200 status)
       if (data && typeof data === 'object' && 'error' in data) {
         console.error('Edge function returned error in response:', data);
@@ -423,16 +423,16 @@ export const YouTubeService = {
       }
 
       console.log('Successfully derived interests:', data.interests);
-      
+
       // Verify the interests were actually saved to the profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('interests')
         .eq('id', userId)
         .single();
-      
+
       console.log('Profile interests after derive:', profile?.interests);
-      
+
       return data?.interests || [];
     } catch (err: any) {
       console.error('Exception calling derive_interests:', err);
@@ -455,7 +455,7 @@ export const YouTubeService = {
     }
 
     const functionUrl = `${supabaseUrl}/functions/v1/derive_interests`;
-    
+
     console.log('Calling edge function directly:', functionUrl);
 
     const response = await fetch(functionUrl, {
@@ -482,7 +482,7 @@ export const YouTubeService = {
    */
   async disconnectYouTube(): Promise<void> {
     const supabase = createClient();
-    
+
     // Ensure we have a valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {

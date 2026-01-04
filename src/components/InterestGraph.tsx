@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { SigmaContainer, useLoadGraph, useSigma, useRegisterEvents } from '@react-sigma/core';
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
+import { NodeCircleProgram } from 'sigma/rendering';
 import '@react-sigma/core/lib/style.css';
 
 interface InterestGraphProps {
@@ -29,6 +30,10 @@ const GraphController: React.FC<{
     // Handle Label Toggle without re-mounting
     useEffect(() => {
         if (!sigma) return;
+        // Only refresh if graph has been initialized (has nodes)
+        const graph = sigma.getGraph();
+        if (!graph || graph.order === 0) return;
+        
         // setSetting is the proper method in Sigma v2/v3
         sigma.setSetting('renderLabels', showLabels);
         // Also force refresh to apply change immediately
@@ -46,11 +51,15 @@ const GraphController: React.FC<{
     });
 
     useEffect(() => {
+        if (!sigma) return;
+        
         // Register events
         registerEvents({
             clickNode: (event) => {
                 const nodeData = event.node;
-                const nodeAttributes = sigma.getGraph().getNodeAttributes(nodeData);
+                const graph = sigma.getGraph();
+                if (!graph || graph.order === 0) return;
+                const nodeAttributes = graph.getNodeAttributes(nodeData);
 
                 if (nodeAttributes.isClusterCenter && onInterestClick) {
                     onInterestClick(nodeAttributes.label);
@@ -58,7 +67,9 @@ const GraphController: React.FC<{
             },
             enterNode: (event) => {
                 const nodeData = event.node;
-                const nodeAttributes = sigma.getGraph().getNodeAttributes(nodeData);
+                const graph = sigma.getGraph();
+                if (!graph || graph.order === 0) return;
+                const nodeAttributes = graph.getNodeAttributes(nodeData);
                 if (nodeAttributes.isClusterCenter) {
                     document.body.style.cursor = 'pointer';
                 }
@@ -227,19 +238,24 @@ export default function InterestGraph({
     const settings = useMemo(() => {
         const mobile = isMobileRef.current;
         return {
-        labelFont: 'Inter, system-ui, sans-serif',
-        labelWeight: '600',
+            // Node program registration for Sigma v3
+            nodeProgramClasses: {
+                circle: NodeCircleProgram,
+            },
+            defaultNodeType: 'circle',
+            labelFont: 'Inter, system-ui, sans-serif',
+            labelWeight: '600',
             labelSize: mobile ? 12 : 14,
-        labelColor: { color: '#000000' },
-        renderEdgeLabels: false,
-        defaultNodeColor: '#06b6d4',
-        defaultEdgeColor: 'rgba(0,0,0,0)',
-        labelRenderedSizeThreshold: 0,
-        defaultDrawNodeHover: () => { },
-        // Fine-tune collision grid to allow tight packing
-        labelDensity: 1,
+            labelColor: { color: '#000000' },
+            renderEdgeLabels: false,
+            defaultNodeColor: '#06b6d4',
+            defaultEdgeColor: 'rgba(0,0,0,0)',
+            labelRenderedSizeThreshold: 0,
+            defaultDrawNodeHover: () => { },
+            // Fine-tune collision grid to allow tight packing
+            labelDensity: 1,
             labelGridCellSize: mobile ? 40 : 60, // Smaller on mobile to show more labels
-        zIndex: true
+            zIndex: true
         };
     }, []); // Empty deps - settings are fixed after mount
 
