@@ -238,64 +238,116 @@
     font-style: italic;
 }
 
-/* Doppelgänger Card */
-.doppelgangerCard {
+/* Digital Twins Section */
+.twinsContainer {
     display: flex;
-    gap: 20px;
-    padding: 24px;
-    background: rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 20px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    gap: 24px;
+    max-width: 1000px;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-.doppelgangerCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-    background: rgba(0, 0, 0, 0.04);
+.twinCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    width: 280px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
 }
 
-.doppelgangerAvatar {
-    width: 64px;
-    height: 64px;
+.twinCard:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.twinCardFeatured {
+    width: 320px;
+    padding: 40px 28px;
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.twinGlow {
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 200px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    filter: blur(80px);
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.twinAvatar {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.twinCardFeatured .twinAvatar {
+    width: 120px;
+    height: 120px;
+}
+
+.twinInitials {
+    font-size: 36px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.twinCardFeatured .twinInitials {
+    font-size: 44px;
+}
+
+.twinName {
+    font-size: 22px;
     font-weight: 700;
     color: #ffffff;
-    flex-shrink: 0;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.01em;
 }
 
-.doppelgangerInfo {
-    flex: 1;
+.twinCardFeatured .twinName {
+    font-size: 26px;
 }
 
-.doppelgangerName {
-    font-size: 20px;
-    font-weight: 700;
-    color: #000000;
-    margin: 0 0 6px 0;
+.twinDivider {
+    width: 40px;
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+    opacity: 0.6;
 }
 
-.doppelgangerSimilarity {
-    display: inline-block;
-    padding: 4px 12px;
-    background: rgba(99, 102, 241, 0.1);
-    color: #6366f1;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 20px;
-    margin-bottom: 12px;
-}
-
-.doppelgangerReason {
+.twinDescription {
     font-size: 14px;
-    color: rgba(0, 0, 0, 0.6);
-    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.7;
     margin: 0;
+    max-width: 240px;
+}
+
+.twinCardFeatured .twinDescription {
+    font-size: 15px;
+    max-width: 280px;
 }
 
 /* Empty State */
@@ -349,18 +401,53 @@
         font-size: 18px;
     }
 
-    .doppelgangerCard {
-        padding: 20px;
+    /* Twins Mobile */
+    .twinsContainer {
+        flex-direction: column;
+        align-items: center;
         gap: 16px;
     }
 
-    .doppelgangerAvatar {
-        width: 52px;
-        height: 52px;
+    .twinCard {
+        width: 100%;
+        max-width: 320px;
+        padding: 24px 20px;
+    }
+
+    .twinCardFeatured {
+        width: 100%;
+        max-width: 320px;
+        padding: 28px 20px;
+    }
+
+    .twinAvatar {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 16px;
+    }
+
+    .twinCardFeatured .twinAvatar {
+        width: 90px;
+        height: 90px;
+    }
+
+    .twinInitials {
+        font-size: 28px;
+    }
+
+    .twinCardFeatured .twinInitials {
+        font-size: 32px;
+    }
+
+    .twinName {
+        font-size: 18px;
+    }
+
+    .twinCardFeatured .twinName {
         font-size: 20px;
     }
 
-    .doppelgangerName {
-        font-size: 18px;
+    .twinDescription {
+        font-size: 13px;
     }
 }

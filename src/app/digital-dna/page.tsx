@@ -16,8 +16,13 @@ interface Archetype {
     percentage: number;
 }
 
+// Types for doppelgängers
+interface Doppelganger {
+    name: string;
+}
+
 // Tab types
-type TabType = 'interests' | 'archetypes';
+type TabType = 'interests' | 'archetypes' | 'doppelgangers';
 
 export default function DigitalDnaPage() {
     const { user, loading } = useAuth();
@@ -33,6 +38,9 @@ export default function DigitalDnaPage() {
 
     // Archetypes state
     const [archetypes, setArchetypes] = useState<Archetype[]>([]);
+
+    // Doppelgängers state
+    const [doppelgangers, setDoppelgangers] = useState<Doppelganger[]>([]);
 
     // Modal state
     const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
@@ -96,11 +104,12 @@ export default function DigitalDnaPage() {
             let fetchedName = 'Me';
             let fetchedHierarchical: any[] = [];
             let fetchedArchetypes: Archetype[] = [];
+            let fetchedDoppelgangers: Doppelganger[] = [];
 
             while (retries < maxRetries) {
                 const { data: profile, error } = await supabase
                     .from('profiles')
-                    .select('interests, full_name, hierarchical_interests, personality_archetypes')
+                    .select('interests, full_name, hierarchical_interests, personality_archetypes, doppelgangers')
                     .eq('id', user.id)
                     .single();
 
@@ -113,6 +122,7 @@ export default function DigitalDnaPage() {
                 if (profile?.full_name) fetchedName = profile.full_name;
                 fetchedHierarchical = (profile?.hierarchical_interests as any[]) || [];
                 fetchedArchetypes = (profile?.personality_archetypes as Archetype[]) || [];
+                fetchedDoppelgangers = (profile?.doppelgangers as Doppelganger[]) || [];
 
                 // If we have interests, break. Otherwise, wait and retry (in case they're being generated)
                 if (fetchedInterests.length > 0 || retries >= maxRetries - 1) {
@@ -128,6 +138,7 @@ export default function DigitalDnaPage() {
             setHierarchicalInterests(fetchedHierarchical);
             setUserFullName(fetchedName);
             setArchetypes(fetchedArchetypes);
+            setDoppelgangers(fetchedDoppelgangers);
             setIsLoadingGraph(false);
         };
         fetchData();
@@ -147,6 +158,10 @@ export default function DigitalDnaPage() {
     // State for generated archetype descriptions
     const [archetypeDescriptions, setArchetypeDescriptions] = useState<{ [key: string]: string }>({});
     const [isLoadingDescriptions, setIsLoadingDescriptions] = useState(false);
+
+    // State for generated doppelgänger descriptions
+    const [doppelgangerDescriptions, setDoppelgangerDescriptions] = useState<{ [key: string]: string }>({});
+    const [isLoadingDoppelgangerDescriptions, setIsLoadingDoppelgangerDescriptions] = useState(false);
 
     // Fetch archetype descriptions from cache, fallback to edge function if needed
     useEffect(() => {
@@ -209,6 +224,67 @@ export default function DigitalDnaPage() {
         fetchDescriptions();
     }, [user, archetypes, interests, archetypeDescriptions]);
 
+    // Fetch doppelgänger descriptions from cache, fallback to edge function if needed
+    useEffect(() => {
+        if (!user || doppelgangers.length === 0) return;
+        if (Object.keys(doppelgangerDescriptions).length > 0) return; // Already loaded
+
+        const fetchDoppelgangerDescriptions = async () => {
+            setIsLoadingDoppelgangerDescriptions(true);
+            const supabase = createClient();
+
+            try {
+                // First, try to fetch from the cache table directly
+                const { data: cachedData, error: cacheError } = await supabase
+                    .from('doppelganger_descriptions')
+                    .select('doppelganger_name, description')
+                    .eq('user_id', user.id);
+
+                if (!cacheError && cachedData && cachedData.length > 0) {
+                    // Found cached descriptions
+                    const descriptionsMap: { [key: string]: string } = {};
+                    cachedData.forEach(item => {
+                        descriptionsMap[item.doppelganger_name] = item.description;
+                    });
+                    
+                    // Check if we have all doppelgängers cached
+                    const allCached = doppelgangers.every(d => descriptionsMap[d.name]);
+                    
+                    if (allCached) {
+                        console.log('Loaded doppelgänger descriptions from cache');
+                        setDoppelgangerDescriptions(descriptionsMap);
+                        setIsLoadingDoppelgangerDescriptions(false);
+                        return;
+                    }
+                }
+
+                // If no cache or incomplete, call edge function to generate (only if we have interests)
+                if (interests.length > 0) {
+                    console.log('Cache miss - generating doppelgänger descriptions via edge function');
+                    const { data, error } = await supabase.functions.invoke('generate-doppelganger-descriptions', {
+                        body: {
+                            user_id: user.id,
+                            doppelgangers: doppelgangers.map(d => d.name),
+                            interests: interests.slice(0, 10),
+                        }
+                    });
+
+                    if (error) throw error;
+                    if (data?.descriptions) {
+                        setDoppelgangerDescriptions(data.descriptions);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching doppelgänger descriptions:', err);
+                // Will fall back to generic descriptions
+            } finally {
+                setIsLoadingDoppelgangerDescriptions(false);
+            }
+        };
+
+        fetchDoppelgangerDescriptions();
+    }, [user, doppelgangers, interests, doppelgangerDescriptions]);
+
     // Clean archetype name (remove "The " prefix if present for cleaner display)
     const cleanArchetypeName = (name: string): string => {
         return name.replace(/^The\s+/i, '');
@@ -260,6 +336,33 @@ export default function DigitalDnaPage() {
         return `This aspect of your personality influences how you think, create, and connect with the world around you.`;
     };
 
+    // Get doppelgänger description - from generated or fallback
+    const getDoppelgangerDescription = (name: string): string => {
+        // Check if we have a generated description
+        if (doppelgangerDescriptions[name]) {
+            return doppelgangerDescriptions[name];
+        }
+
+        // Fallback generic description
+        return `Shares your wavelength and creative energy.`;
+    };
+
+    // Get initials for avatar
+    const getInitials = (name: string): string => {
+        const parts = name.split(' ');
+        if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+        }
+        return name.slice(0, 2).toUpperCase();
+    };
+
+    // Doppelgänger colors for visual distinction
+    const doppelgangerColors = [
+        { bg: 'linear-gradient(135deg, #667eea, #764ba2)', accent: '#667eea' },
+        { bg: 'linear-gradient(135deg, #f093fb, #f5576c)', accent: '#f093fb' },
+        { bg: 'linear-gradient(135deg, #4facfe, #00f2fe)', accent: '#4facfe' },
+    ];
+
     return (
         <div className={styles.wrapper}>
             <Menu />
@@ -310,6 +413,12 @@ export default function DigitalDnaPage() {
                     onClick={() => setActiveTab('archetypes')}
                 >
                     Archetypes
+                </button>
+                <button
+                    className={`${styles.tabButton} ${activeTab === 'doppelgangers' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('doppelgangers')}
+                >
+                    Twins
                 </button>
             </div>
 
@@ -380,6 +489,52 @@ export default function DigitalDnaPage() {
                             </div>
                         )}
                     </div>
+            </div>
+
+            {/* Doppelgängers Tab */}
+            <div 
+                className={styles.contentContainer}
+                style={{ 
+                    display: activeTab === 'doppelgangers' ? 'flex' : 'none' 
+                }}
+            >
+                <div className={styles.contentHeader}>
+                    <h1 className={styles.contentTitle}>Your Digital Twins</h1>
+                    <p className={styles.contentSubtitle}>
+                        Famous minds who share your wavelength.
+                    </p>
+                </div>
+                <div className={styles.twinsContainer}>
+                    {doppelgangers.length > 0 ? (
+                        doppelgangers.slice(0, 3).map((doppelganger, index) => (
+                            <div
+                                key={index}
+                                className={`${styles.twinCard} ${index === 0 ? styles.twinCardFeatured : ''}`}
+                            >
+                                <div className={styles.twinGlow} style={{ background: doppelgangerColors[index % 3].bg }} />
+                                <div 
+                                    className={styles.twinAvatar}
+                                    style={{ background: doppelgangerColors[index % 3].bg }}
+                                >
+                                    <span className={styles.twinInitials}>{getInitials(doppelganger.name)}</span>
+                                </div>
+                                <h3 className={styles.twinName}>{doppelganger.name}</h3>
+                                <div className={styles.twinDivider} style={{ background: doppelgangerColors[index % 3].accent }} />
+                                <p className={styles.twinDescription}>
+                                    {isLoadingDoppelgangerDescriptions ? (
+                                        <span className={styles.descriptionLoading}>Discovering connection...</span>
+                                    ) : (
+                                        getDoppelgangerDescription(doppelganger.name)
+                                    )}
+                                </p>
+                            </div>
+                        ))
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <p>No digital twins found yet. Complete onboarding to discover who shares your wavelength.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {selectedInterest && (
