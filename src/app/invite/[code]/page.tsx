@@ -11,9 +11,7 @@ export default function InvitePage() {
 
   useEffect(() => {
     const handleInvite = async () => {
-      console.log(`[InvitePage] Processing invite with code: ${code}`);
       if (!code) {
-        console.warn(`[InvitePage] No code found in params, redirecting to /`);
         router.push('/');
         return;
       }
@@ -22,7 +20,6 @@ export default function InvitePage() {
 
       // Check if user is already logged in
       const { data: { session } } = await supabase.auth.getSession();
-      console.log(`[InvitePage] Current session check: ${session ? 'User logged in' : 'No user logged in'}`);
 
       if (session) {
         // User is logged in, redirect to network page
@@ -31,7 +28,6 @@ export default function InvitePage() {
       } else {
         // User is not logged in, store the referral code and redirect to consent
         // Store in localStorage so we can retrieve it after signup
-        console.log(`[InvitePage] Storing referral_code: ${code} and redirecting to /consent`);
         localStorage.setItem('referral_code', code);
         router.push('/consent');
       }

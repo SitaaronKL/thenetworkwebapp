@@ -21,21 +21,17 @@ export async function getUserReferralCode(userId: string): Promise<string | null
   const supabase = createClient();
 
   try {
-    console.log(`[ReferralService] Getting referral code for user: ${userId}`);
     // Call the database function to get or create referral code
     const { data, error } = await supabase.rpc('get_or_create_referral_code', {
       p_user_id: userId
     });
 
     if (error) {
-      console.error('[ReferralService] Error getting referral code:', error);
       return null;
     }
 
-    console.log(`[ReferralService] Successfully retrieved referral code: ${data}`);
     return data as string;
   } catch (error) {
-    console.error('[ReferralService] Error in getUserReferralCode:', error);
     return null;
   }
 }
@@ -58,7 +54,6 @@ export async function getReferralStats(userId: string): Promise<ReferralStats | 
       .eq('referrer_id', userId);
 
     if (error) {
-      console.error('Error getting referral stats:', error);
       return null;
     }
 
@@ -74,7 +69,6 @@ export async function getReferralStats(userId: string): Promise<ReferralStats | 
       inviteLink
     };
   } catch (error) {
-    console.error('Error in getReferralStats:', error);
     return null;
   }
 }
@@ -87,12 +81,10 @@ export async function trackReferralSignup(
   referredUserId: string,
   referralCode: string
 ): Promise<boolean> {
-  console.log(`[ReferralService] Starting trackReferralSignup: referrerId=${referrerId}, referredUserId=${referredUserId}, referralCode=${referralCode}`);
   const supabase = createClient();
 
   try {
     // Find the referral invite record (or create one)
-    console.log(`[ReferralService] Checking for existing pending invite for referralCode=${referralCode}`);
     const { data: existingInvite } = await supabase
       .from('referral_invites')
       .select('id')
@@ -101,14 +93,7 @@ export async function trackReferralSignup(
       .eq('status', 'pending')
       .maybeSingle();
 
-    if (existingInvite) {
-      console.log(`[ReferralService] Found existing pending invite: ${existingInvite.id}`);
-    } else {
-      console.log(`[ReferralService] No existing pending invite found, will create new one.`);
-    }
-
     // Check if the user has already been referred by ANYONE (prevent double counting)
-    console.log(`[ReferralService] Checking if referredUserId=${referredUserId} was already referred`);
     const { data: alreadyReferred } = await supabase
       .from('referral_invites')
       .select('id')
@@ -117,7 +102,6 @@ export async function trackReferralSignup(
       .maybeSingle();
 
     if (alreadyReferred) {
-      console.log(`[ReferralService] User ${referredUserId} already referred (inviteId: ${alreadyReferred.id}), skipping tracking`);
       // Still return true to proceed with connection logic if needed, or just return true to not block
       return true;
     }
@@ -126,7 +110,6 @@ export async function trackReferralSignup(
 
     if (existingInvite) {
       // Update existing invite
-      console.log(`[ReferralService] Updating existing invite ${existingInvite.id} to accepted`);
       const { data: updatedInvite, error: updateError } = await supabase
         .from('referral_invites')
         .update({
@@ -139,14 +122,11 @@ export async function trackReferralSignup(
         .single();
 
       if (updateError || !updatedInvite) {
-        console.error('[ReferralService] Error updating referral invite:', updateError);
         return false;
       }
       inviteId = updatedInvite.id;
-      console.log(`[ReferralService] Successfully updated invite: ${inviteId}`);
     } else {
       // Create new invite record
-      console.log(`[ReferralService] Creating new accepted invite record for referralCode=${referralCode}`);
       const { data: newInvite, error: createError } = await supabase
         .from('referral_invites')
         .insert({
@@ -161,31 +141,24 @@ export async function trackReferralSignup(
         .single();
 
       if (createError || !newInvite) {
-        console.error('[ReferralService] Error creating referral invite:', createError);
         return false;
       }
       inviteId = newInvite.id;
-      console.log(`[ReferralService] Successfully created new invite: ${inviteId}`);
     }
 
     // Update the profile with the referrer_id (new requirement)
     // We do this separately to ensure the invite tracking works even if profile update fails
-    console.log(`[ReferralService] Updating profile ${referredUserId} with referred_by=${referrerId}`);
     const { error: profileError } = await supabase
       .from('profiles')
       .update({ referred_by: referrerId })
       .eq('id', referredUserId);
 
     if (profileError) {
-      console.error('[ReferralService] Error updating profile referred_by:', profileError);
       // Continue anyway, as this is secondary to the invite tracking
-    } else {
-      console.log(`[ReferralService] Successfully updated profile referred_by`);
     }
 
     // Auto-create connection between referrer and referred user
     // Check if connection already exists first (check both directions)
-    console.log(`[ReferralService] Checking for existing connections between ${referrerId} and ${referredUserId}`);
     const { data: existingConnections } = await supabase
       .from('user_connections')
       .select('id')
@@ -196,7 +169,6 @@ export async function trackReferralSignup(
 
     if (!existingConnection) {
       // Create bidirectional connections
-      console.log(`[ReferralService] Creating bidirectional connections`);
       const { error: connectionError } = await supabase
         .from('user_connections')
         .insert({
@@ -223,14 +195,10 @@ export async function trackReferralSignup(
         .single();
 
       if (connectionError && reverseConnectionError) {
-        console.error('[ReferralService] Error creating connections:', connectionError, reverseConnectionError);
         // Don't fail the whole operation if connection creation fails
-      } else {
-        console.log(`[ReferralService] Successfully created bidirectional connections`);
       }
     } else {
       // Connection already exists, just update it to include referral info if needed
-      console.log(`[ReferralService] Connection already exists (id: ${existingConnection.id}), updating referral info`);
       const { error: updateError } = await supabase
         .from('user_connections')
         .update({
@@ -240,16 +208,12 @@ export async function trackReferralSignup(
         .eq('id', existingConnection.id);
 
       if (updateError) {
-        console.error('[ReferralService] Error updating connection:', updateError);
-      } else {
-        console.log(`[ReferralService] Successfully updated existing connection with referral info`);
+        // Error updating connection
       }
     }
 
-    console.log(`[ReferralService] trackReferralSignup completed successfully`);
     return true;
   } catch (error) {
-    console.error('[ReferralService] Error in trackReferralSignup:', error);
     return false;
   }
 }
@@ -283,7 +247,6 @@ export async function getInviteLeaderboard(
     const { data: invites, error } = await query;
 
     if (error) {
-      console.error('Error getting leaderboard:', error);
       return [];
     }
 
@@ -308,7 +271,6 @@ export async function getInviteLeaderboard(
       .in('id', referrerIds);
 
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
       return [];
     }
 
@@ -334,7 +296,6 @@ export async function getInviteLeaderboard(
 
     return entries;
   } catch (error) {
-    console.error('Error in getInviteLeaderboard:', error);
     return [];
   }
 }

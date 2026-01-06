@@ -98,10 +98,8 @@ export default function AuthCallback() {
 
                 // Track referral if code exists (run for both new and existing profiles)
                 const referralCode = localStorage.getItem('referral_code');
-                console.log(`[AuthCallback] Checking for referral code in localStorage: ${referralCode || 'none'}`);
                 if (referralCode) {
                     try {
-                        console.log(`[AuthCallback] Found referral code ${referralCode}, looking up referrer`);
                         // Find the referrer by code
                         const { data: referralCodeData, error: codeError } = await supabase
                             .from('user_referral_codes')
@@ -109,33 +107,20 @@ export default function AuthCallback() {
                             .eq('referral_code', referralCode)
                             .single();
 
-                        if (codeError) {
-                            console.error(`[AuthCallback] Error looking up referral code:`, codeError);
-                        }
-
                         if (!codeError && referralCodeData) {
                             const referrerId = referralCodeData.user_id;
-                            console.log(`[AuthCallback] Found referrerId: ${referrerId}`);
 
                             // Only track if referrer is not the user themselves
                             if (referrerId !== userId) {
-                                console.log(`[AuthCallback] Tracking referral: referrer=${referrerId}, referred=${userId}`);
                                 // Import and call trackReferralSignup
                                 const { trackReferralSignup } = await import('@/services/referral');
-                                const success = await trackReferralSignup(referrerId, userId, referralCode);
-                                console.log(`[AuthCallback] trackReferralSignup result: ${success}`);
-                            } else {
-                                console.log(`[AuthCallback] User referred themselves, skipping tracking`);
+                                await trackReferralSignup(referrerId, userId, referralCode);
                             }
-                        } else {
-                            console.warn(`[AuthCallback] Referral code ${referralCode} not found in database or error occurred`);
                         }
 
                         // Clear the referral code from localStorage
-                        console.log(`[AuthCallback] Removing referral_code from localStorage`);
                         localStorage.removeItem('referral_code');
                     } catch (error) {
-                        console.error('[AuthCallback] Error tracking referral:', error);
                         // Don't block the flow if referral tracking fails
                     }
                 }

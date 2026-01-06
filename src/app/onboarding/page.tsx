@@ -339,11 +339,7 @@ export default function OnboardingPage() {
 
   // If already authenticated, redirect to home
   useEffect(() => {
-    const referralCode = localStorage.getItem('referral_code');
-    console.log(`[OnboardingPage] Page loaded. user=${user?.id || 'none'}, loading=${loading}, referral_code=${referralCode || 'none'}`);
-
     if (!loading && user) {
-      console.log(`[OnboardingPage] User authenticated, redirecting to /network`);
       router.push('/network');
     }
   }, [user, loading, router]);
