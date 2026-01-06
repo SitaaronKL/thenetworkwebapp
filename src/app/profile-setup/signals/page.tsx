@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import HelpIcon from '@/components/HelpIcon';
+import HelpModal from '@/components/HelpModal';
 
 interface Platform {
     id: string;
@@ -26,6 +28,7 @@ export default function SignalsPage() {
     const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
     const [showTooltip, setShowTooltip] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -93,69 +96,73 @@ export default function SignalsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
-            {/* Progress Bar Container */}
-            <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
-                <div className="flex justify-between items-end mb-2">
-                    <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
-                    <span className="text-[15px] font-normal text-black font-display">50%</span>
+        <>
+            <HelpIcon onClick={() => setIsHelpOpen(true)} />
+            <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+            <div className="min-h-screen bg-white flex flex-col items-center py-12 px-4 relative overflow-hidden">
+                {/* Progress Bar Container */}
+                <div className="w-full max-w-[600px] flex flex-col gap-2 mb-12">
+                    <div className="flex justify-between items-end mb-2">
+                        <span className="text-[15px] font-normal text-black font-display">Build your Digital DNA</span>
+                        <span className="text-[15px] font-normal text-black font-display">50%</span>
+                    </div>
+                    <div className="w-full h-[10px] bg-white border border-black relative">
+                        <div className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
+                    </div>
                 </div>
-                <div className="w-full h-[10px] bg-white border border-black relative">
-                    <div className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-b from-[#252525] to-[#454545]"></div>
-                </div>
-            </div>
 
-            <h1 className="text-[30px] font-bold text-black font-display mb-8">Add signals (optional)</h1>
+                <h1 className="text-[30px] font-bold text-black font-display mb-8">Add signals (optional)</h1>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[600px] justify-items-center">
-                {PLATFORMS.map(platform => (
-                    <div
-                        key={platform.id}
-                        onClick={() => handlePlatformClick(platform)}
-                        className={`
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[600px] justify-items-center">
+                    {PLATFORMS.map(platform => (
+                        <div
+                            key={platform.id}
+                            onClick={() => handlePlatformClick(platform)}
+                            className={`
                             relative w-full max-w-[150px] aspect-[150/100] border border-black flex items-center justify-center cursor-pointer transition-all
                             ${connectedPlatforms.includes(platform.id) ? 'bg-gray-100 ring-2 ring-black' : 'bg-white hover:bg-gray-50'}
                             ${!platform.available ? 'opacity-50 grayscale' : ''}
                         `}
-                    >
-                        <div className="relative w-full h-full p-4">
-                            <Image
-                                src={platform.iconSrc}
-                                alt={platform.name}
-                                fill
-                                className="object-contain"
-                                sizes="(max-width: 768px) 50vw, 150px"
-                            />
+                        >
+                            <div className="relative w-full h-full p-4">
+                                <Image
+                                    src={platform.iconSrc}
+                                    alt={platform.name}
+                                    fill
+                                    className="object-contain"
+                                    sizes="(max-width: 768px) 50vw, 150px"
+                                />
+                            </div>
+
+                            {/* Tooltips */}
+                            {showTooltip === platform.id && (
+                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
+                                    Coming Soon
+                                </div>
+                            )}
+                            {showTooltip === 'youtube-connected' && platform.id === 'youtube' && (
+                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
+                                    Already connected!
+                                </div>
+                            )}
+                            {showTooltip === 'youtube-ready' && platform.id === 'youtube' && (
+                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-green-600 text-white text-xs py-1 px-2 rounded font-display z-20">
+                                    Connected via Google!
+                                </div>
+                            )}
                         </div>
+                    ))}
+                </div>
 
-                        {/* Tooltips */}
-                        {showTooltip === platform.id && (
-                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
-                                Coming Soon
-                            </div>
-                        )}
-                        {showTooltip === 'youtube-connected' && platform.id === 'youtube' && (
-                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs py-1 px-2 rounded font-display z-20">
-                                Already connected!
-                            </div>
-                        )}
-                        {showTooltip === 'youtube-ready' && platform.id === 'youtube' && (
-                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-green-600 text-white text-xs py-1 px-2 rounded font-display z-20">
-                                Connected via Google!
-                            </div>
-                        )}
-                    </div>
-                ))}
+                {/* Continue Button */}
+                <button
+                    onClick={handleContinue}
+                    disabled={isProcessing}
+                    className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
+                >
+                    {isProcessing ? 'Processing...' : 'Continue →'}
+                </button>
             </div>
-
-            {/* Continue Button */}
-            <button
-                onClick={handleContinue}
-                disabled={isProcessing}
-                className="mt-12 text-[30px] font-bold text-black font-display hover:opacity-70 transition-opacity disabled:opacity-50 cursor-pointer"
-            >
-                {isProcessing ? 'Processing...' : 'Continue →'}
-            </button>
-        </div>
+        </>
     );
 }

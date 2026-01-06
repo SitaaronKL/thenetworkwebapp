@@ -94,6 +94,33 @@ export default function AuthCallback() {
                     profileData = existingProfile;
                 } else {
                     profileData = newProfile;
+                    
+                    // Track referral if code exists
+                    const referralCode = localStorage.getItem('referral_code');
+                    if (referralCode) {
+                        try {
+                            // Find the referrer by code
+                            const { data: referralCodeData, error: codeError } = await supabase
+                                .from('user_referral_codes')
+                                .select('user_id')
+                                .eq('referral_code', referralCode)
+                                .single();
+
+                            if (!codeError && referralCodeData) {
+                                const referrerId = referralCodeData.user_id;
+                                
+                                // Import and call trackReferralSignup
+                                const { trackReferralSignup } = await import('@/services/referral');
+                                await trackReferralSignup(referrerId, userId, referralCode);
+                            }
+                            
+                            // Clear the referral code from localStorage
+                            localStorage.removeItem('referral_code');
+                        } catch (error) {
+                            console.error('Error tracking referral:', error);
+                            // Don't block the flow if referral tracking fails
+                        }
+                    }
                 }
             } else {
                 // Profile exists - update Google name and picture if they're missing or different

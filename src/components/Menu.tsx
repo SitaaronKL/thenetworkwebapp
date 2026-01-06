@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import styles from './Menu.module.css';
 import HelpIcon from './HelpIcon';
 import HelpModal from './HelpModal';
 
 const menuItems = [
-  { label: 'THENETWORK', href: '/' },
+  { label: 'THENETWORK', href: '/', authHref: '/network' },
   { label: 'DIGITAL DNA', href: '/digital-dna' },
   { label: 'ARI', href: '/msg-aria' },
 ];
@@ -20,6 +21,7 @@ export default function Menu() {
   const [isInverted, setIsInverted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function Menu() {
     <>
       <HelpIcon onClick={() => setIsHelpOpen(true)} />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-      
+
       <button
         className={`${styles.menuButton} ${isOpen ? styles.open : ''} ${isOpen ? styles.hidden : ''}`}
         onClick={() => setIsOpen(true)}
@@ -86,7 +88,11 @@ export default function Menu() {
         <div className={styles.contentWrap}>
           <div className={styles.menuContent}>
             {menuItems.map((item, index) => (
-              <Link key={index} href={item.href} onClick={() => setIsOpen(false)}>
+              <Link
+                key={index}
+                href={user && item.authHref ? item.authHref : item.href}
+                onClick={() => setIsOpen(false)}
+              >
                 {item.label}
               </Link>
             ))}
@@ -107,6 +113,13 @@ export default function Menu() {
                   className={styles.subMenuItem}
                 >
                   EDIT PROFILE
+                </Link>
+                <Link
+                  href="/invite-leaderboard"
+                  onClick={() => setIsOpen(false)}
+                  className={styles.subMenuItem}
+                >
+                  INVITE LEADERBOARD
                 </Link>
                 {process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true' && (
                   <Link

@@ -29,10 +29,12 @@ interface Profile {
 
 import AddUserIcon from '@/components/icons/AddUserIcon';
 import SearchIcon from '@/components/icons/SearchIcon';
+import InviteIcon from '@/components/icons/InviteIcon';
 import FriendRequestsModal from '@/components/FriendRequestsModal';
 import SearchUserModal from '@/components/SearchUserModal';
 import SuggestionDetailModal from '@/components/SuggestionDetailModal';
 import AriaMessage from '@/components/AriaMessage';
+import InviteModal from '@/components/InviteModal';
 
 // Helper to resolve avatar URL
 const getAvatarUrl = (path?: string | null) => {
@@ -60,6 +62,9 @@ export default function Home() {
 
   // Search User Modal State
   const [showSearchUser, setShowSearchUser] = useState(false);
+
+  // Invite Modal State
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Suggestion Detail Modal State
   const [selectedSuggestion, setSelectedSuggestion] = useState<any | null>(null);
@@ -763,6 +768,14 @@ export default function Home() {
             </div>
             <span className={styles.iconLabel}>Search Users</span>
           </div>
+          <div className={styles.iconButtonWrapper} onClick={() => setShowInviteModal(true)}>
+            <div className={styles.iconButton}>
+              <div className={styles.iconContainer}>
+                <InviteIcon />
+              </div>
+            </div>
+            <span className={styles.iconLabel}>Invite Friends</span>
+          </div>
         </div>
 
         <div className={styles.suggestionList}>
@@ -837,6 +850,12 @@ export default function Home() {
           // Refresh friend request count in case user sent a request to someone who might send one back
           checkPendingFriendRequests();
         }}
+      />
+
+      {/* Invite Modal */}
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
       />
 
       {/* Suggestion Detail Modal */}

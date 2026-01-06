@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import { YouTubeService } from '@/services/youtube';
 import Image from 'next/image';
+import HelpIcon from '@/components/HelpIcon';
+import HelpModal from '@/components/HelpModal';
 
 // Helper components for visuals
 const StarFourPoint = ({ className = "w-6 h-6" }: { className?: string }) => (
@@ -128,6 +130,7 @@ export default function WrappedPage() {
     });
     const [showNoYouTubeDataModal, setShowNoYouTubeDataModal] = useState(false);
     const [deletingAccount, setDeletingAccount] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -1389,54 +1392,58 @@ export default function WrappedPage() {
     };
 
     return (
-        <div
-            className={`h-screen w-full relative overflow-hidden transition-colors duration-500 ${currentSlide.bg === 'dark' ? 'bg-[#111111] text-white' : 'bg-[#f4f3ee] text-black'
-                }`}
-            onClick={canAdvanceSlide() ? handleNext : undefined}
-        >
-            {/* Content */}
-            <div key={currentSlideIndex} className="absolute inset-0 z-10 w-full h-full flex justify-center items-center animate-fade-in">
-                {currentSlide.content}
+        <>
+            <HelpIcon onClick={() => setIsHelpOpen(true)} />
+            <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+            <div
+                className={`h-screen w-full relative overflow-hidden transition-colors duration-500 ${currentSlide.bg === 'dark' ? 'bg-[#111111] text-white' : 'bg-[#f4f3ee] text-black'
+                    }`}
+                onClick={canAdvanceSlide() ? handleNext : undefined}
+            >
+                {/* Content */}
+                <div key={currentSlideIndex} className="absolute inset-0 z-10 w-full h-full flex justify-center items-center animate-fade-in">
+                    {currentSlide.content}
+                </div>
+
+                {/* Preload Critical Assets */}
+                <div className="fixed w-0 h-0 overflow-hidden pointer-events-none opacity-0">
+                    <Image src="/assets/onboarding/tn_logo.png" alt="" width={150} height={120} priority />
+                    <Image src="/assets/onboarding/tn_logo_black.png" alt="" width={150} height={120} priority />
+                    <Image src="/assets/onboarding/bubble.png" alt="" width={400} height={400} priority />
+                </div>
+
+                {/* Tap Indicator - Moved lower and centered */}
+                {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 &&
+                    // For slide 7 (Interest Graph), only show indicator when interests are loaded
+                    (currentSlideIndex !== 6 || interests.length > 0) && (
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
+                            Tap to continue
+                        </div>
+                    )}
+
+                {/* Navigation Dots - Top Center */}
+                <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                    {SLIDES.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentSlideIndex(idx);
+                            }}
+                            className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${idx === currentSlideIndex
+                                ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black')
+                                : 'bg-gray-600'
+                                }`}
+                        />
+                    ))}
+                </div>
+
+                {/* Interest Explanation Modal */}
+                <InterestExplanationModal />
+
+                {/* No YouTube Data Modal */}
+                <NoYouTubeDataModal />
             </div>
-
-            {/* Preload Critical Assets */}
-            <div className="fixed w-0 h-0 overflow-hidden pointer-events-none opacity-0">
-                <Image src="/assets/onboarding/tn_logo.png" alt="" width={150} height={120} priority />
-                <Image src="/assets/onboarding/tn_logo_black.png" alt="" width={150} height={120} priority />
-                <Image src="/assets/onboarding/bubble.png" alt="" width={400} height={400} priority />
-            </div>
-
-            {/* Tap Indicator - Moved lower and centered */}
-            {currentSlide.type === 'manual' && currentSlideIndex < SLIDES.length - 1 &&
-                // For slide 7 (Interest Graph), only show indicator when interests are loaded
-                (currentSlideIndex !== 6 || interests.length > 0) && (
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sm opacity-50 animate-bounce font-display pointer-events-none">
-                        Tap to continue
-                    </div>
-                )}
-
-            {/* Navigation Dots - Top Center */}
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                {SLIDES.map((_, idx) => (
-                    <button
-                        key={idx}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentSlideIndex(idx);
-                        }}
-                        className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${idx === currentSlideIndex
-                            ? (currentSlide.bg === 'dark' ? 'bg-white' : 'bg-black')
-                            : 'bg-gray-600'
-                            }`}
-                    />
-                ))}
-            </div>
-
-            {/* Interest Explanation Modal */}
-            <InterestExplanationModal />
-
-            {/* No YouTube Data Modal */}
-            <NoYouTubeDataModal />
-        </div>
+        </>
     );
 }

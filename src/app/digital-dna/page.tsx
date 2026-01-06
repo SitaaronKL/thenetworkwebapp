@@ -183,10 +183,10 @@ export default function DigitalDnaPage() {
                     cachedData.forEach(item => {
                         descriptionsMap[item.archetype_name] = item.description;
                     });
-                    
+
                     // Check if we have all archetypes cached
                     const allCached = archetypes.every(a => descriptionsMap[a.name]);
-                    
+
                     if (allCached) {
                         setArchetypeDescriptions(descriptionsMap);
                         setIsLoadingDescriptions(false);
@@ -241,10 +241,10 @@ export default function DigitalDnaPage() {
                     cachedData.forEach(item => {
                         descriptionsMap[item.doppelganger_name] = item.description;
                     });
-                    
+
                     // Check if we have all doppelgängers cached
                     const allCached = doppelgangers.every(d => descriptionsMap[d.name]);
-                    
+
                     if (allCached) {
                         setDoppelgangerDescriptions(descriptionsMap);
                         setIsLoadingDoppelgangerDescriptions(false);
@@ -415,9 +415,9 @@ export default function DigitalDnaPage() {
             </div>
 
             {/* Interests Tab - Graph (always mounted, hidden via CSS to avoid re-initialization lag) */}
-            <div style={{ 
-                width: '100vw', 
-                height: '100vh', 
+            <div style={{
+                width: '100vw',
+                height: '100vh',
                 visibility: showLoading || activeTab !== 'interests' ? 'hidden' : 'visible',
                 position: activeTab !== 'interests' ? 'absolute' : 'relative',
                 pointerEvents: activeTab !== 'interests' ? 'none' : 'auto',
@@ -434,60 +434,60 @@ export default function DigitalDnaPage() {
             </div>
 
             {/* Archetypes Tab */}
-            <div 
+            <div
                 className={styles.contentContainer}
-                style={{ 
-                    display: activeTab === 'archetypes' ? 'flex' : 'none' 
+                style={{
+                    display: activeTab === 'archetypes' ? 'flex' : 'none'
                 }}
             >
-                    <div className={styles.contentHeader}>
-                        <h1 className={styles.contentTitle}>Your Personality Archetypes</h1>
-                        <p className={styles.contentSubtitle}>
-                            Based on your YouTube activity, here&apos;s what makes you, you.
-                        </p>
-                    </div>
-                    <div className={styles.cardsGrid}>
-                        {archetypes.length > 0 ? (
-                            archetypes.slice(0, 4).map((archetype, index) => (
-                                <div
-                                    key={index}
-                                    className={styles.archetypeCard}
-                                    style={{
-                                        background: archetypeColors[index % 4].bg,
-                                        borderColor: archetypeColors[index % 4].border,
-                                    }}
-                                >
-                                    <div className={styles.archetypeHeader}>
-                                        <span
-                                            className={styles.archetypePercentage}
-                                            style={{ color: archetypeColors[index % 4].accent }}
-                                        >
-                                            {archetype.percentage}%
-                                        </span>
-                                        <span className={styles.archetypeName}>{archetype.name}</span>
-                                    </div>
-                                    <p className={styles.archetypeDescription}>
-                                        {isLoadingDescriptions ? (
-                                            <span className={styles.descriptionLoading}>Generating insight...</span>
-                                        ) : (
-                                            getArchetypeDescription(archetype.name, index)
-                                        )}
-                                    </p>
+                <div className={styles.contentHeader}>
+                    <h1 className={styles.contentTitle}>Your Personality Archetypes</h1>
+                    <p className={styles.contentSubtitle}>
+                        Based on your YouTube activity, here&apos;s what makes you, you.
+                    </p>
+                </div>
+                <div className={styles.cardsGrid}>
+                    {archetypes.length > 0 ? (
+                        archetypes.slice(0, 4).map((archetype, index) => (
+                            <div
+                                key={index}
+                                className={styles.archetypeCard}
+                                style={{
+                                    background: archetypeColors[index % 4].bg,
+                                    borderColor: archetypeColors[index % 4].border,
+                                }}
+                            >
+                                <div className={styles.archetypeHeader}>
+                                    <span
+                                        className={styles.archetypePercentage}
+                                        style={{ color: archetypeColors[index % 4].accent }}
+                                    >
+                                        {archetype.percentage}%
+                                    </span>
+                                    <span className={styles.archetypeName}>{archetype.name}</span>
                                 </div>
-                            ))
-                        ) : (
-                            <div className={styles.emptyState}>
-                                <p>No archetypes found yet. Complete onboarding to generate your personality archetypes.</p>
+                                <p className={styles.archetypeDescription}>
+                                    {isLoadingDescriptions ? (
+                                        <span className={styles.descriptionLoading}>Generating insight...</span>
+                                    ) : (
+                                        getArchetypeDescription(archetype.name, index)
+                                    )}
+                                </p>
                             </div>
-                        )}
-                    </div>
+                        ))
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <p>No archetypes found yet. Complete onboarding to generate your personality archetypes.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Doppelgängers Tab */}
-            <div 
+            <div
                 className={styles.contentContainer}
-                style={{ 
-                    display: activeTab === 'doppelgangers' ? 'flex' : 'none' 
+                style={{
+                    display: activeTab === 'doppelgangers' ? 'flex' : 'none'
                 }}
             >
                 <div className={styles.contentHeader}>
@@ -497,32 +497,35 @@ export default function DigitalDnaPage() {
                     </p>
                 </div>
                 <div className={styles.twinsContainer}>
-                    {doppelgangers.length > 0 ? (
-                        doppelgangers.slice(0, 3).map((doppelganger, index) => (
-                            <div
-                                key={index}
-                                className={styles.twinCard}
-                            >
-                                <div className={styles.twinGlow} style={{ background: doppelgangerColors[index % 3].bg }} />
-                                <div 
-                                    className={styles.twinAvatar}
-                                    style={{ 
-                                        background: doppelgangerColors[index % 3].bg
-                                    }}
+                    {doppelgangers.filter(d => d.name.toLowerCase() !== userFullName.toLowerCase()).length > 0 ? (
+                        doppelgangers
+                            .filter(d => d.name.toLowerCase() !== userFullName.toLowerCase())
+                            .slice(0, 3)
+                            .map((doppelganger, index) => (
+                                <div
+                                    key={index}
+                                    className={styles.twinCard}
                                 >
-                                    <span className={styles.twinInitials}>{getInitials(doppelganger.name)}</span>
+                                    <div className={styles.twinGlow} style={{ background: doppelgangerColors[index % 3].bg }} />
+                                    <div
+                                        className={styles.twinAvatar}
+                                        style={{
+                                            background: doppelgangerColors[index % 3].bg
+                                        }}
+                                    >
+                                        <span className={styles.twinInitials}>{getInitials(doppelganger.name)}</span>
+                                    </div>
+                                    <h3 className={styles.twinName}>{doppelganger.name}</h3>
+                                    <div className={styles.twinDivider} style={{ background: doppelgangerColors[index % 3].accent }} />
+                                    <p className={styles.twinDescription}>
+                                        {isLoadingDoppelgangerDescriptions ? (
+                                            <span className={styles.descriptionLoading}>Discovering connection...</span>
+                                        ) : (
+                                            getDoppelgangerDescription(doppelganger.name)
+                                        )}
+                                    </p>
                                 </div>
-                                <h3 className={styles.twinName}>{doppelganger.name}</h3>
-                                <div className={styles.twinDivider} style={{ background: doppelgangerColors[index % 3].accent }} />
-                                <p className={styles.twinDescription}>
-                                    {isLoadingDoppelgangerDescriptions ? (
-                                        <span className={styles.descriptionLoading}>Discovering connection...</span>
-                                    ) : (
-                                        getDoppelgangerDescription(doppelganger.name)
-                                    )}
-                                </p>
-                            </div>
-                        ))
+                            ))
                     ) : (
                         <div className={styles.emptyState}>
                             <p>No digital twins found yet. Complete onboarding to discover who shares your wavelength.</p>

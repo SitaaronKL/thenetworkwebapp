@@ -407,7 +407,7 @@ export default function LandingPage() {
     };
   }, [galleryVisible]);
 
-  if (loading) return null;
+  if (loading || user) return null;
 
   const signalHeading = (
     <>

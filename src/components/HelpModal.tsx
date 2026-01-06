@@ -16,11 +16,31 @@ const pageDescriptions: Record<string, { title: string; description: string }> =
   },
   '/digital-dna': {
     title: 'Digital DNA',
-    description: "This is your Digital DNA page, showing a visual representation of your interests and how they connect. Your interests are displayed as an interactive graph where you can explore the relationships between different topics. Click on any interest node to learn more about it and get AI-generated insights about how that interest relates to your personality and connections."
+    description: "This is your Digital DNA page, showing a visual representation of your interests, personality archetypes, and digital twins. Your interests are displayed as an interactive graph where you can explore the relationships between different topics. Explore your archetypes to understand your core traits, and discover your digital twins—the people you share the strongest connections with based on your shared footprints."
   },
   '/msg-aria': {
     title: 'ARI',
     description: "This is the ARI page where you can read about The Network's vision and mission. Here you'll find information about how The Network works, our philosophy on building meaningful connections, and how we use your digital footprint (like YouTube and TikTok data) to help you find people you'll genuinely connect with."
+  },
+  '/invite-leaderboard': {
+    title: 'Invite Leaderboard',
+    description: "This is the Invite Leaderboard page. Here you can see who has been most active in growing The Network. You can track your own rank and see the total number of friends you've invited. Ranks are updated in real-time as new members join through your referral links. Top contributors are recognized with special indicators!"
+  },
+  '/edit-profile': {
+    title: 'Edit Profile',
+    description: "This is where you can customize your public presence on The Network. Update your name, avatar, location, and write a one-liner that describes you. This information helps others get to know you and improves the accuracy of connection suggestions."
+  },
+  '/profile-setup': {
+    title: 'Profile Setup',
+    description: "Welcome to the first step of building your Digital DNA! Tell us a bit about yourself—your name, age, and what makes you unique. This information forms the core of your profile on The Network."
+  },
+  '/profile-setup/signals': {
+    title: 'Connect Signals',
+    description: "Signals are the building blocks of your Digital DNA. By connecting your social accounts like YouTube, we can understand your interests and personality to help you find truly meaningful connections. Don't worry, we only use this data to build your profile and never share it without your permission."
+  },
+  '/profile-setup/wrapped': {
+    title: 'Digital DNA Wrapped',
+    description: "Welcome to your Digital DNA Wrapped experience! We're processing your signals to create a unique representation of who you are. Sit back and watch as we unveil your interest graph, personality archetypes, and find your digital doppelgangers."
   }
 };
 
@@ -62,7 +82,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
         </div>
         <div className={styles.content}>
           <p className={styles.description}>{pageInfo.description}</p>
-          
+
           <div className={styles.allPagesSection}>
             <h3 className={styles.sectionTitle}>All Pages</h3>
             <div className={styles.pagesList}>
@@ -75,7 +95,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
               <div className={styles.pageItem}>
                 <strong className={styles.pageName}>Digital DNA</strong>
                 <p className={styles.pageDesc}>
-                  Explore your interests and how they connect in an interactive graph visualization.
+                  Explore your interests, personality archetypes, and digital twins in an interactive visualization.
                 </p>
               </div>
               <div className={styles.pageItem}>

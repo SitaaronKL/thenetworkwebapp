@@ -26,6 +26,8 @@ export default React.memo(function NetworkGalaxy({
     const simulationRef = useRef<d3.Simulation<any, undefined> | null>(null);
     const linkSelRef = useRef<d3.Selection<SVGLineElement, any, SVGGElement, unknown> | null>(null);
     const nodeSelRef = useRef<d3.Selection<SVGGElement, any, SVGGElement, unknown> | null>(null);
+    const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+    const containerGroupRef = useRef<SVGGElement | null>(null);
     
     // Helper function to get viewbox scale based on current mobile state
     const getViewboxScale = () => isMobileRef.current ? 2.2 : 1.8;
@@ -151,7 +153,13 @@ export default React.memo(function NetworkGalaxy({
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH])
             .attr('width', width)
             .attr('height', height)
-            .attr('style', 'max-width: 100%; height: 100%;');
+            .attr('style', 'max-width: 100%; height: 100%;')
+            .style('touch-action', 'none'); // Prevent default touch behaviors
+
+        // Create a container group that will be transformed by zoom
+        const containerGroup = svg.append('g')
+            .attr('class', 'zoom-container');
+        containerGroupRef.current = containerGroup.node() as SVGGElement;
 
         // defs for circular image clip (works for all images, no per-node defs)
         const defs = svg.append('defs');
@@ -163,14 +171,14 @@ export default React.memo(function NetworkGalaxy({
             .attr('cy', 0.5)
             .attr('r', 0.5);
 
-        let link = svg.append('g')
+        let link = containerGroup.append('g')
             .attr('stroke', '#e5e7eb')
             .attr('stroke-opacity', 0.85)
             .selectAll<SVGLineElement, any>('line');
 
         // IMPORTANT: don't apply stroke to the entire node group — it outlines text/images and makes labels look bold/neon.
         // We'll stroke only the circles instead.
-        let node = svg.append('g')
+        let node = containerGroup.append('g')
             .selectAll<SVGGElement, any>('g');
 
         const ticked = () => {
@@ -187,6 +195,11 @@ export default React.memo(function NetworkGalaxy({
 
         const drag = (sim: d3.Simulation<any, undefined>) => {
             function dragstarted(event: any, d: any) {
+                // Stop zoom behavior when dragging nodes
+                // This prevents zoom from interfering with node dragging
+                if (event.sourceEvent) {
+                    event.sourceEvent.stopPropagation();
+                }
                 if (!event.active) sim.alphaTarget(0.3).restart();
                 d.fx = d.x;
                 d.fy = d.y;
@@ -208,6 +221,26 @@ export default React.memo(function NetworkGalaxy({
                 .on('drag', dragged)
                 .on('end', dragended);
         };
+
+        // Set up zoom behavior
+        const zoom = d3.zoom<SVGSVGElement, unknown>()
+            .scaleExtent([0.2, 4]) // Allow zooming from 20% to 400%
+            .filter((event: any) => {
+                // Allow zoom on wheel, pinch, and two-finger gestures
+                // Prevent zoom on right-click or non-primary mouse buttons
+                if (event.type === 'mousedown' && event.button !== 0) return false;
+                // Allow all touch events - D3 will handle distinguishing between
+                // single touch (pan) and multi-touch (zoom)
+                return true;
+            })
+            .on('zoom', (event: any) => {
+                // Apply zoom transform to the container group
+                containerGroup.attr('transform', event.transform.toString());
+            });
+
+        // Apply zoom to SVG
+        svg.call(zoom as any);
+        zoomRef.current = zoom;
 
         // Attach to DOM
         containerRef.current.innerHTML = '';
@@ -311,6 +344,8 @@ export default React.memo(function NetworkGalaxy({
             svgRef.current = null;
             linkSelRef.current = null;
             nodeSelRef.current = null;
+            zoomRef.current = null;
+            containerGroupRef.current = null;
         };
     }, [dimensions.width, dimensions.height, graphData, isInverted]);
 
@@ -328,6 +363,11 @@ export default React.memo(function NetworkGalaxy({
         svg.attr('width', width)
             .attr('height', height)
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH]);
+        
+        // Re-apply zoom behavior after resize to ensure it still works
+        if (zoomRef.current) {
+            svg.call(zoomRef.current as any);
+        }
     }, [dimensions]);
 
     // Update graph when data changes

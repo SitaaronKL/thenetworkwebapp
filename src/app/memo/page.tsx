@@ -14,7 +14,7 @@ export default function MemoPage() {
           enableMouseInteraction={true}
         />
       </div>
-      
+
       {/* Right Side - Content */}
       <div className="w-two-thirds w-full-mobile h-screen overflow-y-auto px-6 py-4 bg-black">
         <div className="max-w-3xl text-white mt-250">
@@ -22,10 +22,10 @@ export default function MemoPage() {
             <h1 className="memo-logo font-brand">TheNetwork</h1>
           </div>
           {/* Top Spacing */}
-          <div style={{height: '160px'}}></div>
-          
+          <div style={{ height: '160px' }}></div>
+
           {/* Large Spacing */}
-          <div style={{height: '410px'}}></div>
+          <div style={{ height: '410px' }}></div>
 
           {/* Custom Memo Copy */}
           <section className="mb-8">
@@ -56,9 +56,9 @@ export default function MemoPage() {
               <div className="text-center">
                 <h3 className="font-bold text-gray-200 mb-3 text-base">What social media is currently built on:</h3>
                 <div className="border border-white/15 rounded-lg p-2 bg-white/5">
-                  <img 
-                    src="/2dgraph.png" 
-                    alt="2D representation of current AI data - surface-level data, surveys, and shallow behavioral indicators"
+                  <img
+                    src="/2dgraph.png"
+                    alt="2D representation of traditional social data - surface-level data, surveys, and shallow behavioral indicators"
                     className="w-full h-auto rounded"
                   />
                 </div>
@@ -67,9 +67,9 @@ export default function MemoPage() {
               <div className="text-center">
                 <h3 className="font-bold text-gray-200 mb-3 text-base">What we're building:</h3>
                 <div className="border border-white/15 rounded-lg p-2 bg-white/5">
-                  <img 
-                    src="/3dgraph.png" 
-                    alt="3D representation of future AI data - deep behavioral data layer with subconscious pattern recognition"
+                  <img
+                    src="/3dgraph.png"
+                    alt="3D representation of deep behavioral data - deep behavioral data layer with subconscious pattern recognition"
                     className="w-full h-auto rounded"
                   />
                 </div>
