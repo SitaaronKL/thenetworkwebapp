@@ -21,7 +21,9 @@ export default function EditProfile() {
   // Form State
   const [fullName, setFullName] = useState('');
   const [school, setSchool] = useState('');
+  const [location, setLocation] = useState('');
   const [bio, setBio] = useState('');
+  const [handleName, setHandleName] = useState(''); // Just the name part (e.g., "ayen" from "@ayen.thenetwork")
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // Connections State - Check if YouTube is actually connected
@@ -44,7 +46,7 @@ export default function EditProfile() {
       // 1. Fetch Profile Data
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, school, avatar_url')
+        .select('full_name, school, location, avatar_url')
         .eq('id', user.id)
         .single();
 
@@ -58,6 +60,7 @@ export default function EditProfile() {
       if (profile) {
         setFullName(profile.full_name || '');
         setSchool(profile.school || '');
+        setLocation(profile.location || '');
 
         // Avatar Logic
         if (profile.avatar_url) {
@@ -73,8 +76,21 @@ export default function EditProfile() {
         }
       }
 
-      if (handleData) {
-        setBio(handleData.handle || '');
+      if (handleData && handleData.handle) {
+        setBio(handleData.handle);
+        // Extract name from handle (e.g., "@ayen.thenetwork" -> "ayen")
+        const handle = handleData.handle;
+        if (handle.startsWith('@') && handle.includes('.thenetwork')) {
+          const name = handle.substring(1, handle.indexOf('.thenetwork'));
+          setHandleName(name);
+        } else {
+          // If format is different, try to extract or use empty
+          setHandleName('');
+        }
+      } else {
+        // No handle exists, start with empty
+        setHandleName('');
+        setBio('');
       }
 
       // Check YouTube connection status
@@ -90,28 +106,57 @@ export default function EditProfile() {
     const supabase = createClient();
     
     try {
-      // Check if user has YouTube data or access token
-      const [subsResult, likesResult, accessToken] = await Promise.all([
+      // Check if user has YouTube data in database (videos and subscriptions)
+      // Note: These tables don't have 'id' column - they use composite primary keys
+      const [subsResult, likesResult] = await Promise.all([
         supabase
           .from('youtube_subscriptions')
-          .select('id')
+          .select('channel_id')
           .eq('user_id', userId)
           .limit(1),
         supabase
           .from('youtube_liked_videos')
-          .select('id')
+          .select('video_id')
           .eq('user_id', userId)
           .limit(1),
-        YouTubeService.getAccessToken(),
       ]);
 
-      const hasData = (subsResult.data && subsResult.data.length > 0) || 
-                      (likesResult.data && likesResult.data.length > 0);
-      const hasToken = !!accessToken;
+      // Log for debugging
+      console.log('YouTube connection check:', {
+        userId,
+        subsCount: subsResult.data?.length || 0,
+        likesCount: likesResult.data?.length || 0,
+        subsError: subsResult.error,
+        likesError: likesResult.error,
+        hasSubs: subsResult.data && subsResult.data.length > 0,
+        hasLikes: likesResult.data && likesResult.data.length > 0
+      });
 
-      // YouTube is connected if there's data or a valid token
-      setYoutubeConnected(hasData || hasToken);
+      // YouTube is connected if there's data in the database (videos OR subscriptions)
+      const hasSubscriptions = subsResult.data && subsResult.data.length > 0;
+      const hasLikedVideos = likesResult.data && likesResult.data.length > 0;
+      const hasData = hasSubscriptions || hasLikedVideos;
+
+      console.log('YouTube connection result:', { hasSubscriptions, hasLikedVideos, hasData });
+
+      // If no data in database, check for access token as fallback
+      if (!hasData) {
+        try {
+          const accessToken = await YouTubeService.getAccessToken();
+          const hasToken = !!accessToken;
+          console.log('No data found, checking token:', hasToken);
+          setYoutubeConnected(hasToken);
+        } catch (tokenError) {
+          console.error('Token check failed:', tokenError);
+          setYoutubeConnected(false);
+        }
+      } else {
+        // User has data in database, so YouTube is connected
+        console.log('Setting YouTube as connected (has data)');
+        setYoutubeConnected(true);
+      }
     } catch (error) {
+      console.error('Error checking YouTube connection:', error);
       // Default to false if check fails
       setYoutubeConnected(false);
     }
@@ -179,6 +224,7 @@ export default function EditProfile() {
       const profileUpdates = {
         full_name: fullName,
         school: school,
+        location: location,
         updated_at: new Date().toISOString(),
       };
 
@@ -368,24 +414,52 @@ export default function EditProfile() {
                 type="text"
                 value={school}
                 onChange={(e) => setSchool(e.target.value)}
-                placeholder="What school do you attend?"
+                placeholder="What school do you attend? (e.g., Columbia University)"
                 aria-label="School"
               />
             </div>
 
             <div className={styles.fieldRow}>
-              <div className={styles.label}>Bio</div>
+              <div className={styles.label}>Location</div>
+              <input
+                className={styles.input}
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="City, State (e.g., New York, NY)"
+                aria-label="Location"
+              />
+            </div>
+
+            <div className={styles.fieldRow}>
+              <div className={styles.label}>Handle</div>
               <div>
-                {/* Removed the hint div here */}
-                <textarea
-                  aria-label="Bio"
-                  placeholder="Bio"
-                  className={styles.textarea}
-                  value={bio}
-                  maxLength={50}
-                  onChange={(e) => setBio(e.target.value)}
-                  style={{ height: '60px' }}
-                ></textarea>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ color: 'var(--muted-foreground)' }}>@</span>
+                  <input
+                    className={styles.input}
+                    type="text"
+                    value={handleName}
+                    onChange={(e) => {
+                      const name = e.target.value.slice(0, 10); // Max 10 characters
+                      setHandleName(name);
+                      // Auto-update bio with full handle format
+                      if (name.trim()) {
+                        setBio(`@${name}.thenetwork`);
+                      } else {
+                        setBio('');
+                      }
+                    }}
+                    placeholder="yourname"
+                    aria-label="Handle name"
+                    maxLength={10}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ color: 'var(--muted-foreground)' }}>.thenetwork</span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
+                  Your handle will be: @{handleName || 'yourname'}.thenetwork
+                </p>
               </div>
             </div>
 
