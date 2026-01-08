@@ -297,8 +297,8 @@ export default function LandingPage() {
   // Theme persistence
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem('theme_inverted');
-    if (saved === 'true') {
+    const saved = localStorage.getItem('theme_mode');
+    if (saved === 'light') {
       setIsInverted(true);
     }
   }, []);
@@ -306,7 +306,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (!mounted) return;
 
-    localStorage.setItem('theme_inverted', isInverted.toString());
+    localStorage.setItem('theme_mode', isInverted ? 'light' : 'dark');
 
     if (isInverted) {
       document.documentElement.style.filter = 'invert(1) hue-rotate(180deg)';

@@ -962,7 +962,7 @@ export default function WrappedPage() {
                         <button
                             onClick={async (e) => {
                                 e.stopPropagation();
-                                // localStorage.setItem('theme_inverted', 'true');
+                                // localStorage.setItem('theme_mode', 'light');
 
                                 if (user) {
                                     const supabase = createClient();
@@ -1083,7 +1083,7 @@ export default function WrappedPage() {
         if (currentSlideIndex < SLIDES.length - 1) {
             setCurrentSlideIndex(prev => prev + 1);
         } else {
-            // localStorage.setItem('theme_inverted', 'true');
+            // localStorage.setItem('theme_mode', 'light');
 
             if (user) {
                 const supabase = createClient();
