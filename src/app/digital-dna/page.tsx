@@ -361,33 +361,9 @@ export default function DigitalDnaPage() {
 
             {/* Loading Overlay - Fixed position, covers entire screen */}
             {showLoading && activeTab === 'interests' && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: '#0a0a0a',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 15 // Below menu (z-index: 19)
-                }}>
+                <div className={styles.loadingOverlay}>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{
-                            width: '48px',
-                            height: '48px',
-                            border: '3px solid rgba(255, 255, 255, 0.1)',
-                            borderTopColor: '#ffffff',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite',
-                            margin: '0 auto'
-                        }}></div>
-                        <style jsx>{`
-                            @keyframes spin {
-                                to { transform: rotate(360deg); }
-                            }
-                        `}</style>
+                        <div className={styles.loader}></div>
                     </div>
                 </div>
             )}

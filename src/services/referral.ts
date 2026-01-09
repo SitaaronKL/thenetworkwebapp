@@ -220,6 +220,7 @@ export async function trackReferralSignup(
 
 /**
  * Get leaderboard data
+ * Uses a database function that bypasses RLS to show all users' invite counts
  */
 export async function getInviteLeaderboard(
   period: 'all-time' | 'monthly' | 'weekly' = 'all-time'
@@ -227,75 +228,32 @@ export async function getInviteLeaderboard(
   const supabase = createClient();
 
   try {
-    // First, get all accepted invites with time filter
-    let query = supabase
-      .from('referral_invites')
-      .select('referrer_id, accepted_at')
-      .eq('status', 'accepted');
-
-    // Apply time filter
-    if (period === 'monthly') {
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      query = query.gte('accepted_at', oneMonthAgo.toISOString());
-    } else if (period === 'weekly') {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      query = query.gte('accepted_at', oneWeekAgo.toISOString());
-    }
-
-    const { data: invites, error } = await query;
-
-    if (error) {
-      return [];
-    }
-
-    if (!invites || invites.length === 0) {
-      return [];
-    }
-
-    // Group by referrer_id and count
-    const counts = new Map<string, number>();
-    invites.forEach((invite: any) => {
-      const referrerId = invite.referrer_id;
-      counts.set(referrerId, (counts.get(referrerId) || 0) + 1);
+    // Call the database function that bypasses RLS
+    const { data, error } = await supabase.rpc('get_invite_leaderboard', {
+      p_period: period
     });
 
-    // Get unique referrer IDs
-    const referrerIds = Array.from(counts.keys());
-
-    // Fetch profiles for all referrers
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url')
-      .in('id', referrerIds);
-
-    if (profilesError) {
+    if (error) {
+      console.error('Error fetching leaderboard:', error);
       return [];
     }
 
-    // Create a map of user_id to profile
-    const profileMap = new Map(
-      (profiles || []).map((p: any) => [p.id, p])
-    );
+    if (!data || data.length === 0) {
+      return [];
+    }
 
-    // Convert to array and sort
-    const entries: LeaderboardEntry[] = Array.from(counts.entries())
-      .map(([user_id, count]) => {
-        const profile = profileMap.get(user_id);
-        return {
-          user_id,
-          full_name: profile?.full_name || 'Unknown',
-          avatar_url: profile?.avatar_url || null,
-          invite_count: count,
-          rank: 0 // Will be set after sorting
-        };
-      })
-      .sort((a, b) => b.invite_count - a.invite_count)
-      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+    // Convert to LeaderboardEntry format
+    const entries: LeaderboardEntry[] = data.map((row: any) => ({
+      user_id: row.user_id,
+      full_name: row.full_name || 'Unknown',
+      avatar_url: row.avatar_url || null,
+      invite_count: Number(row.invite_count) || 0,
+      rank: Number(row.rank) || 0
+    }));
 
     return entries;
   } catch (error) {
+    console.error('Error in getInviteLeaderboard:', error);
     return [];
   }
 }

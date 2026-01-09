@@ -4,8 +4,8 @@
     min-height: 100vh;
     overflow-x: hidden;
     overflow-y: auto;
-    background: #0a0a0a;
-    color: #ffffff;
+    background: var(--background);
+    color: var(--foreground);
 }
 
 .loadingContainer {
@@ -13,14 +13,27 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: #ffffff;
+    background: var(--background);
+}
+
+.loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
 }
 
 .loader {
     width: 48px;
     height: 48px;
-    border: 3px solid rgba(0, 0, 0, 0.1);
-    border-top-color: #000;
+    border: 3px solid var(--muted);
+    border-top-color: var(--foreground);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -96,7 +109,7 @@
 .title {
     font-size: 24px;
     font-weight: 700;
-    color: #000000;
+    color: var(--foreground);
     opacity: 0.8;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -110,25 +123,21 @@
     transform: translateX(-50%);
     display: flex;
     gap: 8px;
-    z-index: 15; /* Below menu (z-index: 19) */
-    background: rgba(20, 20, 20, 0.95);
+    z-index: 15;
+    /* Below menu (z-index: 19) */
+    background: var(--background);
     backdrop-filter: blur(12px);
     padding: 6px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-}
-
-/* Cancel out global inversion for tab navigation */
-:global(.theme-inverted) .tabNavigation {
-    filter: invert(1) hue-rotate(180deg);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .tabButton {
     padding: 10px 20px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--muted-foreground);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -138,13 +147,13 @@
 }
 
 .tabButton:hover {
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--foreground);
+    background: var(--accent);
 }
 
 .tabButton.activeTab {
-    background: #ffffff;
-    color: #000000;
+    background: var(--foreground);
+    color: var(--background);
 }
 
 /* Content Container for Archetypes */
@@ -157,7 +166,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    background: linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%);
+    background: var(--background);
     position: relative;
 }
 
@@ -169,14 +178,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
     background-size: 40px 40px;
     pointer-events: none;
-}
-
-/* Cancel out global inversion for this section when in inverted theme */
-:global(.theme-inverted) .contentContainer {
-    filter: invert(1) hue-rotate(180deg);
+    opacity: 0.3;
 }
 
 .contentHeader {
@@ -190,7 +195,7 @@
 .contentTitle {
     font-size: 42px;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--foreground);
     margin: 0 0 16px 0;
     letter-spacing: -0.03em;
     line-height: 1.1;
@@ -198,7 +203,7 @@
 
 .contentSubtitle {
     font-size: 18px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--muted-foreground);
     margin: 0;
     line-height: 1.6;
     font-weight: 400;
@@ -241,7 +246,7 @@
 
 .archetypeCard:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1);
 }
 
 .archetypeCard:hover::before {
@@ -261,26 +266,28 @@
     letter-spacing: -0.03em;
     line-height: 1;
     text-shadow: 0 2px 20px currentColor;
+    /* This might be intense on white */
 }
 
 .archetypeName {
     font-size: 22px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--foreground);
     letter-spacing: -0.01em;
 }
 
 .archetypeDescription {
     font-size: 15px;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--muted-foreground);
     line-height: 1.7;
     margin: 0;
     font-weight: 400;
 }
 
 .descriptionLoading {
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--muted-foreground);
     font-style: italic;
+    opacity: 0.5;
 }
 
 /* Digital Twins Section */
@@ -299,8 +306,9 @@
     flex-direction: column;
     align-items: center;
     padding: 40px 32px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--card);
+    /* Fallback or variable */
+    border: 1px solid var(--border);
     border-radius: 28px;
     width: 320px;
     text-align: center;
@@ -316,8 +324,9 @@
     inset: 0;
     border-radius: 28px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    background: linear-gradient(135deg, var(--border), transparent);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0;
@@ -327,9 +336,9 @@
 
 .twinCard:hover {
     transform: translateY(-6px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--foreground);
+    background: var(--accent);
 }
 
 .twinCard:hover::after {
@@ -363,7 +372,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease;
     z-index: 1;
 }
@@ -377,12 +386,13 @@
     font-weight: 700;
     letter-spacing: -0.01em;
     color: #ffffff;
+    /* Typically avatar text is white on colored background */
 }
 
 .twinName {
     font-size: 20px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--foreground);
     margin: 0 0 16px 0;
     letter-spacing: -0.01em;
 }
@@ -403,7 +413,7 @@
 
 .twinDescription {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--muted-foreground);
     line-height: 1.75;
     margin: 0;
     max-width: 280px;
@@ -412,7 +422,7 @@
 }
 
 .twinCard:hover .twinDescription {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--foreground);
 }
 
 /* Empty State */
@@ -420,7 +430,7 @@
     grid-column: 1 / -1;
     text-align: center;
     padding: 60px 20px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--muted-foreground);
     font-size: 16px;
 }
 
@@ -429,11 +439,11 @@
     .contentContainer {
         padding: 100px 32px 48px;
     }
-    
+
     .contentTitle {
         font-size: 36px;
     }
-    
+
     .cardsGrid {
         grid-template-columns: repeat(4, minmax(220px, 1fr));
         gap: 20px;
@@ -441,31 +451,32 @@
         scrollbar-width: thin;
         padding-bottom: 12px;
     }
-    
+
     .archetypeCard {
         padding: 28px 24px;
     }
-    
+
     .archetypePercentage {
         font-size: 40px;
     }
-    
+
     .archetypeName {
         font-size: 20px;
     }
-    
+
     .cardsGrid::-webkit-scrollbar {
         height: 8px;
     }
-    
+
     .cardsGrid::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--accent);
         border-radius: 4px;
     }
-    
+
     .cardsGrid::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
+        background: var(--muted-foreground);
         border-radius: 4px;
+        opacity: 0.5;
     }
 }
 
@@ -486,7 +497,7 @@
         padding: 90px 20px 32px;
         justify-content: flex-start;
     }
-    
+
     .contentContainer::before {
         background-size: 30px 30px;
     }
@@ -515,7 +526,7 @@
         padding-right: 20px;
         width: calc(100% + 40px);
     }
-    
+
     .cardsGrid::-webkit-scrollbar {
         display: none;
     }
@@ -528,11 +539,11 @@
     .archetypePercentage {
         font-size: 36px;
     }
-    
+
     .archetypeName {
         font-size: 18px;
     }
-    
+
     .archetypeDescription {
         font-size: 14px;
     }
