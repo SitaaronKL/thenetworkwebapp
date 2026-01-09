@@ -4,7 +4,7 @@ import React from 'react';
 import Menu from '@/components/Menu';
 import styles from './page.module.css';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import MeetNetworkView from '@/components/MeetNetwork/MeetNetworkView';
+// import MeetNetworkView from '@/components/MeetNetwork/MeetNetworkView';
 
 export default function MsgAriaPage() {
     return (
@@ -12,11 +12,11 @@ export default function MsgAriaPage() {
             <Menu />
 
             <div className={styles.memoWrapper}>
-                <Tabs defaultValue="meet" className="w-full max-w-[800px]">
+                <Tabs defaultValue="memo" className="w-full max-w-[800px]">
                     <div className="flex justify-center mb-8">
-                        <TabsList className="grid w-[400px] grid-cols-2 rounded-full p-1 bg-muted/50 backdrop-blur-sm border border-border/50">
+                        <TabsList className="grid w-[400px] grid-cols-1 rounded-full p-1 bg-muted/50 backdrop-blur-sm border border-border/50">
                             <TabsTrigger value="memo" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm">Memo</TabsTrigger>
-                            <TabsTrigger value="meet" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm">Meet Network</TabsTrigger>
+                            {/* <TabsTrigger value="meet" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm">Meet Network</TabsTrigger> */}
                         </TabsList>
                     </div>
 
@@ -83,9 +83,9 @@ export default function MsgAriaPage() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="meet" className="mt-0">
+                    {/* <TabsContent value="meet" className="mt-0">
                         <MeetNetworkView />
-                    </TabsContent>
+                    </TabsContent> */}
                 </Tabs>
             </div>
         </div>

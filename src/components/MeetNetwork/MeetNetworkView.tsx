@@ -1,5 +1,7 @@
 'use client';
 
+// COMMENTED OUT: All Meet Network functionality and UI
+/*
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -329,6 +331,16 @@ export default function MeetNetworkView() {
                     </CardContent>
                 </Card>
             )}
+        </div>
+    );
+}
+*/
+
+// Placeholder component - all functionality commented out
+export default function MeetNetworkView() {
+    return (
+        <div className="flex items-center justify-center p-8">
+            <div className="text-muted-foreground">Meet Network feature is currently disabled</div>
         </div>
     );
 }
