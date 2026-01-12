@@ -1289,7 +1289,7 @@ export default function WrappedPage() {
                                     Come say hi in the Discord. We are building this in public, early, messy, and with people who care.
                                 </p>
                                 <a
-                                    href="https://discord.gg/HrRjafUG"
+                                    href="https://discord.gg/RExK5qAH"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 mt-3 md:mt-4 px-5 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-100 transition-all hover:scale-105 text-[14px] md:text-[16px]"
