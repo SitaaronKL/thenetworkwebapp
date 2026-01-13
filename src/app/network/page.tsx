@@ -1245,7 +1245,7 @@ export default function Home() {
 
               return (
                 <div key={person.id} className={styles.suggestionCard}>
-                  <img src={person.avatar} alt={person.name} className={styles.cardAvatar} />
+                  <img src={person.avatar} alt={person.name} className={`${styles.cardAvatar} invert-media`} />
                   <div className={styles.cardInfo}>
                     <div className={styles.cardName}>{person.name}</div>
                     <div className={styles.cardReason}>

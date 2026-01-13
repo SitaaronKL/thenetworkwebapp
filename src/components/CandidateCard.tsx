@@ -26,7 +26,7 @@ export default function CandidateCard({ candidate, connectionStatus, onInvite, o
             <div className={styles.header}>
                 <div className={styles.avatarWrapper}>
                     {candidate.avatarUrl ? (
-                        <img src={candidate.avatarUrl} alt={candidate.name} className={styles.avatar} />
+                        <img src={candidate.avatarUrl} alt={candidate.name} className={`${styles.avatar} invert-media`} />
                     ) : (
                         <div className={styles.avatarPlaceholder}>{candidate.name[0]}</div>
                     )}

@@ -50,6 +50,18 @@ function cosineSimilarity(a: number[], b: number[]): number {
     return dotProduct / (normASqrt * normBSqrt);
 }
 
+/**
+ * Apply stricter scaling to compatibility scores to make high scores less common
+ * Uses power function (similarity^1.8) to create a more realistic distribution
+ * This matches the scaling applied in the database function
+ */
+function scaleCompatibilityScore(rawSimilarity: number): number {
+    // Clamp to [0, 1]
+    const clamped = Math.max(0, Math.min(1, rawSimilarity));
+    // Apply power function to make high scores less common
+    return Math.pow(clamped, 1.8);
+}
+
 // Calculate stars from similarity
 function calculateStars(similarity: number): number {
     const percent = Math.round(similarity * 100);
@@ -150,7 +162,8 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                         const userVec = parseVector(userDnaV2.composite_vector);
                         const otherVec = parseVector(otherDnaV2.composite_vector);
                         if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
-                            similarity = cosineSimilarity(userVec, otherVec);
+                            const rawSimilarity = cosineSimilarity(userVec, otherVec);
+                            similarity = scaleCompatibilityScore(rawSimilarity);
                         }
                     } else {
                         // Fallback to DNA v1
@@ -170,7 +183,8 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                             const userVec = parseVector(userDnaV1.interest_vector);
                             const otherVec = parseVector(otherDnaV1.interest_vector);
                             if (userVec && otherVec && userVec.length > 0 && otherVec.length > 0) {
-                                similarity = cosineSimilarity(userVec, otherVec);
+                                const rawSimilarity = cosineSimilarity(userVec, otherVec);
+                                similarity = scaleCompatibilityScore(rawSimilarity);
                             }
                         }
                     }
@@ -178,7 +192,8 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                     // If no DNA found, use shared interests as fallback
                     if (similarity === 0 && sharedInterests.length > 0) {
                         const totalInterests = new Set([...userInterests, ...otherInterests]).size;
-                        similarity = sharedInterests.length / Math.max(totalInterests, 1);
+                        const rawSimilarity = sharedInterests.length / Math.max(totalInterests, 1);
+                        similarity = scaleCompatibilityScore(rawSimilarity);
                     }
                     
                     // Trigger background calculation to store this score for future use
@@ -258,7 +273,7 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                         <img
                             src={person.imageUrl}
                             alt={person.name}
-                            className={styles.avatar}
+                            className={`${styles.avatar} invert-media`}
                         />
                     ) : (
                         <div className={styles.avatarPlaceholder}>

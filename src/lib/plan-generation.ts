@@ -42,6 +42,18 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 /**
+ * Apply stricter scaling to compatibility scores to make high scores less common
+ * Uses power function (similarity^1.8) to create a more realistic distribution
+ */
+export function scaleCompatibilityScore(rawSimilarity: number): number {
+  // Clamp to [0, 1]
+  const clamped = Math.max(0, Math.min(1, rawSimilarity));
+  // Apply power function to make high scores less common
+  // This matches the scaling applied in the database function
+  return Math.pow(clamped, 1.8);
+}
+
+/**
  * Parse vector from database format (string or array)
  */
 export function parseVector(vector: any): number[] {
@@ -101,7 +113,8 @@ export async function calculateCompatibility(
     if (userDnaV2.data?.composite_vector && connectionDnaV2.data?.composite_vector) {
       const userVec = parseVector(userDnaV2.data.composite_vector);
       const connectionVec = parseVector(connectionDnaV2.data.composite_vector);
-      similarity = cosineSimilarity(userVec, connectionVec);
+      const rawSimilarity = cosineSimilarity(userVec, connectionVec);
+      similarity = scaleCompatibilityScore(rawSimilarity);
     } else {
       // Fallback to DNA v1
       const [userDnaV1, connectionDnaV1] = await Promise.all([
@@ -112,14 +125,16 @@ export async function calculateCompatibility(
       if (userDnaV1.data?.interest_vector && connectionDnaV1.data?.interest_vector) {
         const userVec = parseVector(userDnaV1.data.interest_vector);
         const connectionVec = parseVector(connectionDnaV1.data.interest_vector);
-        similarity = cosineSimilarity(userVec, connectionVec);
+        const rawSimilarity = cosineSimilarity(userVec, connectionVec);
+        similarity = scaleCompatibilityScore(rawSimilarity);
       }
     }
     
     // If no DNA found, use shared interests as fallback
     if (similarity === 0 && sharedInterests.length > 0) {
       const totalInterests = new Set([...userInterests, ...connectionInterests]).size;
-      similarity = sharedInterests.length / Math.max(totalInterests, 1);
+      const rawSimilarity = sharedInterests.length / Math.max(totalInterests, 1);
+      similarity = scaleCompatibilityScore(rawSimilarity);
     }
     
     // Trigger background calculation to store this score for future use

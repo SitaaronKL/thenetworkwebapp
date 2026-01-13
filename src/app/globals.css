@@ -416,3 +416,15 @@
 .sigma-labels {
   color: #000000 !important;
 }
+
+/* Counter-invert images when theme is inverted */
+/* This prevents images from being double-inverted by the global theme filter */
+/* When theme is NOT inverted, no filter needed */
+.invert-media {
+  filter: none;
+}
+
+/* When theme IS inverted, counter-invert the images to make them appear normal */
+.theme-inverted .invert-media {
+  filter: invert(1) hue-rotate(180deg);
+}

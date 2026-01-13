@@ -482,7 +482,7 @@ export default function LandingPage() {
             <AnimatedWord isDark={theme === 'light'} />
 
             <p className={`text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0 transition-colors duration-500 ${theme === 'dark' ? 'text-white/90' : 'text-black/90'}`} style={{ animationDelay: '0.3s' }}>
-              Turn your signals into people you'll actually want to meet.
+              Most social apps optimize for watching. We're building for doing: real plans, real places, real people, starting from the interests you already reveal every day.
               <button
                 onClick={() => setShowSignalsModal(true)}
                 className={`ml-2 inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full border transition-all duration-200 cursor-pointer bg-transparent text-sm md:text-base font-normal -mt-10 ${theme === 'dark' ? 'border-white/30 hover:border-white/60 text-white/50 hover:text-white/80 hover:bg-white/10' : 'border-black/30 hover:border-black/60 text-black/50 hover:text-black/80 hover:bg-black/10'}`}
