@@ -495,13 +495,7 @@ export default function LandingPage() {
 
             <button
               onClick={() => {
-                // Check if user has seen YouTube account disclaimer
-                const hasSeenDisclaimer = typeof window !== 'undefined' && localStorage.getItem('youtube_account_disclaimer_acknowledged') === 'true';
-                if (hasSeenDisclaimer) {
-                  router.push('/consent');
-                } else {
-                  router.push('/youtube-account-disclaimer');
-                }
+                router.push('/onboarding');
               }}
               className={`mt-4 px-10 py-5 rounded-full text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
             >
@@ -550,7 +544,7 @@ export default function LandingPage() {
 
           <div className="absolute bottom-4 right-8 z-20 flex gap-8">
             <button
-              onClick={() => router.push('/consent')}
+              onClick={() => router.push('/onboarding')}
               className={`text-xs font-ui md:text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0 ${theme === 'dark' ? 'text-black' : 'text-white'}`}
             >
               Join

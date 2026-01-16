@@ -26,16 +26,10 @@ export default function InvitePage() {
         // The referral will be tracked when they complete onboarding (if new) or we can track it here
         router.push('/network');
       } else {
-        // User is not logged in, store the referral code and redirect to disclaimer
+        // User is not logged in, store the referral code and redirect to onboarding
         // Store in localStorage so we can retrieve it after signup
         localStorage.setItem('referral_code', code);
-        // Check if user has seen YouTube account disclaimer
-        const hasSeenDisclaimer = localStorage.getItem('youtube_account_disclaimer_acknowledged') === 'true';
-        if (hasSeenDisclaimer) {
-          router.push('/consent');
-        } else {
-          router.push('/youtube-account-disclaimer');
-        }
+        router.push('/onboarding');
       }
     };
 
