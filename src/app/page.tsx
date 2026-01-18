@@ -231,7 +231,7 @@ function FAQItem({ question, answer, isOpen, onClick }: {
 // --- Main Landing Page Component ---
 
 export default function LandingPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
@@ -465,10 +465,21 @@ export default function LandingPage() {
         <ConstellationSphere theme={theme} />
 
         {/* Top Left - THE NETWORK. */}
-        <div className="absolute top-8 left-8 z-20">
-          <h1 className={`font-brand text-4xl sm:text-5xl md:text-6xl font-bold transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`} style={{ letterSpacing: '-0.02em' }}>
+        <div className="absolute top-6 left-4 md:top-8 md:left-8 z-20">
+          <h1 className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-black'}`} style={{ letterSpacing: '-0.02em' }}>
             THE<br />NETWORK.
           </h1>
+        </div>
+
+        {/* Top Right - Login */}
+        <div className="absolute top-6 right-4 md:top-8 md:right-8 z-20">
+          <button
+            onClick={() => signInWithGoogle()}
+            className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            style={{ letterSpacing: '-0.02em' }}
+          >
+            LOGIN
+          </button>
         </div>
 
 
