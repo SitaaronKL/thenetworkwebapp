@@ -22,48 +22,19 @@
 }
 
 .memoCard {
-    background: linear-gradient(145deg, #fafafa 0%, #f0f0f0 100%);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     padding: 48px;
-    box-shadow:
-        0 4px 24px rgba(0, 0, 0, 0.06),
-        0 1px 2px rgba(0, 0, 0, 0.04);
+    box-shadow: none;
     width: 100%;
     position: relative;
     overflow: hidden;
 }
 
-.memoCard::before {
-    content: '';
-    position: absolute;
-    top: 24px;
-    left: 48px;
-    right: 48px;
-    height: 3px;
-    background: linear-gradient(90deg,
-            rgba(255, 255, 255, 0.3) 0%,
-            rgba(180, 180, 180, 0.6) 25%,
-            rgba(50, 50, 50, 1) 50%,
-            rgba(180, 180, 180, 0.6) 75%,
-            rgba(255, 255, 255, 0.3) 100%);
-    border-radius: 2px;
-}
-
 .memoHeader {
-    text-align: center;
+    text-align: left;
     margin-bottom: 40px;
-    padding-bottom: 32px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.memoLabel {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: #ffffff;
-    margin-bottom: 16px;
-    text-transform: uppercase;
 }
 
 .memoTitle {
@@ -178,6 +149,18 @@
     font-style: italic;
 }
 
+/* Scroll reveal animation - pops in when visible, fades out when not */
+.reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
     .memoCard {
@@ -195,5 +178,11 @@
 
     .thesisTitle {
         font-size: 20px;
+    }
+
+    /* Mobile-optimized reveal animation */
+    .reveal {
+        transform: translateY(30px);
+        transition: opacity 0.4s ease-out, transform 0.4s ease-out;
     }
 }

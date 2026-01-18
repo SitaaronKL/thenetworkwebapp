@@ -18,11 +18,17 @@ export default function Menu() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInverted, setIsInverted] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
+    setIsMobile(window.innerWidth <= 768);
+    
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    
     const saved = localStorage.getItem('theme_mode');
     // Default to dark mode (false) if not set
     if (saved === 'light') {
@@ -30,6 +36,8 @@ export default function Menu() {
     } else {
       setIsInverted(false);
     }
+    
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -131,7 +139,10 @@ export default function Menu() {
           </div>
         </div>
 
-        <div className={styles.menuFooter}>
+        <div 
+          className={styles.menuFooter}
+          style={isMobile ? { bottom: '150px' } : undefined}
+        >
           <div
             className={`${styles.toggle} ${isInverted ? styles.active : ''}`}
             onClick={handleToggle}

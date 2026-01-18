@@ -189,6 +189,15 @@
   color: #0f172a;
 }
 
+/* Mobile: Move toggle higher up */
+@media (max-width: 768px) {
+  .menuFooter {
+    bottom: 150px !important;
+    right: 24px !important;
+    left: auto !important;
+  }
+}
+
 .toggle {
   width: 64px;
   height: 34px;
