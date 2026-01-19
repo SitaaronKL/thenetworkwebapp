@@ -175,20 +175,29 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                             );
                             setSharedInterests(shared.length > 0 ? shared : otherInterests.slice(0, 5));
 
-                            // Get compatibility score for connected users
-                            const { data: matchData } = await supabase
+                            // Get compatibility score for connected users - check both directions
+                            const { data: matchData1 } = await supabase
                                 .from('user_matches')
                                 .select('compatibility_percentage, similarity_score')
                                 .eq('user_id', user.id)
                                 .eq('match_user_id', person.id)
                                 .maybeSingle();
 
+                            const { data: matchData2 } = await supabase
+                                .from('user_matches')
+                                .select('compatibility_percentage, similarity_score')
+                                .eq('user_id', person.id)
+                                .eq('match_user_id', user.id)
+                                .maybeSingle();
+
+                            const matchData = matchData1 || matchData2;
+
                             if (matchData?.compatibility_percentage != null) {
                                 setCompatibilityPercentage(matchData.compatibility_percentage);
                             } else if (matchData?.similarity_score != null) {
                                 setCompatibilityPercentage(Math.round(matchData.similarity_score * 100));
                             } else {
-                                // Calculate on-the-fly from DNA
+                                // Calculate on-the-fly from DNA as fallback
                                 const { data: userDnaV2 } = await supabase
                                     .from('digital_dna_v2')
                                     .select('composite_vector')
@@ -284,12 +293,22 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                 setSharedInterests(shared);
 
                 // Get compatibility score from user_matches table (pre-calculated using DNA v2)
-                const { data: matchData } = await supabase
+                // Check both directions since matches can be stored either way
+                const { data: matchData1 } = await supabase
                     .from('user_matches')
                     .select('compatibility_percentage, similarity_score, shared_interests')
                     .eq('user_id', user.id)
                     .eq('match_user_id', person.id)
                     .maybeSingle();
+
+                const { data: matchData2 } = await supabase
+                    .from('user_matches')
+                    .select('compatibility_percentage, similarity_score, shared_interests')
+                    .eq('user_id', person.id)
+                    .eq('match_user_id', user.id)
+                    .maybeSingle();
+
+                const matchData = matchData1 || matchData2;
 
                 let similarity = 0;
                 if (matchData?.compatibility_percentage != null) {
