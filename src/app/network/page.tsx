@@ -84,6 +84,12 @@ export default function Home() {
   // Mobile suggestions panel state
   const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
 
+  // Network branching state
+  const [expandedFriendId, setExpandedFriendId] = useState<string | null>(null);
+  const [friendOfFriendData, setFriendOfFriendData] = useState<NetworkPerson[]>([]);
+  const [mutualConnectionIds, setMutualConnectionIds] = useState<Set<string>>(new Set());
+  const [isLoadingFriendNetwork, setIsLoadingFriendNetwork] = useState(false);
+
   // Helper function to create current user node
   const createCurrentUserNode = (id: string, name: string, color: string, avatarUrl?: string): NetworkPerson => ({
     id,
@@ -223,6 +229,163 @@ export default function Home() {
       setIsLoadingNetwork(false);
     }
   }, [user]);
+
+  // Function to load a friend's network (their connections) for branching
+  const loadFriendNetwork = useCallback(async (friendId: string) => {
+    if (!user) return;
+
+    setIsLoadingFriendNetwork(true);
+    setExpandedFriendId(friendId);
+    const supabase = createClient();
+
+    try {
+      // Get the current user's friend IDs (my network)
+      const myFriendIds = new Set(people.filter(p => p.id !== user.id).map(p => p.id));
+      console.log('🔍 My network friend IDs:', Array.from(myFriendIds));
+
+      // Use the secure database function to get friend's connections
+      // This bypasses RLS while ensuring security (only works if we're actually friends)
+      const { data: friendConnectionsRpc, error: rpcError } = await supabase
+        .rpc('get_friend_connections', { target_friend_id: friendId });
+
+      console.log('📡 Friend connections from RPC:', friendConnectionsRpc, 'Error:', rpcError);
+
+      // Fallback to direct query if RPC fails (might be RLS restricted)
+      let friendOfFriendIds = new Set<string>();
+      
+      if (rpcError || !friendConnectionsRpc) {
+        console.log('⚠️ RPC failed, trying direct query (may be limited by RLS)');
+        
+        // Fetch friend's connections from user_connections
+        const { data: friendConnections, error: connError } = await supabase
+          .from('user_connections')
+          .select('sender_id, receiver_id')
+          .or(`sender_id.eq.${friendId},receiver_id.eq.${friendId}`)
+          .eq('status', 'accepted');
+
+        console.log('📡 Friend connections from user_connections:', friendConnections, 'Error:', connError);
+
+        // Also check friend_requests as fallback
+        let allFriendConnections = friendConnections || [];
+        if (connError || !friendConnections || friendConnections.length === 0) {
+          const { data: friendRequests, error: frError } = await supabase
+            .from('friend_requests')
+            .select('sender_id, receiver_id')
+            .or(`sender_id.eq.${friendId},receiver_id.eq.${friendId}`)
+            .eq('status', 'accepted');
+          console.log('📡 Friend connections from friend_requests:', friendRequests, 'Error:', frError);
+          allFriendConnections = friendRequests || [];
+        }
+
+        console.log('📊 Total friend connections found:', allFriendConnections.length, allFriendConnections);
+
+        // Extract friend's connection IDs (excluding the friend themselves and the current user)
+        allFriendConnections.forEach((conn: any) => {
+          const connectedId = conn.sender_id === friendId ? conn.receiver_id : conn.sender_id;
+          if (connectedId !== user.id && connectedId !== friendId) {
+            friendOfFriendIds.add(connectedId);
+          }
+        });
+      } else {
+        // Use RPC results
+        (friendConnectionsRpc || []).forEach((row: any) => {
+          friendOfFriendIds.add(row.connected_user_id);
+        });
+      }
+
+      console.log('👥 Friend of friend IDs (excluding user):', Array.from(friendOfFriendIds));
+
+      // Identify mutual connections (people in both my network and friend's network)
+      const mutuals = new Set<string>();
+      friendOfFriendIds.forEach(id => {
+        if (myFriendIds.has(id)) {
+          mutuals.add(id);
+          console.log('✅ Found mutual connection:', id);
+        }
+      });
+      // The friend itself should also be highlighted (not greyed)
+      mutuals.add(friendId);
+      // Current user should never be greyed
+      mutuals.add(user.id);
+      console.log('🤝 Mutual connection IDs:', Array.from(mutuals));
+      setMutualConnectionIds(mutuals);
+
+      // Filter to only get friend-of-friends who are NOT already in my network (branch nodes)
+      const branchNodeIds = Array.from(friendOfFriendIds).filter(id => !myFriendIds.has(id));
+      console.log('🌿 Branch node IDs (friends outside my network):', branchNodeIds);
+
+      if (branchNodeIds.length === 0) {
+        // Friend has no connections outside of my network
+        console.log('ℹ️ No branch nodes to show - friend has no connections outside your network');
+        setFriendOfFriendData([]);
+        setIsLoadingFriendNetwork(false);
+        return;
+      }
+
+      // Fetch profiles for branch nodes
+      const { data: branchProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, star_color, bio')
+        .in('id', branchNodeIds);
+
+      if (!branchProfiles || branchProfiles.length === 0) {
+        setFriendOfFriendData([]);
+        setIsLoadingFriendNetwork(false);
+        return;
+      }
+
+      // Find the friend's position in the current graph to position branch nodes around them
+      const friendNode = people.find(p => p.id === friendId);
+      const friendX = friendNode?.x || 400;
+      const friendY = friendNode?.y || 500;
+
+      // Find the user's position (center of the graph)
+      const userNode = people.find(p => p.id === user.id);
+      const userX = userNode?.x || 400;
+      const userY = userNode?.y || 500;
+
+      // Calculate direction FROM user TO friend (to push branches away from center)
+      const directionAngle = Math.atan2(friendY - userY, friendX - userX);
+
+      // Create NetworkPerson objects for branch nodes
+      const branchPeople: NetworkPerson[] = branchProfiles.map((profile: any, index: number) => {
+        // Position branch nodes in an arc AWAY from the user (opposite side of friend)
+        const totalBranches = branchProfiles.length;
+        const angleSpread = Math.PI * 0.7; // 126 degrees spread
+        const startAngle = directionAngle - angleSpread / 2;
+        const angle = totalBranches > 1 
+          ? startAngle + (index / (totalBranches - 1)) * angleSpread
+          : directionAngle; // Single branch goes straight out
+        const radius = 180; // Distance from the friend node
+
+        // Calculate position relative to friend (away from user)
+        const x = friendX + Math.cos(angle) * radius;
+        const y = friendY + Math.sin(angle) * radius;
+
+        return {
+          id: profile.id,
+          name: profile.full_name?.split(' ')[0] || 'User',
+          starColor: profile.star_color || '#8E5BFF',
+          x,
+          y,
+          connections: [friendId], // Connected to the friend
+          bio: profile.bio,
+          imageUrl: getAvatarUrl(profile.avatar_url),
+          isBranchNode: true,
+          parentFriendId: friendId,
+          isGreyedOut: false
+        };
+      });
+
+      setFriendOfFriendData(branchPeople);
+    } catch (error) {
+      console.error('Error loading friend network:', error);
+      setFriendOfFriendData([]);
+      setMutualConnectionIds(new Set());
+    } finally {
+      setIsLoadingFriendNetwork(false);
+    }
+  }, [user, people]);
 
   // Auth redirect
   useEffect(() => {
@@ -1086,11 +1249,38 @@ export default function Home() {
           people={people}
           currentUserId={user.id}
           onPersonClick={(person) => {
-            // Prevent clicking on own profile
+            // Open profile modal for the clicked person
             if (person.id !== user?.id) {
               setSelectedPerson(person);
             }
           }}
+          expandedFriendId={expandedFriendId}
+          onFriendExpand={(friendId) => {
+            if (friendId) {
+              // If clicking the same friend that's already expanded, collapse and open profile
+              if (expandedFriendId === friendId) {
+                const person = people.find(p => p.id === friendId);
+                setExpandedFriendId(null);
+                setFriendOfFriendData([]);
+                setMutualConnectionIds(new Set());
+                // Open profile modal for the expanded friend
+                if (person) {
+                  setSelectedPerson(person);
+                }
+              } else {
+                // Expand this friend's network
+                loadFriendNetwork(friendId);
+              }
+            } else {
+              // Collapse the network
+              setExpandedFriendId(null);
+              setFriendOfFriendData([]);
+              setMutualConnectionIds(new Set());
+            }
+          }}
+          friendOfFriendData={friendOfFriendData}
+          mutualConnectionIds={mutualConnectionIds}
+          isLoadingFriendNetwork={isLoadingFriendNetwork}
         />
       </div>
 

@@ -8,6 +8,10 @@ export interface NetworkPerson {
     compatibilityPercentage?: number; // Percentage (0-100) from user_matches table
     connections: string[];
     bio?: string;
+    // Network branching properties
+    isBranchNode?: boolean; // True if this node belongs to a friend's network (not user's direct connection)
+    isGreyedOut?: boolean; // True if this node should be displayed in greyscale
+    parentFriendId?: string; // The friend ID this branch node is connected through
 }
 
 export interface Profile {

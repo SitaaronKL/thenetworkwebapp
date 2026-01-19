@@ -8,12 +8,23 @@ interface NetworkGalaxyProps {
     people: NetworkPerson[];
     currentUserId: string;
     onPersonClick?: (person: NetworkPerson) => void;
+    // Network branching props
+    expandedFriendId?: string | null;
+    onFriendExpand?: (friendId: string | null) => void;
+    friendOfFriendData?: NetworkPerson[];
+    mutualConnectionIds?: Set<string>;
+    isLoadingFriendNetwork?: boolean;
 }
 
 export default React.memo(function NetworkGalaxy({
     people,
     currentUserId,
-    onPersonClick
+    onPersonClick,
+    expandedFriendId = null,
+    onFriendExpand,
+    friendOfFriendData = [],
+    mutualConnectionIds = new Set(),
+    isLoadingFriendNetwork = false
 }: NetworkGalaxyProps) {
     const [isInverted, setIsInverted] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -80,8 +91,17 @@ export default React.memo(function NetworkGalaxy({
         const others = sorted.filter(p => p.id !== currentUserId);
         const ordered = user ? [user, ...others] : others;
 
+        // Determine if a node should be greyed out
+        const shouldGreyOut = (personId: string): boolean => {
+            if (!expandedFriendId) return false;
+            if (personId === currentUserId) return false; // Never grey out the user
+            if (personId === expandedFriendId) return false; // Never grey out the expanded friend
+            return !mutualConnectionIds.has(personId);
+        };
+
         const nodes = ordered.map((p, i) => {
             const isUser = p.id === currentUserId;
+            const isExpandedFriend = p.id === expandedFriendId;
             const r = isUser ? 42 : 34;
 
             // Wide initial ring; D3 simulation mutates x/y after.
@@ -104,14 +124,54 @@ export default React.memo(function NetworkGalaxy({
                 color: p.starColor || '#8E5BFF',
                 imgUrl: p.imageUrl,
                 x,
-                y
+                y,
+                isGreyedOut: shouldGreyOut(p.id),
+                isBranchNode: false,
+                isExpandedFriend
             };
         });
 
-        const links: { source: string; target: string }[] = [];
+        // Add branch nodes (friend-of-friend connections) when a friend is expanded
+        if (expandedFriendId && friendOfFriendData.length > 0) {
+            // Find the expanded friend's node to position branches around it
+            const expandedFriendNode = nodes.find(n => n.id === expandedFriendId);
+            const friendX = expandedFriendNode?.x || 0;
+            const friendY = expandedFriendNode?.y || 0;
+
+            // Calculate the direction FROM user (center) TO friend
+            // This is the direction we want to push branch nodes (away from center)
+            const directionAngle = Math.atan2(friendY, friendX);
+
+            friendOfFriendData.forEach((fof, index) => {
+                // Position branch nodes in an arc AWAY from the user (opposite side of friend from center)
+                const totalBranches = friendOfFriendData.length;
+                const angleSpread = Math.PI * 0.7; // 126 degrees spread
+                const startAngle = directionAngle - angleSpread / 2;
+                const angle = totalBranches > 1 
+                    ? startAngle + (index / (totalBranches - 1)) * angleSpread
+                    : directionAngle; // Single branch goes straight out
+                const radius = 180; // Distance from the friend node
+
+                nodes.push({
+                    id: fof.id,
+                    name: fof.name,
+                    r: 28, // Smaller radius for branch nodes
+                    color: fof.starColor || '#8E5BFF',
+                    imgUrl: fof.imageUrl,
+                    x: friendX + Math.cos(angle) * radius,
+                    y: friendY + Math.sin(angle) * radius,
+                    isGreyedOut: false,
+                    isBranchNode: true,
+                    isExpandedFriend: false
+                });
+            });
+        }
+
+        const links: { source: string; target: string; isBranchLink?: boolean }[] = [];
         const linkSet = new Set<string>();
         const nodeIds = new Set(nodes.map(n => n.id));
 
+        // Add main network links
         people.forEach(p => {
             if (p.connections) {
                 p.connections.forEach(targetId => {
@@ -119,15 +179,26 @@ export default React.memo(function NetworkGalaxy({
                         const linkKey = [p.id, targetId].sort().join('-');
                         if (!linkSet.has(linkKey)) {
                             linkSet.add(linkKey);
-                            links.push({ source: p.id, target: targetId });
+                            links.push({ source: p.id, target: targetId, isBranchLink: false });
                         }
                     }
                 });
             }
         });
 
+        // Add branch links (from expanded friend to their connections)
+        if (expandedFriendId && friendOfFriendData.length > 0) {
+            friendOfFriendData.forEach(fof => {
+                const linkKey = [expandedFriendId, fof.id].sort().join('-');
+                if (!linkSet.has(linkKey)) {
+                    linkSet.add(linkKey);
+                    links.push({ source: expandedFriendId, target: fof.id, isBranchLink: true });
+                }
+            });
+        }
+
         return { nodes, links };
-    }, [people, currentUserId]);
+    }, [people, currentUserId, expandedFriendId, friendOfFriendData, mutualConnectionIds]);
 
     // Initialize D3 chart once (mirrors the Observable chart = { ... } block)
     useEffect(() => {
@@ -263,67 +334,105 @@ export default React.memo(function NetworkGalaxy({
 
             node = (node as any)
                 .data(nextNodes, (d: any) => d.id)
-                .join((enter: any) => {
-                    const g = enter.append('g').call(drag(simulation));
+                .join(
+                    (enter: any) => {
+                        const g = enter.append('g').call(drag(simulation));
 
-                    g.append('circle')
-                        .attr('r', (d: any) => d.r)
-                        .attr('fill', (d: any) => d.color)
-                        .attr('stroke', '#fff')
-                        .attr('stroke-width', 1.5);
+                        g.append('circle')
+                            .attr('r', (d: any) => d.r)
+                            .attr('fill', (d: any) => d.color)
+                            .attr('stroke', (d: any) => d.isExpandedFriend ? '#000' : '#fff')
+                            .attr('stroke-width', (d: any) => d.isExpandedFriend ? 3 : 1.5);
 
-                    g.append('image')
-                        .attr('x', (d: any) => -d.r)
-                        .attr('y', (d: any) => -d.r)
-                        .attr('width', (d: any) => d.r * 2)
-                        .attr('height', (d: any) => d.r * 2)
-                        .attr('href', (d: any) => d.imgUrl || '')
-                        .attr('preserveAspectRatio', 'xMidYMid slice')
-                        .attr('clip-path', 'url(#nodeClipCircle)')
-                        .style('display', (d: any) => (d.imgUrl ? 'block' : 'none'));
+                        g.append('image')
+                            .attr('x', (d: any) => -d.r)
+                            .attr('y', (d: any) => -d.r)
+                            .attr('width', (d: any) => d.r * 2)
+                            .attr('height', (d: any) => d.r * 2)
+                            .attr('href', (d: any) => d.imgUrl || '')
+                            .attr('preserveAspectRatio', 'xMidYMid slice')
+                            .attr('clip-path', 'url(#nodeClipCircle)')
+                            .style('display', (d: any) => (d.imgUrl ? 'block' : 'none'));
 
-                    g.append('text')
-                        .attr('text-anchor', 'middle')
-                        .attr('y', (d: any) => d.r + 18)
-                        // Make labels thinner / non-bold for readability
-                        .style('font-family', 'Inter, system-ui, sans-serif')
-                        .style('font-size', '11px')
-                        .style('font-weight', '400')
-                        .style('fill', isInverted ? '#ffffff' : '#000000')
-                        .text((d: any) => d.name || '');
+                        g.append('text')
+                            .attr('text-anchor', 'middle')
+                            .attr('y', (d: any) => d.r + 18)
+                            // Make labels thinner / non-bold for readability
+                            .style('font-family', 'Inter, system-ui, sans-serif')
+                            .style('font-size', (d: any) => d.isBranchNode ? '10px' : '11px')
+                            .style('font-weight', '400')
+                            .style('fill', isInverted ? '#ffffff' : '#000000')
+                            .text((d: any) => d.name || '');
 
-                    // Add click handler - prevent clicking on own profile
-                    if (onPersonClick) {
-                        g.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
-                         .on('click', (event: any, d: any) => {
-                             if (d.id !== currentUserId) {
-                                 const person = people.find(p => p.id === d.id);
-                                 if (person) {
-                                     onPersonClick(person);
-                                 }
-                             }
-                         });
+                        // Apply greyscale filter to group
+                        g.style('filter', (d: any) => d.isGreyedOut ? 'grayscale(1) opacity(0.4)' : 'none')
+                         .style('transition', 'filter 0.3s ease');
+
+                        return g;
+                    },
+                    (update: any) => {
+                        // Update existing nodes
+                        update.select('circle')
+                            .attr('r', (d: any) => d.r)
+                            .attr('fill', (d: any) => d.color)
+                            .attr('stroke', (d: any) => d.isExpandedFriend ? '#000' : '#fff')
+                            .attr('stroke-width', (d: any) => d.isExpandedFriend ? 3 : 1.5);
+                        
+                        update.select('image')
+                            .attr('x', (d: any) => -d.r)
+                            .attr('y', (d: any) => -d.r)
+                            .attr('width', (d: any) => d.r * 2)
+                            .attr('height', (d: any) => d.r * 2);
+                        
+                        update.select('text')
+                            .style('font-size', (d: any) => d.isBranchNode ? '10px' : '11px');
+                        
+                        // Update greyscale filter
+                        update.style('filter', (d: any) => d.isGreyedOut ? 'grayscale(1) opacity(0.4)' : 'none')
+                              .style('transition', 'filter 0.3s ease');
+                        
+                        return update;
                     }
-
-                    return g;
-                });
+                );
 
             link = (link as any)
-                .data(nextLinks, (d: any) => `${d.source}-${d.target}`)
-                .join('line');
+                .data(nextLinks, (d: any) => `${d.source.id || d.source}-${d.target.id || d.target}`)
+                .join(
+                    (enter: any) => enter.append('line')
+                        .attr('stroke', (d: any) => d.isBranchLink ? '#a855f7' : '#e5e7eb')
+                        .attr('stroke-opacity', (d: any) => d.isBranchLink ? 0.7 : 0.85)
+                        .attr('stroke-width', (d: any) => d.isBranchLink ? 2 : 1)
+                        .attr('stroke-dasharray', (d: any) => d.isBranchLink ? '5,5' : 'none'),
+                    (update: any) => update
+                        .attr('stroke', (d: any) => d.isBranchLink ? '#a855f7' : '#e5e7eb')
+                        .attr('stroke-opacity', (d: any) => d.isBranchLink ? 0.7 : 0.85)
+                        .attr('stroke-width', (d: any) => d.isBranchLink ? 2 : 1)
+                        .attr('stroke-dasharray', (d: any) => d.isBranchLink ? '5,5' : 'none')
+                );
 
             // Add click handlers to all nodes (existing and new)
-            if (onPersonClick) {
-                node.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
-                   .on('click', (event: any, d: any) => {
-                       if (d.id !== currentUserId) {
-                           const person = people.find(p => p.id === d.id);
-                           if (person) {
-                               onPersonClick(person);
-                           }
+            // First click expands network, clicking expanded friend or branch node opens profile
+            node.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
+               .on('click', (event: any, d: any) => {
+                   if (d.id === currentUserId) return;
+                   
+                   // Find the person in people array or friendOfFriendData
+                   const person = people.find(p => p.id === d.id) || 
+                                  friendOfFriendData.find(p => p.id === d.id);
+                   
+                   if (d.isBranchNode) {
+                       // Branch nodes: open profile modal
+                       if (person && onPersonClick) {
+                           onPersonClick(person);
                        }
-                   });
-            }
+                   } else if (onFriendExpand) {
+                       // Main network nodes: expand/collapse their network
+                       onFriendExpand(d.id);
+                   } else if (person && onPersonClick) {
+                       // Fallback to old behavior if no onFriendExpand provided
+                       onPersonClick(person);
+                   }
+               });
 
             // Apply to sim
             simulation.nodes(nextNodes);
@@ -350,7 +459,7 @@ export default React.memo(function NetworkGalaxy({
             zoomRef.current = null;
             containerGroupRef.current = null;
         };
-    }, [dimensions.width, dimensions.height, graphData, isInverted]);
+    }, [dimensions.width, dimensions.height, graphData, isInverted, onFriendExpand, friendOfFriendData]);
 
     // Keep SVG sized and viewBox centered on resize
     useEffect(() => {
