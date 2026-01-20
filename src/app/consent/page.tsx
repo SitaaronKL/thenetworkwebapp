@@ -118,7 +118,7 @@ export default function ConsentPage() {
                         onClick={handleAcceptAll}
                         className={styles.acceptAllButton}
                     >
-                        Accept
+                        Accept All
                     </button>
                 </div>
 

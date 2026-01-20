@@ -40,6 +40,20 @@ export default React.memo(function NetworkGalaxy({
     const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const containerGroupRef = useRef<SVGGElement | null>(null);
     
+    // Refs for callbacks and data to avoid stale closures
+    const onPersonClickRef = useRef(onPersonClick);
+    const onFriendExpandRef = useRef(onFriendExpand);
+    const peopleRef = useRef(people);
+    const friendOfFriendDataRef = useRef(friendOfFriendData);
+    
+    // Keep refs updated
+    useEffect(() => {
+        onPersonClickRef.current = onPersonClick;
+        onFriendExpandRef.current = onFriendExpand;
+        peopleRef.current = people;
+        friendOfFriendDataRef.current = friendOfFriendData;
+    }, [onPersonClick, onFriendExpand, people, friendOfFriendData]);
+    
     // Helper function to get viewbox scale based on current mobile state
     // Higher value = more zoomed out (can see more of the network)
     const getViewboxScale = () => isMobileRef.current ? 3.2 : 1.8;
@@ -253,11 +267,13 @@ export default React.memo(function NetworkGalaxy({
         // Tighter layout for better initial view, especially on mobile
         const linkDist = isMobileRef.current ? 350 : 450;
         const simulation = d3.forceSimulation<any>()
-            .force('charge', d3.forceManyBody().strength(-1200).distanceMax(4000))
-            .force('link', d3.forceLink<any, any>().id((d: any) => d.id).distance(linkDist).strength(0.05))
-            .force('x', d3.forceX(0).strength(0.03))
-            .force('y', d3.forceY(0).strength(0.03))
-            .force('collide', d3.forceCollide<any>().radius((d: any) => (d?.r ?? 30) + 12).iterations(2));
+            .force('charge', d3.forceManyBody().strength(-800).distanceMax(3000))
+            .force('link', d3.forceLink<any, any>().id((d: any) => d.id).distance(linkDist).strength(0.03))
+            .force('x', d3.forceX(0).strength(0.02))
+            .force('y', d3.forceY(0).strength(0.02))
+            .force('collide', d3.forceCollide<any>().radius((d: any) => (d?.r ?? 30) + 12).iterations(2))
+            .alphaDecay(0.03) // Slower decay = smoother settling
+            .velocityDecay(0.4); // Higher = more friction, less bouncing
 
         const svg = d3.create('svg')
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH])
@@ -365,7 +381,25 @@ export default React.memo(function NetworkGalaxy({
         (svgRef.current as any).__update = ({ nodes, links }: { nodes: any[]; links: any[] }) => {
             // Recycle old nodes to preserve position & velocity
             const old = new Map((node as any).data().map((d: any) => [d.id, d]));
-            const nextNodes = nodes.map((d: any) => ({ ...(old.get(d.id) || {}), ...d }));
+            
+            // For existing nodes, preserve their EXACT current position (x, y, vx, vy)
+            // Only new nodes get their initial positions from the input
+            const nextNodes = nodes.map((d: any) => {
+                const existing = old.get(d.id);
+                if (existing) {
+                    // Preserve position and velocity, only update visual properties
+                    return { 
+                        ...d, 
+                        x: existing.x, 
+                        y: existing.y, 
+                        vx: existing.vx || 0, 
+                        vy: existing.vy || 0,
+                        fx: existing.fx,
+                        fy: existing.fy
+                    };
+                }
+                return d;
+            });
             const nextLinks = links.map((d: any) => ({ ...d }));
 
             node = (node as any)
@@ -452,21 +486,27 @@ export default React.memo(function NetworkGalaxy({
                .on('click', (event: any, d: any) => {
                    if (d.id === currentUserId) return;
                    
+                   // Use refs to get current values (avoids stale closures)
+                   const currentPeople = peopleRef.current;
+                   const currentFriendOfFriendData = friendOfFriendDataRef.current;
+                   const currentOnPersonClick = onPersonClickRef.current;
+                   const currentOnFriendExpand = onFriendExpandRef.current;
+                   
                    // Find the person in people array or friendOfFriendData
-                   const person = people.find(p => p.id === d.id) || 
-                                  friendOfFriendData.find(p => p.id === d.id);
+                   const person = currentPeople.find(p => p.id === d.id) || 
+                                  currentFriendOfFriendData.find(p => p.id === d.id);
                    
                    if (d.isBranchNode) {
                        // Branch nodes: open profile modal
-                       if (person && onPersonClick) {
-                           onPersonClick(person);
+                       if (person && currentOnPersonClick) {
+                           currentOnPersonClick(person);
                        }
-                   } else if (onFriendExpand) {
+                   } else if (currentOnFriendExpand) {
                        // Main network nodes: expand/collapse their network
-                       onFriendExpand(d.id);
-                   } else if (person && onPersonClick) {
+                       currentOnFriendExpand(d.id);
+                   } else if (person && currentOnPersonClick) {
                        // Fallback to old behavior if no onFriendExpand provided
-                       onPersonClick(person);
+                       currentOnPersonClick(person);
                    }
                });
 
@@ -474,8 +514,38 @@ export default React.memo(function NetworkGalaxy({
             simulation.nodes(nextNodes);
             (simulation.force('link') as any).links(nextLinks);
 
-            // Render now (like the example): restart, tick once, draw immediately
-            simulation.alpha(1).restart().tick();
+            // STOP the simulation completely to prevent any movement
+            simulation.stop();
+            
+            // Check if we actually have new nodes being added
+            const newNodeIds = nextNodes.filter((n: any) => !old.has(n.id)).map((n: any) => n.id);
+            const hasNewNodes = newNodeIds.length > 0;
+            
+            // Only do physics for truly new nodes, otherwise just update visuals
+            if (hasNewNodes) {
+                // Fix ALL existing nodes in place - they should not move at all
+                nextNodes.forEach((n: any) => {
+                    if (old.has(n.id)) {
+                        n.fx = n.x;
+                        n.fy = n.y;
+                    }
+                });
+                
+                // Very brief, gentle simulation just to position new nodes
+                simulation.alpha(0.05).alphaDecay(0.1).restart();
+                
+                // Stop simulation completely after new nodes settle
+                setTimeout(() => {
+                    simulation.stop();
+                    // Unfreeze nodes but keep simulation stopped
+                    nextNodes.forEach((n: any) => {
+                        n.fx = null;
+                        n.fy = null;
+                    });
+                }, 200);
+            }
+            
+            // Always update visual positions without physics
             ticked();
 
             // Update refs
@@ -495,7 +565,8 @@ export default React.memo(function NetworkGalaxy({
             zoomRef.current = null;
             containerGroupRef.current = null;
         };
-    }, [dimensions.width, dimensions.height, graphData, isInverted, onFriendExpand, friendOfFriendData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dimensions.width, dimensions.height]); // Only recreate on dimension changes, NOT on data changes
 
     // Keep SVG sized and viewBox centered on resize
     useEffect(() => {

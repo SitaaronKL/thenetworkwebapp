@@ -9,6 +9,7 @@ import styles from './ProfileModal.module.css';
 interface ProfileModalProps {
     person: NetworkPerson;
     onClose: () => void;
+    isEmbedded?: boolean;
 }
 
 // Parse vector from database (handles both string and array formats)
@@ -74,7 +75,7 @@ function calculateStars(similarity: number): number {
 
 type RequestStatus = 'none' | 'pending' | 'accepted' | 'checking';
 
-export default function ProfileModal({ person, onClose }: ProfileModalProps) {
+export default function ProfileModal({ person, onClose, isEmbedded = false }: ProfileModalProps) {
     const { user } = useAuth();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
     const [compatibilityPercentage, setCompatibilityPercentage] = useState<number | null>(null);
@@ -525,6 +526,117 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
 
     const isButtonDisabled = requestStatus !== 'none' || isSending;
 
+    const modalContent = (
+        <>
+            {/* Header: Avatar + Name + Compatibility Badge */}
+            <div className={styles.header}>
+                <div className={styles.avatarContainer}>
+                    {person.imageUrl ? (
+                        <img
+                            src={person.imageUrl}
+                            alt={person.name}
+                            className={`${styles.avatar} invert-media`}
+                        />
+                    ) : (
+                        <div className={styles.avatarPlaceholder}>
+                            {person.name.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                </div>
+                <div className={styles.headerInfo}>
+                    <h2 className={styles.name}>{person.name}</h2>
+                    {compatibilityPercentage !== null && (
+                        <div className={styles.compatibilityBadge}>
+                            {compatibilityPercentage}% <span>{isConnected ? 'COMPATIBLE' : 'COMPATIBLE'}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* School, Network Handle & Networks */}
+            {(profileData?.school || profileData?.networkHandle || (profileData?.networks && profileData.networks.length > 0)) && (
+                <div className={styles.profileDetails}>
+                    {profileData?.school && (
+                        <span className={styles.detailItem}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                            </svg>
+                            {profileData.school}
+                        </span>
+                    )}
+                    {profileData?.networkHandle && (
+                        <span className={styles.detailItem}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            @{profileData.networkHandle}
+                        </span>
+                    )}
+                    {profileData?.networks && profileData.networks.length > 0 && (
+                        <span className={styles.detailItem}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            {profileData.networks.join(', ')}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Bio */}
+            {profileData?.bio && (
+                <p className={styles.bio}>{profileData.bio}</p>
+            )}
+
+            {/* Why You're Connected / Why You'd Connect */}
+            {isLoading ? (
+                <div className={styles.loading}>Loading...</div>
+            ) : compatibilityDescription ? (
+                <div className={styles.compatibilitySection}>
+                    <div className={styles.compatibilityTitle}>
+                        WHY YOU'RE CONNECTED
+                    </div>
+                    <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
+                </div>
+            ) : null}
+
+            {/* Shared Interests - Show for everyone */}
+            {sharedInterests.length > 0 && (
+                <div className={styles.sharedInterests}>
+                    <div className={styles.sharedInterestsTitle}>Shared Interests</div>
+                    <div className={styles.interestsList}>
+                        {sharedInterests.map((interest, i) => (
+                            <span key={i} className={styles.interestTag}>{interest}</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Add Friend Button - Only show if NOT connected */}
+            {!isConnected && (
+                <div className={styles.actions}>
+                    <button
+                        className={styles.addFriendButton}
+                        onClick={handleSendRequest}
+                        disabled={isButtonDisabled}
+                    >
+                        {isSending ? 'Sending...' : getButtonText()}
+                    </button>
+                </div>
+            )}
+        </>
+    );
+
+    // Embedded mode: just return the content without overlay
+    if (isEmbedded) {
+        return <div className={styles.embeddedModal}>{modalContent}</div>;
+    }
+
+    // Normal modal mode with overlay
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -534,107 +646,7 @@ export default function ProfileModal({ person, onClose }: ProfileModalProps) {
                         <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                 </button>
-
-                {/* Header: Avatar + Name + Compatibility Badge */}
-                <div className={styles.header}>
-                    <div className={styles.avatarContainer}>
-                        {person.imageUrl ? (
-                            <img
-                                src={person.imageUrl}
-                                alt={person.name}
-                                className={`${styles.avatar} invert-media`}
-                            />
-                        ) : (
-                            <div className={styles.avatarPlaceholder}>
-                                {person.name.charAt(0).toUpperCase()}
-                            </div>
-                        )}
-                    </div>
-                    <div className={styles.headerInfo}>
-                        <h2 className={styles.name}>{person.name}</h2>
-                        {compatibilityPercentage !== null && (
-                            <div className={styles.compatibilityBadge}>
-                                {compatibilityPercentage}% <span>{isConnected ? 'compatible' : 'match'}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* School, Network Handle & Networks */}
-                {(profileData?.school || profileData?.networkHandle || (profileData?.networks && profileData.networks.length > 0)) && (
-                    <div className={styles.profileDetails}>
-                        {profileData?.school && (
-                            <span className={styles.detailItem}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                                </svg>
-                                {profileData.school}
-                            </span>
-                        )}
-                        {profileData?.networkHandle && (
-                            <span className={styles.detailItem}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="9" cy="7" r="4"/>
-                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                                </svg>
-                                @{profileData.networkHandle}
-                            </span>
-                        )}
-                        {profileData?.networks && profileData.networks.length > 0 && (
-                            <span className={styles.detailItem}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                    <circle cx="12" cy="10" r="3"/>
-                                </svg>
-                                {profileData.networks.join(', ')}
-                            </span>
-                        )}
-                    </div>
-                )}
-
-                {/* Bio */}
-                {profileData?.bio && (
-                    <p className={styles.bio}>{profileData.bio}</p>
-                )}
-
-                {/* Why You're Connected / Why You'd Connect */}
-                {isLoading ? (
-                    <div className={styles.loading}>Loading...</div>
-                ) : compatibilityDescription ? (
-                    <div className={styles.compatibilitySection}>
-                        <div className={styles.compatibilityTitle}>
-                            {isConnected ? "Why You're Connected" : "Why You'd Connect"}
-                        </div>
-                        <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
-                    </div>
-                ) : null}
-
-                {/* Shared Interests - Show for everyone */}
-                {sharedInterests.length > 0 && (
-                    <div className={styles.sharedInterests}>
-                        <div className={styles.sharedInterestsTitle}>Shared Interests</div>
-                        <div className={styles.interestsList}>
-                            {sharedInterests.map((interest, i) => (
-                                <span key={i} className={styles.interestTag}>{interest}</span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Add Friend Button - Only show if NOT connected */}
-                {!isConnected && (
-                    <div className={styles.actions}>
-                        <button
-                            className={styles.addFriendButton}
-                            onClick={handleSendRequest}
-                            disabled={isButtonDisabled}
-                        >
-                            {isSending ? 'Sending...' : getButtonText()}
-                        </button>
-                    </div>
-                )}
+                {modalContent}
             </div>
         </div>
     );

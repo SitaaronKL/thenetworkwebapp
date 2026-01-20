@@ -31,10 +31,10 @@ interface Profile {
 import AddUserIcon from '@/components/icons/AddUserIcon';
 import SearchIcon from '@/components/icons/SearchIcon';
 import InviteIcon from '@/components/icons/InviteIcon';
+import WeeklyDropIcon from '@/components/icons/WeeklyDropIcon';
 import FriendRequestsModal from '@/components/FriendRequestsModal';
 import SearchUserModal from '@/components/SearchUserModal';
 import SuggestionDetailModal from '@/components/SuggestionDetailModal';
-import AriaMessage from '@/components/AriaMessage';
 import InviteModal from '@/components/InviteModal';
 
 // Helper to resolve avatar URL
@@ -43,6 +43,300 @@ const getAvatarUrl = (path?: string | null) => {
   if (path.startsWith('http')) return path;
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-images/${path}`;
 };
+
+// Embedded Panel Components
+function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => void; onRequestAccepted?: () => void }) {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const loadRequests = async () => {
+    setLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { data: friendRequests } = await supabase
+      .from('friend_requests')
+      .select('*')
+      .eq('receiver_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (friendRequests && friendRequests.length > 0) {
+      const senderIds = friendRequests.map(req => req.sender_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', senderIds);
+
+      setRequests(friendRequests.map(req => ({
+        ...req,
+        sender_profile: profiles?.find(p => p.id === req.sender_id)
+      })));
+    } else {
+      setRequests([]);
+    }
+    setLoading(false);
+  };
+
+  const handleAccept = async (requestId: number, senderId: string) => {
+    setProcessingIds(prev => new Set(prev).add(requestId));
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', requestId);
+    await supabase.from('user_connections').insert({ sender_id: senderId, receiver_id: user.id, status: 'accepted' });
+    
+    setRequests(prev => prev.filter(r => r.id !== requestId));
+    setProcessingIds(prev => { const next = new Set(prev); next.delete(requestId); return next; });
+    onRequestAccepted?.();
+  };
+
+  const handleDecline = async (requestId: number) => {
+    setProcessingIds(prev => new Set(prev).add(requestId));
+    const supabase = createClient();
+    await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', requestId);
+    setRequests(prev => prev.filter(r => r.id !== requestId));
+    setProcessingIds(prev => { const next = new Set(prev); next.delete(requestId); return next; });
+  };
+
+  return (
+    <div>
+      <div className={styles.embeddedPanelHeader}>
+        <h3 className={styles.embeddedPanelTitle}>Friend Requests</h3>
+        <button className={styles.embeddedPanelClose} onClick={onClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div className={styles.embeddedPanelBody}>
+        {loading ? (
+          <div className={styles.embeddedEmptyState}>Loading...</div>
+        ) : requests.length === 0 ? (
+          <div className={styles.embeddedEmptyState}>No pending friend requests</div>
+        ) : (
+          requests.map(req => (
+            <div key={req.id} className={styles.embeddedListItem}>
+              <div className={styles.embeddedListAvatar}>
+                {req.sender_profile?.avatar_url ? (
+                  <img src={getAvatarUrl(req.sender_profile.avatar_url)} alt="" />
+                ) : (
+                  req.sender_profile?.full_name?.[0] || '?'
+                )}
+              </div>
+              <div className={styles.embeddedListInfo}>
+                <div className={styles.embeddedListName}>{req.sender_profile?.full_name || 'Unknown'}</div>
+              </div>
+              <div className={styles.embeddedListActions}>
+                <button 
+                  className={`${styles.embeddedListAction} ${styles.accept}`}
+                  onClick={() => handleAccept(req.id, req.sender_id)}
+                  disabled={processingIds.has(req.id)}
+                >
+                  Accept
+                </button>
+                <button 
+                  className={`${styles.embeddedListAction} ${styles.decline}`}
+                  onClick={() => handleDecline(req.id)}
+                  disabled={processingIds.has(req.id)}
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SearchUsersPanel({ onClose }: { onClose: () => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+
+  const performSearch = async (searchQuery: string) => {
+    if (!searchQuery.trim()) { setResults([]); return; }
+    setLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, avatar_url')
+      .neq('id', user.id)
+      .or(`full_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`)
+      .limit(8);
+
+    setResults(profiles || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => performSearch(query), 300);
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  const sendRequest = async (targetId: string) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('friend_requests').insert({ sender_id: user.id, receiver_id: targetId, status: 'pending' });
+    setSentRequests(prev => new Set(prev).add(targetId));
+  };
+
+  return (
+    <div>
+      <div className={styles.embeddedPanelHeader}>
+        <h3 className={styles.embeddedPanelTitle}>Search Users</h3>
+        <button className={styles.embeddedPanelClose} onClick={onClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div className={styles.embeddedPanelBody}>
+        <input
+          type="text"
+          className={styles.embeddedSearchInput}
+          placeholder="Search by name or username..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {loading ? (
+          <div className={styles.embeddedEmptyState}>Searching...</div>
+        ) : results.length === 0 && query ? (
+          <div className={styles.embeddedEmptyState}>No users found</div>
+        ) : (
+          results.map(user => (
+            <div key={user.id} className={styles.embeddedListItem}>
+              <div className={styles.embeddedListAvatar}>
+                {user.avatar_url ? <img src={getAvatarUrl(user.avatar_url)} alt="" /> : user.full_name?.[0] || '?'}
+              </div>
+              <div className={styles.embeddedListInfo}>
+                <div className={styles.embeddedListName}>{user.full_name}</div>
+                {user.username && <div className={styles.embeddedListSub}>@{user.username}</div>}
+              </div>
+              <button 
+                className={styles.embeddedListAction}
+                onClick={() => sendRequest(user.id)}
+                disabled={sentRequests.has(user.id)}
+              >
+                {sentRequests.has(user.id) ? 'Sent' : 'Add'}
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WeeklyDropPanel({ onClose, mondayDrop }: { onClose: () => void; mondayDrop: any }) {
+  return (
+    <div>
+      <div className={styles.embeddedPanelHeader}>
+        <h3 className={styles.embeddedPanelTitle}>Weekly Drop</h3>
+        <button className={styles.embeddedPanelClose} onClick={onClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div className={styles.embeddedPanelBody}>
+        {mondayDrop?.status === 'skipped' || mondayDrop?.status === 'connected' ? (
+          <div className={styles.embeddedEmptyState}>
+            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+              {mondayDrop.status === 'connected' ? 'Request sent!' : 'Drop skipped.'}
+            </div>
+            <div>See you next week! ✨</div>
+          </div>
+        ) : mondayDrop?.status === 'no_match' ? (
+          <div className={styles.embeddedEmptyState}>
+            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No match this week</div>
+            <div>We&apos;ll find someone great next time!</div>
+          </div>
+        ) : (
+          <div className={styles.embeddedEmptyState}>
+            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Weekly Drop</div>
+            <div>Check back Monday for your curated match!</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InviteFriendsPanel({ onClose }: { onClose: () => void }) {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { getReferralStats } = await import('@/services/referral');
+    const referralStats = await getReferralStats(user.id);
+    setStats(referralStats);
+    setLoading(false);
+  };
+
+  const copyLink = async () => {
+    if (!stats?.inviteLink) return;
+    await navigator.clipboard.writeText(stats.inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div>
+      <div className={styles.embeddedPanelHeader}>
+        <h3 className={styles.embeddedPanelTitle}>Invite Friends</h3>
+        <button className={styles.embeddedPanelClose} onClick={onClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div className={styles.embeddedPanelBody}>
+        {loading ? (
+          <div className={styles.embeddedEmptyState}>Loading...</div>
+        ) : (
+          <>
+            <div className={styles.embeddedInviteLink}>
+              <span className={styles.embeddedInviteLinkText}>{stats?.inviteLink || 'Loading...'}</span>
+              <button 
+                className={`${styles.embeddedCopyButton} ${copied ? styles.copied : ''}`}
+                onClick={copyLink}
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <div className={styles.embeddedInviteStats}>
+              <div className={styles.embeddedInviteStat}>
+                <div className={styles.embeddedInviteStatValue}>{stats?.totalInvites || 0}</div>
+                <div className={styles.embeddedInviteStatLabel}>Invited</div>
+              </div>
+              <div className={styles.embeddedInviteStat}>
+                <div className={styles.embeddedInviteStatValue}>{stats?.acceptedInvites || 0}</div>
+                <div className={styles.embeddedInviteStatLabel}>Joined</div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -60,7 +354,6 @@ export default function Home() {
   // Weekly Drop State
   const [mondayDrop, setMondayDrop] = useState<any | null>(null);
   const [isLoadingMondayDrop, setIsLoadingMondayDrop] = useState(false);
-  const [activeTab, setActiveTab] = useState<'philosophy' | 'drop'>('philosophy');
   const [isEligibleForMondayDrop, setIsEligibleForMondayDrop] = useState(false);
 
   // Debug State
@@ -68,14 +361,13 @@ export default function Home() {
   // const [debugForceEligible, setDebugForceEligible] = useState(false);
   const debugForceEligible = false; // Hardcoded to false
 
-  // Friend Requests Modal State
-  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  // Expandable pill panel state
+  const [expandedPanel, setExpandedPanel] = useState<'friendRequests' | 'searchUsers' | 'weeklyDrop' | 'inviteFriends' | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
-
-  // Search User Modal State
+  
+  // Legacy modal states (kept for backwards compatibility, but we'll use expandedPanel)
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showSearchUser, setShowSearchUser] = useState(false);
-
-  // Invite Modal State
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Suggestion Detail Modal State
@@ -234,6 +526,11 @@ export default function Home() {
   const loadFriendNetwork = useCallback(async (friendId: string) => {
     if (!user) return;
 
+    // Clear old data IMMEDIATELY before setting new friend ID
+    // This prevents the flash of old connections
+    setFriendOfFriendData([]);
+    setMutualConnectionIds(new Set());
+    
     setIsLoadingFriendNetwork(true);
     setExpandedFriendId(friendId);
     const supabase = createClient();
@@ -1272,19 +1569,20 @@ export default function Home() {
           expandedFriendId={expandedFriendId}
           onFriendExpand={(friendId) => {
             if (friendId) {
-              // If clicking the same friend that's already expanded, collapse and open profile
+              const person = people.find(p => p.id === friendId);
+              
+              // If clicking the same friend that's already expanded, just collapse
               if (expandedFriendId === friendId) {
-                const person = people.find(p => p.id === friendId);
                 setExpandedFriendId(null);
                 setFriendOfFriendData([]);
                 setMutualConnectionIds(new Set());
-                // Open profile modal for the expanded friend
+              } else {
+                // Expand this friend's network AND show their profile
+                loadFriendNetwork(friendId);
+                // Show profile in sidebar on first click
                 if (person) {
                   setSelectedPerson(person);
                 }
-              } else {
-                // Expand this friend's network
-                loadFriendNetwork(friendId);
               }
             } else {
               // Collapse the network
@@ -1327,68 +1625,100 @@ export default function Home() {
           </svg>
         </button>
 
-        <h2 className={styles.sectionTitle}>
-          {isEligibleForMondayDrop
-            ? (activeTab === 'drop' ? 'Your Weekly Drop' : '')
-            : "Ari's Suggestions"}
-        </h2>
-
-        <div className={styles.actionIcons}>
-          <div className={styles.iconButtonWrapper} onClick={() => setShowFriendRequests(true)}>
-            <div className={styles.iconButton} style={{ position: 'relative' }}>
-              <div className={styles.iconContainer}>
-                <AddUserIcon />
+        <div className={`${styles.actionIconsPill} ${expandedPanel ? styles.expanded : ''}`}>
+          <div className={styles.actionIcons}>
+            <div 
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'friendRequests' ? styles.active : ''}`} 
+              onClick={() => setExpandedPanel(expandedPanel === 'friendRequests' ? null : 'friendRequests')}
+            >
+              <div className={styles.iconButton} style={{ position: 'relative' }}>
+                <div className={styles.iconContainer}>
+                  <AddUserIcon />
+                </div>
+                {pendingRequestCount > 0 && (
+                  <span className={styles.notificationBadge}>{pendingRequestCount}</span>
+                )}
               </div>
-              {pendingRequestCount > 0 && (
-                <span className={styles.notificationBadge}>{pendingRequestCount}</span>
+              <span className={styles.iconLabel}>Friend Requests</span>
+            </div>
+            <div 
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'searchUsers' ? styles.active : ''}`}
+              onClick={() => setExpandedPanel(expandedPanel === 'searchUsers' ? null : 'searchUsers')}
+            >
+              <div className={styles.iconButton}>
+                <div className={styles.iconContainer}>
+                  <SearchIcon />
+                </div>
+              </div>
+              <span className={styles.iconLabel}>Search Users</span>
+            </div>
+            <div 
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'weeklyDrop' ? styles.active : ''}`}
+              onClick={() => setExpandedPanel(expandedPanel === 'weeklyDrop' ? null : 'weeklyDrop')}
+            >
+              <div className={styles.iconButton}>
+                <div className={styles.iconContainer}>
+                  <WeeklyDropIcon />
+                </div>
+              </div>
+              <span className={styles.iconLabel}>Weekly Drop</span>
+            </div>
+            <div 
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'inviteFriends' ? styles.active : ''}`}
+              onClick={() => setExpandedPanel(expandedPanel === 'inviteFriends' ? null : 'inviteFriends')}
+            >
+              <div className={styles.iconButton}>
+                <div className={styles.iconContainer}>
+                  <InviteIcon />
+                </div>
+              </div>
+              <span className={styles.iconLabel}>Invite Friends</span>
+            </div>
+          </div>
+          
+          {/* Expanded Panel Content */}
+          {expandedPanel && (
+            <div className={styles.expandedContent}>
+              {expandedPanel === 'friendRequests' && (
+                <FriendRequestsPanel onClose={() => setExpandedPanel(null)} onRequestAccepted={loadNetworkData} />
+              )}
+              {expandedPanel === 'searchUsers' && (
+                <SearchUsersPanel onClose={() => setExpandedPanel(null)} />
+              )}
+              {expandedPanel === 'weeklyDrop' && (
+                <WeeklyDropPanel onClose={() => setExpandedPanel(null)} mondayDrop={mondayDrop} />
+              )}
+              {expandedPanel === 'inviteFriends' && (
+                <InviteFriendsPanel onClose={() => setExpandedPanel(null)} />
               )}
             </div>
-            <span className={styles.iconLabel}>Friend Requests</span>
-          </div>
-          <div className={styles.iconButtonWrapper} onClick={() => setShowSearchUser(true)}>
-            <div className={styles.iconButton}>
-              <div className={styles.iconContainer}>
-                <SearchIcon />
-              </div>
-            </div>
-            <span className={styles.iconLabel}>Search Users</span>
-          </div>
-          <div className={styles.iconButtonWrapper} onClick={() => setShowInviteModal(true)}>
-            <div className={styles.iconButton}>
-              <div className={styles.iconContainer}>
-                <InviteIcon />
-              </div>
-            </div>
-            <span className={styles.iconLabel}>Invite Friends</span>
-          </div>
+          )}
         </div>
 
         <div className={styles.suggestionList}>
-          {isEligibleForMondayDrop && !isLoadingMondayDrop && !isLoadingSuggestions && (
-            <div className={styles.tabContainer}>
-              <button
-                className={`${styles.tabButton} ${activeTab === 'philosophy' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('philosophy')}
+          {/* Selected Person Profile Display */}
+          {selectedPerson ? (
+            <div className={styles.sidebarProfile}>
+              <button 
+                className={styles.sidebarCloseButton}
+                onClick={() => setSelectedPerson(null)}
               >
-                Philosophy
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
               </button>
-              <button
-                className={`${styles.tabButton} ${activeTab === 'drop' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('drop')}
-              >
-                Weekly Drop
-              </button>
+              <ProfileModal
+                person={selectedPerson}
+                onClose={() => setSelectedPerson(null)}
+                isEmbedded={true}
+              />
             </div>
-          )}
-
-          {isLoadingSuggestions || isLoadingMondayDrop ? (
+          ) : isLoadingSuggestions || isLoadingMondayDrop ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
               {isLoadingMondayDrop ? 'Curating your Weekly Drop...' : 'Loading suggestions...'}
             </div>
           ) : isEligibleForMondayDrop ? (
-            activeTab === 'philosophy' ? (
-              <AriaMessage />
-            ) : mondayDrop?.status === 'shown' && mondayDrop.candidate ? (
+            mondayDrop?.status === 'shown' && mondayDrop.candidate ? (
               <div key={mondayDrop.candidate.id} className={styles.suggestionCard}>
                 <img src={mondayDrop.candidate.avatar} alt={mondayDrop.candidate.name} className={styles.cardAvatar} />
                 <div className={styles.cardInfo}>
@@ -1438,7 +1768,10 @@ export default function Home() {
               </div>
             )
           ) : shouldShowMessage ? (
-            <AriaMessage />
+            <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
+              <p style={{ fontWeight: 500 }}>You've reviewed all suggestions!</p>
+              <p style={{ fontSize: '0.85em', marginTop: '12px', opacity: 0.8 }}>Check back soon for more connections.</p>
+            </div>
           ) : suggestions.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
               No suggestions available
@@ -1475,13 +1808,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Profile Modal */}
-      {selectedPerson && (
-        <ProfileModal
-          person={selectedPerson}
-          onClose={() => setSelectedPerson(null)}
-        />
-      )}
+      {/* Profile Modal - Only render when not in sidebar mode (mobile overlay) */}
 
       {/* Friend Requests Modal */}
       <FriendRequestsModal
@@ -1544,7 +1871,6 @@ export default function Home() {
               setIsEligibleForMondayDrop(true);
               setShouldShowMessage(false);
               setSuggestions([]);
-              setActiveTab('philosophy');
               loadMondayDrop();
             } else if (updatedSuggestions.length === 0) {
               setShouldShowMessage(true);
@@ -1624,7 +1950,6 @@ export default function Home() {
               setIsEligibleForMondayDrop(true);
               setShouldShowMessage(false);
               setSuggestions([]);
-              setActiveTab('philosophy');
               loadMondayDrop();
             } else if (updatedSuggestions.length === 0) {
               setShouldShowMessage(true);

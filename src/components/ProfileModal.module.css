@@ -300,6 +300,47 @@
     padding: 20px;
 }
 
+/* Embedded mode - no overlay, fits in sidebar */
+.embeddedModal {
+    padding: 0;
+    text-align: center;
+    color: #000;
+}
+
+.embeddedModal .header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+}
+
+.embeddedModal .headerInfo {
+    text-align: center;
+}
+
+.embeddedModal .avatar,
+.embeddedModal .avatarPlaceholder {
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+}
+
+.embeddedModal .name {
+    font-size: 22px;
+}
+
+.embeddedModal .profileDetails {
+    justify-content: center;
+    text-align: center;
+}
+
+.embeddedModal .compatibilitySection {
+    text-align: left;
+}
+
+.embeddedModal .bio {
+    text-align: center;
+}
+
 /* Mobile adjustments */
 @media (max-width: 480px) {
     .modal {

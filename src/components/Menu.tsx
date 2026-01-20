@@ -121,6 +121,14 @@ export default function Menu() {
               </div>
             </div>
 
+            {/* ARI Link */}
+            <Link
+              href="/msg-aria"
+              onClick={() => setIsOpen(false)}
+            >
+              ARI
+            </Link>
+
             {/* Settings Toggle */}
             <div className={styles.settingsSection}>
               <button
@@ -162,14 +170,6 @@ export default function Menu() {
                 </button>
               </div>
             </div>
-
-            {/* ARI Link - moved below SETTINGS */}
-            <Link
-              href="/msg-aria"
-              onClick={() => setIsOpen(false)}
-            >
-              ARI
-            </Link>
           </div>
         </div>
 
