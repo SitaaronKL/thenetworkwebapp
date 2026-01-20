@@ -277,14 +277,12 @@ export default function InterestGraph({
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', background: '#ffffff' }}>
 
-            {/* Label Toggle - use CSS media queries via className instead */}
-            <button
+            {/* Label Toggle - pill-shaped like Menu toggle */}
+            <div
                 onClick={() => setShowLabels(!showLabels)}
                 className="interest-graph-toggle-btn"
                 title={showLabels ? "Hide Labels" : "Show Labels"}
-            >
-                {showLabels ? 'Θ' : 'λ'}
-            </button>
+            />
             
             {/* Inline styles for the toggle button with media query support */}
             <style jsx>{`
@@ -293,38 +291,39 @@ export default function InterestGraph({
                     right: 20px;
                     top: 50%;
                     transform: translateY(-50%);
-                    z-index: 10; /* Keep below menu (z-index: 19) */
-                    background: rgba(0, 0, 0, 0.6);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: 50%;
-                    width: 40px;
-                    height: 40px;
-                    color: #fff;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
+                    z-index: 10;
+                    width: 34px;
+                    height: 64px;
+                    border-radius: 999px;
+                    background: ${showLabels ? '#0f172a' : '#e5e7eb'};
+                    border: 1px solid ${showLabels ? '#0f172a' : '#d1d5db'};
                     cursor: pointer;
-                    transition: all 0.2s;
-                    font-size: 24px;
-                    backdrop-filter: blur(5px);
-                    font-family: "Times New Roman", serif;
-                    line-height: 1;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    transition: background 0.15s ease, border 0.15s ease;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                }
+                
+                .interest-graph-toggle-btn::after {
+                    content: "";
+                    position: absolute;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    left: 2px;
+                    top: ${showLabels ? '32px' : '2px'};
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+                    transition: top 0.15s ease;
                 }
                 
                 .interest-graph-toggle-btn:hover {
-                    background: rgba(0, 0, 0, 0.8);
+                    opacity: 0.9;
                 }
                 
                 @media (max-width: 768px) {
                     .interest-graph-toggle-btn {
                         right: 16px;
                         top: 30%;
-                        bottom: auto;
                         transform: translateY(-50%);
-                        width: 40px;
-                        height: 40px;
-                        font-size: 20px;
                     }
                 }
             `}</style>

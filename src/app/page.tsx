@@ -473,14 +473,14 @@ export default function LandingPage() {
           </h1>
         </div>
 
-        {/* Top Right - Sign up to waitlist */}
+        {/* Top Right - Login */}
         <div className="absolute top-6 right-4 md:top-8 md:right-8 z-20">
           <button
-            onClick={() => setIsWaitlistModalOpen(true)}
-            className={`font-brand text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            onClick={signInWithGoogle}
+            className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
             style={{ letterSpacing: '-0.02em' }}
           >
-            Sign up to waitlist
+            LOGIN
           </button>
         </div>
 
@@ -491,21 +491,29 @@ export default function LandingPage() {
             <AnimatedWord isDark={theme === 'light'} />
 
             <p className={`text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed animate-fade-in-up opacity-0 transition-colors duration-500 ${theme === 'dark' ? 'text-white/90' : 'text-black/90'}`} style={{ animationDelay: '0.3s' }}>
-              Most social apps optimize for watching. We're building for doing: real plans, real places, real people, starting from the interests you already reveal every day.
+              The shortest path to the right people: a social network designed for real life.
             </p>
 
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-4">
               <button
-                onClick={() => {
-                  router.push('/consent');
-                }}
-                className={`mt-4 px-10 py-5 rounded-full text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                onClick={() => setIsWaitlistModalOpen(true)}
+                className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer ${theme === 'dark' ? 'bg-transparent text-white border-2 border-white hover:bg-white/10' : 'bg-transparent text-black border-2 border-black hover:bg-black/10'}`}
               >
-                Discover My Network
+                Join the Waitlist
               </button>
-              <span className={`text-xs font-medium opacity-60 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                (demo)
-              </span>
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    router.push('/consent');
+                  }}
+                  className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer border-none ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                >
+                  Join the Network
+                </button>
+                <span className={`absolute -bottom-5 right-0 text-xs font-medium opacity-60 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                  (demo)
+                </span>
+              </div>
             </div>
           </div>
 
@@ -522,48 +530,6 @@ export default function LandingPage() {
           <div className="absolute bottom-16 left-6 right-28 z-10">
             <div className="h-[1px] bg-white opacity-30"></div>
           </div>
-
-          <div className="absolute bottom-4 left-6 z-20 flex gap-8">
-            <Link
-              href="/privacy-policy"
-              className="text-xs font-ui text-white hover:opacity-70 transition-opacity"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              href="/terms-of-service"
-              className="text-xs font-ui text-white hover:opacity-70 transition-opacity"
-            >
-              Terms of Service
-            </Link>
-          </div>
-
-          <div className="absolute bottom-4 right-8 z-20 flex gap-8">
-            <button
-              onClick={() => router.push('/consent')}
-              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              Join
-            </button>
-            <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              Home
-            </button>
-            <button
-              onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              What we do
-            </button>
-            <button
-              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              FAQ
-            </button>
-          </div>
         </div>
       </nav>
 
@@ -578,28 +544,6 @@ export default function LandingPage() {
           {/* Horizontal Line - Cut off early for logo */}
           <div className="absolute bottom-8 left-4 right-20 z-10">
             <div className="h-[1px] bg-white opacity-30"></div>
-          </div>
-
-          {/* Nav Links */}
-          <div className="absolute bottom-2 left-4 z-20 flex items-center gap-6">
-            <button
-              onClick={() => router.push('/consent')}
-              className="text-[10px] font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              Join
-            </button>
-            <button
-              onClick={() => document.getElementById('signal-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-[10px] font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              About
-            </button>
-            <button
-              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-[10px] font-ui text-white hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            >
-              FAQ
-            </button>
           </div>
         </div>
       </nav>

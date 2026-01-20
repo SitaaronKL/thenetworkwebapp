@@ -155,34 +155,51 @@
     color: var(--background);
 }
 
-/* Tab Navigation - Mobile Override */
+/* Tab Navigation - Mobile Override - iOS 26 Liquid Glass Style */
 @media screen and (max-width: 768px) {
     .tabNavigation {
         top: auto !important;
-        bottom: 8px !important;
-        background: rgba(0, 0, 0, 0.9) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        padding: 6px;
+        bottom: 24px !important;
+        /* iOS 26 Liquid Glass: dark translucent with color tint */
+        background: rgba(38, 38, 40, 0.65) !important;
+        /* Thin bright border for glass edge */
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        /* Strong blur for frosted glass */
+        backdrop-filter: blur(60px) saturate(150%);
+        -webkit-backdrop-filter: blur(60px) saturate(150%);
+        padding: 5px;
         gap: 4px;
+        border-radius: 16px;
+        /* Depth shadow + inner rim highlight */
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            0 2px 8px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .tabButton {
-        padding: 10px 16px;
-        font-size: 13px;
-        color: rgba(255, 255, 255, 0.7) !important;
+        padding: 10px 20px;
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        /* Inactive: muted white */
+        color: rgba(255, 255, 255, 0.5) !important;
         background: transparent !important;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.2s ease;
     }
 
     .tabButton:hover {
-        color: #ffffff !important;
-        background: rgba(255, 255, 255, 0.1) !important;
+        color: rgba(255, 255, 255, 0.75) !important;
     }
 
     .tabButton.activeTab {
-        background: #ffffff !important;
-        color: #000000 !important;
+        /* Active: lighter glass pill */
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
 }
 
