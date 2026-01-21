@@ -598,36 +598,7 @@ export default function WrappedPage() {
     const processUserData = processUserDataWithYouTubeProgress;
 
     const SLIDES: Slide[] = [
-        // Slide 0 - You're on the waitlist
-        {
-            id: 0,
-            bg: 'dark',
-            content: (
-                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    {/* Text Content */}
-                    <div className="relative z-10 max-w-[800px] text-center px-6 md:px-8">
-                        <div className="mb-6 md:mb-8">
-                            <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <h1 className="text-[28px] md:text-[60px] font-bold text-white font-display leading-[1.1] mb-4 tracking-tight">
-                            You're on the waitlist!
-                        </h1>
-                        <p className="text-[18px] md:text-[32px] font-medium text-gray-400 font-display mb-8">
-                            Continue creating your account to secure your spot.
-                        </p>
-                    </div>
-
-                    {/* TN Logo */}
-                    <div className="absolute left-4 md:left-6 bottom-20 md:bottom-6 w-[100px] md:w-[150px] h-[80px] md:h-[120px] opacity-100 pointer-events-none">
-                        <Image src="/assets/onboarding/tn_logo.png" alt="TN" fill className="object-contain" />
-                    </div>
-                </div>
-            ),
-            type: 'manual'
-        },
-        // Slide 1 - You already have a digital life
+        // Slide 0 - You already have a digital life
         {
             id: 2,
             bg: 'dark',

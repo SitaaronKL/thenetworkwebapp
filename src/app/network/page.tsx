@@ -518,25 +518,25 @@ export default function Home() {
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
 
-      if (connError) {
-        // Try friend_requests table as fallback
+      if (connError || !connections || connections.length === 0) {
+        // Try friend_requests table as fallback (some accepts only update friend_requests)
         const { data: friendRequests, error: frError } = await supabase
           .from('friend_requests')
           .select('*')
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
           .eq('status', 'accepted');
 
-        if (frError) {
+        if (frError || !friendRequests || friendRequests.length === 0) {
           setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
           setIsLoadingNetwork(false);
           return;
         }
 
-        await processConnections(supabase, friendRequests || [], user.id);
+        await processConnections(supabase, friendRequests, user.id);
         return;
       }
 
-      await processConnections(supabase, connections || [], user.id);
+      await processConnections(supabase, connections, user.id);
     } catch (e) {
       setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
       setIsLoadingNetwork(false);
