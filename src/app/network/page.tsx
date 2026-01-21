@@ -168,14 +168,28 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, username, avatar_url')
-      .neq('id', user.id)
-      .or(`full_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`)
-      .limit(8);
+    const searchPattern = `%${searchQuery.trim()}%`;
 
-    setResults(profiles || []);
+    // Try or() query first
+    const { data: orResults, error: orError } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .neq('id', user.id)
+      .ilike('full_name', searchPattern)
+      .limit(10);
+
+    if (orError) {
+      // Fallback to simple name search
+      const { data: nameResults } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .neq('id', user.id)
+        .ilike('full_name', searchPattern)
+        .limit(10);
+      setResults(nameResults || []);
+    } else {
+      setResults(orResults || []);
+    }
     setLoading(false);
   };
 
@@ -214,21 +228,28 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
         ) : results.length === 0 && query ? (
           <div className={styles.embeddedEmptyState}>No users found</div>
         ) : (
-          results.map(user => (
-            <div key={user.id} className={styles.embeddedListItem}>
+          results.map(profile => (
+            <div key={profile.id} className={styles.embeddedListItem}>
               <div className={styles.embeddedListAvatar}>
-                {user.avatar_url ? <img src={getAvatarUrl(user.avatar_url)} alt="" /> : user.full_name?.[0] || '?'}
+                {profile.avatar_url ? (
+                  <img
+                    src={getAvatarUrl(profile.avatar_url)}
+                    alt=""
+                    className="invert-media"
+                  />
+                ) : (
+                  profile.full_name?.[0] || '?'
+                )}
               </div>
               <div className={styles.embeddedListInfo}>
-                <div className={styles.embeddedListName}>{user.full_name}</div>
-                {user.username && <div className={styles.embeddedListSub}>@{user.username}</div>}
+                <div className={styles.embeddedListName}>{profile.full_name}</div>
               </div>
               <button 
                 className={styles.embeddedListAction}
-                onClick={() => sendRequest(user.id)}
-                disabled={sentRequests.has(user.id)}
+                onClick={() => sendRequest(profile.id)}
+                disabled={sentRequests.has(profile.id)}
               >
-                {sentRequests.has(user.id) ? 'Sent' : 'Add'}
+                {sentRequests.has(profile.id) ? 'Sent' : 'Add'}
               </button>
             </div>
           ))
@@ -331,34 +352,6 @@ function InviteFriendsPanel({ onClose }: { onClose: () => void }) {
                 <div className={styles.embeddedInviteStatLabel}>Joined</div>
               </div>
             </div>
-            <button
-              onClick={() => {
-                onClose();
-                router.push('/invite-friends');
-              }}
-              className={styles.embeddedInviteFullPageButton}
-              style={{
-                marginTop: '16px',
-                width: '100%',
-                padding: '10px 16px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-              }}
-            >
-              View Full Invite Page →
-            </button>
           </>
         )}
       </div>
@@ -390,7 +383,7 @@ export default function Home() {
   const debugForceEligible = false; // Hardcoded to false
 
   // Expandable pill panel state
-  const [expandedPanel, setExpandedPanel] = useState<'friendRequests' | 'searchUsers' | 'weeklyDrop' | 'inviteFriends' | 'suggestions' | null>(null);
+  const [expandedPanel, setExpandedPanel] = useState<'friendRequests' | 'searchUsers' | 'weeklyDrop' | 'inviteFriends' | 'suggestions' | 'profile' | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   
   // Legacy modal states (kept for backwards compatibility, but we'll use expandedPanel)
@@ -1592,6 +1585,7 @@ export default function Home() {
             // Open profile modal for the clicked person
             if (person.id !== user?.id) {
               setSelectedPerson(person);
+              setExpandedPanel('profile');
             }
           }}
           expandedFriendId={expandedFriendId}
@@ -1607,9 +1601,10 @@ export default function Home() {
               } else {
                 // Expand this friend's network AND show their profile
                 loadFriendNetwork(friendId);
-                // Show profile in sidebar on first click
+                // Show profile in pill on first click
                 if (person) {
                   setSelectedPerson(person);
+                  setExpandedPanel('profile');
                 }
               }
             } else {
@@ -1656,6 +1651,28 @@ export default function Home() {
         <div className={`${styles.actionIconsPill} ${expandedPanel ? styles.expanded : ''}`}>
           <div className={styles.actionIcons}>
             <div 
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'inviteFriends' ? styles.active : ''}`}
+              onClick={() => setExpandedPanel(expandedPanel === 'inviteFriends' ? null : 'inviteFriends')}
+            >
+              <div className={styles.iconButton}>
+                <div className={styles.iconContainer}>
+                  <InviteIcon />
+                </div>
+              </div>
+              <span className={styles.iconLabel}>Invite Friends</span>
+            </div>
+            <div 
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'searchUsers' ? styles.active : ''}`}
+              onClick={() => setExpandedPanel(expandedPanel === 'searchUsers' ? null : 'searchUsers')}
+            >
+              <div className={styles.iconButton}>
+                <div className={styles.iconContainer}>
+                  <SearchIcon />
+                </div>
+              </div>
+              <span className={styles.iconLabel}>Search Users</span>
+            </div>
+            <div 
               className={`${styles.iconButtonWrapper} ${expandedPanel === 'friendRequests' ? styles.active : ''}`} 
               onClick={() => setExpandedPanel(expandedPanel === 'friendRequests' ? null : 'friendRequests')}
             >
@@ -1670,17 +1687,6 @@ export default function Home() {
               <span className={styles.iconLabel}>Friend Requests</span>
             </div>
             <div 
-              className={`${styles.iconButtonWrapper} ${expandedPanel === 'searchUsers' ? styles.active : ''}`}
-              onClick={() => setExpandedPanel(expandedPanel === 'searchUsers' ? null : 'searchUsers')}
-            >
-              <div className={styles.iconButton}>
-                <div className={styles.iconContainer}>
-                  <SearchIcon />
-                </div>
-              </div>
-              <span className={styles.iconLabel}>Search Users</span>
-            </div>
-            <div 
               className={`${styles.iconButtonWrapper} ${expandedPanel === 'weeklyDrop' ? styles.active : ''}`}
               onClick={() => setExpandedPanel(expandedPanel === 'weeklyDrop' ? null : 'weeklyDrop')}
             >
@@ -1690,17 +1696,6 @@ export default function Home() {
                 </div>
               </div>
               <span className={styles.iconLabel}>Weekly Drop</span>
-            </div>
-            <div 
-              className={`${styles.iconButtonWrapper} ${expandedPanel === 'inviteFriends' ? styles.active : ''}`}
-              onClick={() => setExpandedPanel(expandedPanel === 'inviteFriends' ? null : 'inviteFriends')}
-            >
-              <div className={styles.iconButton}>
-                <div className={styles.iconContainer}>
-                  <InviteIcon />
-                </div>
-              </div>
-              <span className={styles.iconLabel}>Invite Friends</span>
             </div>
           </div>
           
@@ -1719,103 +1714,33 @@ export default function Home() {
               {expandedPanel === 'inviteFriends' && (
                 <InviteFriendsPanel onClose={() => setExpandedPanel(null)} />
               )}
+              {expandedPanel === 'profile' && selectedPerson && (
+                <div className={styles.profilePanelContent}>
+                  <button 
+                    className={styles.embeddedPanelClose}
+                    onClick={() => {
+                      setExpandedPanel(null);
+                      setSelectedPerson(null);
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <ProfileModal
+                    person={selectedPerson}
+                    onClose={() => {
+                      setExpandedPanel(null);
+                      setSelectedPerson(null);
+                    }}
+                    isEmbedded={true}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        <div className={styles.suggestionList}>
-          {/* Selected Person Profile Display */}
-          {selectedPerson ? (
-            <div className={styles.sidebarProfile}>
-              <button 
-                className={styles.sidebarCloseButton}
-                onClick={() => setSelectedPerson(null)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-              <ProfileModal
-                person={selectedPerson}
-                onClose={() => setSelectedPerson(null)}
-                isEmbedded={true}
-              />
-            </div>
-          ) : isLoadingSuggestions || isLoadingMondayDrop ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
-              {isLoadingMondayDrop ? 'Curating your Weekly Drop...' : 'Loading suggestions...'}
-            </div>
-          ) : isEligibleForMondayDrop && mondayDrop?.status === 'shown' && mondayDrop.candidate ? (
-            // Only show the weekly drop card if there's an active candidate to show
-            <div key={mondayDrop.candidate.id} className={styles.suggestionCard}>
-              <img src={mondayDrop.candidate.avatar} alt={mondayDrop.candidate.name} className={styles.cardAvatar} />
-              <div className={styles.cardInfo}>
-                <div className={styles.cardName}>{mondayDrop.candidate.name}</div>
-                <div className={styles.cardReason}>
-                  {mondayDrop.candidate.reason || "One high-fit person this week."}
-                </div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button
-                    className={styles.readMoreButton}
-                    style={{ backgroundColor: '#000', color: '#fff', padding: '6px 16px', borderRadius: '20px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSuggestion(mondayDrop.candidate);
-                    }}
-                  >
-                    View Profile
-                  </button>
-                  <button
-                    className={styles.readMoreButton}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleMondayDropInteraction('skipped');
-                    }}
-                  >
-                    Skip
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : shouldShowMessage ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
-              <p style={{ fontWeight: 500 }}>You've reviewed all suggestions!</p>
-              <p style={{ fontSize: '0.85em', marginTop: '12px', opacity: 0.8 }}>Check back soon for more connections.</p>
-            </div>
-          ) : suggestions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(0, 0, 0, 0.6)' }}>
-              No suggestions available
-            </div>
-          ) : (
-            suggestions.map((person) => {
-              // Check if reason is long enough to need truncation
-              const hasMore = person.reason.length > 120 || person.reason.split('.').length > 2;
-
-              return (
-                <div key={person.id} className={styles.suggestionCard}>
-                  <img src={person.avatar} alt={person.name} className={`${styles.cardAvatar} invert-media`} />
-                  <div className={styles.cardInfo}>
-                    <div className={styles.cardName}>{person.name}</div>
-                    <div className={styles.cardReason}>
-                      {person.reason}
-                    </div>
-                    {hasMore && (
-                      <button
-                        className={styles.readMoreButton}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSuggestion(person);
-                        }}
-                      >
-                        Read more
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
       </div>
 
       {/* Profile Modal - Only render when not in sidebar mode (mobile overlay) */}

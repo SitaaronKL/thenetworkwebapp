@@ -133,22 +133,23 @@
 }
 
 /* Success State */
-.successContent {
+.successState {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   padding: 20px 0;
 }
 
 .successIcon {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: scaleIn 0.4s ease;
+  color: #22c55e;
 }
 
 @keyframes scaleIn {
@@ -176,6 +177,84 @@
   opacity: 0.8;
   line-height: 1.5;
   max-width: 320px;
+}
+
+.demoPrompt {
+  margin-top: 24px;
+  width: 100%;
+}
+
+.demoText {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 20px;
+  opacity: 0.9;
+}
+
+.demoButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.secondaryButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover {
+  opacity: 0.8;
+}
+
+.demoLink {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: opacity 0.2s ease;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.demoLink:hover {
+  opacity: 1;
+}
+
+/* Fade to black transition */
+.fadeToBlack {
+  animation: fadeToBlackAnim 0.4s ease forwards;
+}
+
+.fadeOutModal {
+  animation: fadeOutModalAnim 0.3s ease forwards;
+}
+
+@keyframes fadeToBlackAnim {
+  from {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  to {
+    background: rgba(0, 0, 0, 1);
+  }
+}
+
+@keyframes fadeOutModalAnim {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 }
 
 /* Mobile adjustments */

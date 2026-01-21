@@ -197,20 +197,20 @@
     border-radius: inherit;
     pointer-events: none;
     box-shadow: 
-        inset 3px 3px 0.5px -3.5px white,
-        inset 2px 2px 0.5px -2px #262626,
-        inset -2px -2px 0.5px -2px #262626,
-        inset 0 0 0 1px #a6a6a6,
-        inset 0 0 8px 0 #f2f2f2;
+        inset 3px 3px 0.5px -3.5px rgba(255, 255, 255, 0.3),
+        inset 2px 2px 0.5px -2px rgba(38, 38, 38, 0.5),
+        inset -2px -2px 0.5px -2px rgba(38, 38, 38, 0.5),
+        inset 0 0 0 1px rgba(166, 166, 166, 0.4),
+        inset 0 0 6px 0 rgba(242, 242, 242, 0.3);
     mix-blend-mode: plus-lighter;
 }
 
 .actionIconsPill.expanded {
-    border-radius: 28px;
+    border-radius: 40px;
 }
 
 .actionIconsPill.expanded::before {
-    border-radius: 28px;
+    border-radius: 40px;
 }
 
 .actionIcons {
@@ -225,9 +225,8 @@
 .expandedContent {
     width: 100%;
     padding: 0 20px 20px 20px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
     animation: slideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
 }
 
@@ -253,6 +252,19 @@
 .expandedContent::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 2px;
+}
+
+.profilePanelContent {
+    position: relative;
+    width: 100%;
+    padding-top: 10px;
+}
+
+.profilePanelContent .embeddedPanelClose {
+    position: absolute;
+    top: 10px;
+    right: 0;
+    z-index: 10;
 }
 
 /* Mobile: Smaller action icons */
@@ -288,14 +300,6 @@
     padding: 6px 10px;
     border-radius: 12px;
     min-width: 70px;
-}
-
-.iconButtonWrapper:hover {
-    background: rgba(0, 0, 0, 0.06);
-}
-
-.iconButtonWrapper.active {
-    background: rgba(0, 0, 0, 0.1);
 }
 
 .iconButtonWrapper:active {
@@ -380,17 +384,17 @@
     top: -2px;
     right: -2px;
     background: #FF3B30;
-    color: white;
-    border-radius: 8px;
-    min-width: 16px;
-    height: 16px;
+    color: transparent;
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
+    font-size: 0;
     font-weight: 700;
-    padding: 0 4px;
-    border: 1.5px solid #ffffff;
+    padding: 0;
+    border: none;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     z-index: 11;
     animation: pulse 2s infinite;
@@ -411,10 +415,8 @@
 /* Mobile: Smaller badge */
 @media (max-width: 768px) {
     .notificationBadge {
-        min-width: 14px;
-        height: 14px;
-        font-size: 8px;
-        padding: 0 3px;
+        width: 8px;
+        height: 8px;
         top: -2px;
         right: -2px;
     }
@@ -494,13 +496,12 @@
     gap: 12px;
     padding: 10px 12px;
     border-radius: 12px;
-    background: rgba(0, 0, 0, 0.02);
     margin-bottom: 8px;
     transition: all 0.2s ease;
 }
 
 .embeddedListItem:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: transparent;
 }
 
 .embeddedListAvatar {

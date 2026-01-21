@@ -1,19 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './page.module.css';
 
-export default function ConsentPage() {
+function ConsentContent() {
     const router = useRouter();
-    const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
-    const [agreedToTermsOfService, setAgreedToTermsOfService] = useState(false);
-    const [agreedToTermsOfUse, setAgreedToTermsOfUse] = useState(false);
+    const searchParams = useSearchParams();
+    const slideIn = searchParams.get('slideIn') === 'true';
+    
+    const [agreed, setAgreed] = useState(false);
     const [shake, setShake] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(slideIn);
 
-    const allAgreed = agreedToPrivacy && agreedToTermsOfService && agreedToTermsOfUse;
+    const allAgreed = agreed;
 
     const { user, loading, signInWithGoogle } = useAuth();
 
@@ -23,12 +25,18 @@ export default function ConsentPage() {
         }
     }, [user, loading, router]);
 
+    useEffect(() => {
+        if (slideIn) {
+            // Trigger the animation after mount
+            const timer = setTimeout(() => setIsAnimating(false), 50);
+            return () => clearTimeout(timer);
+        }
+    }, [slideIn]);
+
     if (loading || user) return null;
 
     const handleAcceptAll = () => {
-        setAgreedToPrivacy(true);
-        setAgreedToTermsOfService(true);
-        setAgreedToTermsOfUse(true);
+        setAgreed(true);
     };
 
     const handleContinue = () => {
@@ -45,7 +53,7 @@ export default function ConsentPage() {
     };
 
     return (
-        <div className={`${styles.container} font-ui`}>
+        <div className={`${styles.container} font-ui ${slideIn ? styles.slideInContainer : ''} ${isAnimating ? styles.slideInStart : ''}`}>
             <div className={styles.content}>
                 {/* Header */}
                 <div className={styles.header}>
@@ -57,13 +65,12 @@ export default function ConsentPage() {
 
                 {/* Agreement Items */}
                 <div className={styles.agreements}>
-                    {/* Privacy Policy */}
                     <div className={styles.agreementItem}>
                         <label className={styles.checkboxLabel}>
                             <input
                                 type="checkbox"
-                                checked={agreedToPrivacy}
-                                onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                                checked={agreed}
+                                onChange={(e) => setAgreed(e.target.checked)}
                                 className={styles.checkbox}
                             />
                             <span className={styles.checkboxText}>
@@ -71,39 +78,7 @@ export default function ConsentPage() {
                                 <Link href="/privacy-policy" target="_blank" className={styles.link}>
                                     Privacy Policy
                                 </Link>
-                            </span>
-                        </label>
-                    </div>
-
-                    {/* Terms of Service */}
-                    <div className={styles.agreementItem}>
-                        <label className={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                checked={agreedToTermsOfService}
-                                onChange={(e) => setAgreedToTermsOfService(e.target.checked)}
-                                className={styles.checkbox}
-                            />
-                            <span className={styles.checkboxText}>
-                                I have read and agree to the{' '}
-                                <Link href="/terms-of-service" target="_blank" className={styles.link}>
-                                    Terms of Service
-                                </Link>
-                            </span>
-                        </label>
-                    </div>
-
-                    {/* Terms of Use */}
-                    <div className={styles.agreementItem}>
-                        <label className={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                checked={agreedToTermsOfUse}
-                                onChange={(e) => setAgreedToTermsOfUse(e.target.checked)}
-                                className={styles.checkbox}
-                            />
-                            <span className={styles.checkboxText}>
-                                I have read and agree to the{' '}
+                                {' / '}
                                 <Link href="/terms-of-use" target="_blank" className={styles.link}>
                                     Terms of Use
                                 </Link>
@@ -112,21 +87,20 @@ export default function ConsentPage() {
                     </div>
                 </div>
 
-                {/* Accept All Button */}
+                {/* Accept Button */}
                 <div className={styles.acceptAllContainer}>
                     <button
                         onClick={handleAcceptAll}
                         className={styles.acceptAllButton}
                     >
-                        Accept All
+                        Accept
                     </button>
                 </div>
 
                 {/* Info Box */}
                 <div className={styles.infoBox}>
                     <p className={styles.infoText}>
-                        By agreeing, you acknowledge that you have read, understood, and accept all three policies.
-                        You can review these policies at any time using the links above.
+                        By agreeing, you acknowledge our Privacy Policy and Terms of Use. You also agree to be respectful to others—we reserve the right to remove accounts for any abusive behavior. Your use of this app is also subject to Google&apos;s Terms of Service.
                     </p>
                 </div>
 
@@ -155,6 +129,14 @@ export default function ConsentPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ConsentPage() {
+    return (
+        <Suspense fallback={<div className={styles.container} />}>
+            <ConsentContent />
+        </Suspense>
     );
 }
 

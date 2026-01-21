@@ -484,14 +484,14 @@ function LandingPageContent() {
           </h1>
         </div>
 
-        {/* Top Right - Join the Waitlist */}
+        {/* Top Right - Login */}
         <div className="absolute top-6 right-4 md:top-8 md:right-8 z-20">
           <button
-            onClick={() => setIsWaitlistModalOpen(true)}
-            className={`font-brand text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            onClick={signInWithGoogle}
+            className={`font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold transition-all duration-300 cursor-pointer bg-transparent border-none hover:opacity-70 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
             style={{ letterSpacing: '-0.02em' }}
           >
-            JOIN WAITLIST
+            LOGIN
           </button>
         </div>
 
@@ -510,12 +510,6 @@ function LandingPageContent() {
                 className={`px-8 py-4 sm:px-10 sm:py-5 rounded-full text-lg sm:text-xl font-semibold transition-all duration-300 shadow-xl transform hover:scale-105 active:scale-95 cursor-pointer ${theme === 'dark' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
               >
                 Join the Waitlist
-              </button>
-              <button
-                onClick={signInWithGoogle}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer ${theme === 'dark' ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-black/70 hover:text-black hover:bg-black/10'}`}
-              >
-                Log In
               </button>
             </div>
 

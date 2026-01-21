@@ -56,7 +56,7 @@ export default React.memo(function NetworkGalaxy({
     
     // Helper function to get viewbox scale based on current mobile state
     // Higher value = more zoomed out (can see more of the network)
-    const getViewboxScale = () => isMobileRef.current ? 3.2 : 1.8;
+    const getViewboxScale = () => isMobileRef.current ? 3.2 : 2.4;
     // Helper function to get viewbox offset based on current mobile state
     const getViewboxOffsetX = () => isMobileRef.current ? 0 : 180;
 

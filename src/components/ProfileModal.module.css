@@ -300,45 +300,98 @@
     padding: 20px;
 }
 
-/* Embedded mode - no overlay, fits in sidebar */
+/* Embedded mode - no overlay, fits in sidebar/pill */
 .embeddedModal {
     padding: 0;
-    text-align: center;
+    text-align: left;
     color: #000;
 }
 
 .embeddedModal .header {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
 }
 
 .embeddedModal .headerInfo {
-    text-align: center;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 0 1 auto;
 }
 
 .embeddedModal .avatar,
 .embeddedModal .avatarPlaceholder {
-    width: 80px;
-    height: 80px;
-    font-size: 28px;
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
 }
 
 .embeddedModal .name {
-    font-size: 22px;
+    font-size: 18px;
+    margin: 0;
+}
+
+.embeddedModal .compatibilityBadge {
+    font-size: 12px;
+    padding: 3px 10px;
+    width: fit-content;
 }
 
 .embeddedModal .profileDetails {
-    justify-content: center;
-    text-align: center;
+    justify-content: flex-start;
+    text-align: left;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-bottom: 12px;
+}
+
+.embeddedModal .detailItem {
+    font-size: 12px;
 }
 
 .embeddedModal .compatibilitySection {
     text-align: left;
+    margin-bottom: 12px;
+}
+
+.embeddedModal .compatibilityTitle {
+    font-size: 11px;
+}
+
+.embeddedModal .compatibilityDescription {
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .embeddedModal .bio {
-    text-align: center;
+    text-align: left;
+    font-size: 13px;
+}
+
+.embeddedModal .sharedInterests {
+    margin-bottom: 12px;
+}
+
+.embeddedModal .sharedInterestsTitle {
+    font-size: 11px;
+}
+
+.embeddedModal .interestTag {
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+.embeddedModal .actions {
+    margin-top: 12px;
+}
+
+.embeddedModal .addFriendButton {
+    padding: 10px 20px;
+    font-size: 13px;
 }
 
 /* Mobile adjustments */
