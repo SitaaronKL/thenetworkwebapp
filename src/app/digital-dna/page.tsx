@@ -376,7 +376,6 @@ export default function DigitalDnaPage() {
                 >
                     Interests
                 </button>
-{/* Temporarily commented out - Archetypes and Twins tabs
                 <button
                     className={`${styles.tabButton} ${activeTab === 'archetypes' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('archetypes')}
@@ -389,7 +388,6 @@ export default function DigitalDnaPage() {
                 >
                     Twins
                 </button>
-                */}
             </div>
 
             {/* Interests Tab - Graph (always mounted, hidden via CSS to avoid re-initialization lag) */}

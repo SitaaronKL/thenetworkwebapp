@@ -19,9 +19,9 @@
 /* Right Side Panel: Aria's Suggestions */
 .suggestionsPanel {
     position: absolute;
-    top: 50%;
+    top: 24px;
     right: 40px;
-    transform: translateY(-50%);
+    transform: none;
     width: 442px;
     height: 567px;
 
@@ -35,6 +35,7 @@
     flex-direction: column;
     padding: 32px;
     z-index: 10;
+    transform: translate(44px, -22px);
 }
 
 /* Mobile: Hide suggestions panel by default, show as modal overlay */
@@ -168,7 +169,8 @@
     flex-direction: column;
     align-items: center;
     margin-bottom: 32px;
-    max-width: fit-content;
+    width: 100%;
+    max-width: 442px;
     margin-left: auto;
     margin-right: auto;
     position: relative;
@@ -226,6 +228,7 @@
     padding: 0 20px 20px 20px;
     animation: slideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 500px;
+    min-height: 500px;
     overflow-y: auto;
 }
 
@@ -285,6 +288,7 @@
     .expandedContent {
         padding: 0 16px 16px 16px;
         max-height: 350px;
+        min-height: 350px;
     }
 }
 

@@ -104,7 +104,6 @@ export default function Menu() {
               </button>
 
               <div className={`${styles.subMenu} ${isDigitalDnaOpen ? styles.show : ''}`}>
-                {/* Temporarily commented out - YOUR NETWORK PROFILE
                 <Link
                   href="/network-profile"
                   onClick={() => setIsOpen(false)}
@@ -112,7 +111,6 @@ export default function Menu() {
                 >
                   YOUR NETWORK PROFILE
                 </Link>
-                */}
                 <Link
                   href="/digital-dna"
                   onClick={() => setIsOpen(false)}
@@ -123,14 +121,12 @@ export default function Menu() {
               </div>
             </div>
 
-            {/* Temporarily commented out - ARI Link
             <Link
               href="/msg-aria"
               onClick={() => setIsOpen(false)}
             >
               ARI
             </Link>
-            */}
 
             {/* Settings Toggle */}
             <div className={styles.settingsSection}>
@@ -149,7 +145,6 @@ export default function Menu() {
                 >
                   EDIT PROFILE
                 </Link>
-{/* Temporarily commented out - INVITE LEADERBOARD
                 <Link
                   href="/invite-leaderboard"
                   onClick={() => setIsOpen(false)}
@@ -157,7 +152,6 @@ export default function Menu() {
                 >
                   INVITE LEADERBOARD
                 </Link>
-                */}
                 {process.env.NEXT_PUBLIC_YT_REVIEW_ENABLED === 'true' && (
                   <Link
                     href="/youtube-data-review"

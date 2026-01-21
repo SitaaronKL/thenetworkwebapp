@@ -191,6 +191,9 @@ export default React.memo(function NetworkGalaxy({
         // Get all connections of the expanded friend
         const expandedFriendConnections = new Set<string>();
         if (expandedFriendId) {
+            // Always keep the link to the current user
+            expandedFriendConnections.add(currentUserId);
+
             // Add branch nodes (friend-of-friend - not in main network)
             friendOfFriendData.forEach(fof => expandedFriendConnections.add(fof.id));
             
