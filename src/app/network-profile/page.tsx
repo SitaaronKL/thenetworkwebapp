@@ -957,6 +957,7 @@ export default function NetworkProfilePage() {
                                 alt={displayName} 
                                 className={`${styles.profileImageLarge} invert-media`}
                                 onError={() => setAvatarLoadError(true)}
+                                referrerPolicy="no-referrer"
                             />
                         ) : (
                             <div className={styles.profileImagePlaceholder}>
@@ -1487,6 +1488,7 @@ export default function NetworkProfilePage() {
                                                                 src={getAvatarUrl(friend.avatar_url)}
                                                                 alt={friend.name}
                                                                 className={`${styles.clusterAvatar} invert-media`}
+                                                                referrerPolicy="no-referrer"
                                                             />
                                                         ) : (
                                                             <div className={styles.clusterAvatarPlaceholder}>
@@ -1748,6 +1750,7 @@ export default function NetworkProfilePage() {
                                                             src={getAvatarUrl(friend.avatar_url)}
                                                             alt={friend.name}
                                                             className={`${styles.friendScrollAvatar} invert-media`}
+                                                            referrerPolicy="no-referrer"
                                                         />
                                                     ) : (
                                                         <div className={styles.friendScrollAvatarPlaceholder}>
@@ -1801,6 +1804,7 @@ export default function NetworkProfilePage() {
                                                 src={getAvatarUrl(friend.avatar_url)}
                                                 alt={friend.name}
                                                 className={`${styles.friendAvatar} invert-media`}
+                                                referrerPolicy="no-referrer"
                                             />
                                         ) : (
                                             <div className={styles.clusterAvatarPlaceholder}>
@@ -1842,6 +1846,7 @@ export default function NetworkProfilePage() {
                                                 src={getAvatarUrl(friend.avatar_url)}
                                                 alt={friend.name}
                                                 className={`${styles.friendAvatar} invert-media`}
+                                                referrerPolicy="no-referrer"
                                             />
                                         ) : (
                                             <div className={styles.clusterAvatarPlaceholder}>

@@ -81,12 +81,12 @@
 .menuLines span {
   display: block;
   height: 6px;
-  background: #000000;
+  background: #ffffff;
   border-radius: 999px;
 }
 
 .menuButton.inner .menuLines span {
-  background: #0f172a;
+  background: #ffffff;
 }
 
 .menuPanel {
@@ -95,7 +95,7 @@
   left: 0;
   width: var(--menu-width);
   height: 100vh;
-  background: #ffffff;
+  background: #000000;
   border-right: none;
   box-shadow: none;
   transform: translateX(-100%);
@@ -132,7 +132,7 @@
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 72px;
   font-weight: 800;
-  color: #0f172a;
+  color: #ffffff;
   letter-spacing: 0.01em;
 }
 
@@ -151,7 +151,7 @@
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 72px;
   font-weight: 800;
-  color: #0f172a;
+  color: #ffffff;
   letter-spacing: 0.01em;
 }
 
@@ -172,7 +172,7 @@
 }
 
 .menuContent a:hover {
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .menuFooter {
@@ -186,7 +186,7 @@
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 /* Mobile: Move toggle higher up */
@@ -202,8 +202,8 @@
   width: 64px;
   height: 34px;
   border-radius: 999px;
-  background: #e5e7eb;
-  border: 1px solid #d1d5db;
+  background: #333333;
+  border: 1px solid #444444;
   position: relative;
   cursor: pointer;
   transition: background 0.15s ease, border 0.15s ease;
@@ -223,12 +223,13 @@
 }
 
 .toggle.active {
-  background: #0f172a;
-  border-color: #0f172a;
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 .toggle.active::after {
   transform: translateX(30px);
+  background: #000000;
 }
 
 .settingsSection {
@@ -250,7 +251,7 @@
 }
 
 .settingsToggle:hover {
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .subMenu {
@@ -273,7 +274,7 @@
 .subMenuItem {
   font-size: 32px;
   font-weight: 700;
-  color: #64748b !important;
+  color: rgba(255, 255, 255, 0.5) !important;
   padding-left: 20px;
   text-decoration: none;
   background: none;
@@ -293,53 +294,57 @@
 }
 
 .subMenuItem:hover {
-  color: #0f172a !important;
+  color: #ffffff !important;
 }
 
 /* ============================================
-   Dark Mode Styles (when global invert is active)
-   Counter the invert filter and use pure colors
+   Light Mode Styles (when global invert is active)
+   Counter the invert filter and use light colors
    ============================================ */
 :global(.theme-inverted) .menuPanel {
   filter: invert(1) hue-rotate(180deg);
+  background: #ffffff;
+}
+
+:global(.theme-inverted) .menuLines span {
   background: #000000;
 }
 
 :global(.theme-inverted) .menuContent {
-  color: #ffffff;
+  color: #0f172a;
 }
 
 :global(.theme-inverted) .menuContent a:hover {
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
 }
 
 :global(.theme-inverted) .menuTitle {
-  color: #ffffff;
+  color: #0f172a;
 }
 
 :global(.theme-inverted) .menuFooter {
-  color: #ffffff;
+  color: #0f172a;
 }
 
 :global(.theme-inverted) .settingsToggle:hover {
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
 }
 
 :global(.theme-inverted) .subMenuItem {
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: #64748b !important;
 }
 
 :global(.theme-inverted) .subMenuItem:hover {
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 :global(.theme-inverted) .menuButton.inner .menuLines span {
-  background: #ffffff;
+  background: #0f172a;
 }
 
 :global(.theme-inverted) .toggle {
-  background: #333333;
-  border-color: #444444;
+  background: #e5e7eb;
+  border-color: #d1d5db;
 }
 
 :global(.theme-inverted) .toggle::after {
@@ -347,10 +352,10 @@
 }
 
 :global(.theme-inverted) .toggle.active {
-  background: #ffffff;
-  border-color: #ffffff;
+  background: #0f172a;
+  border-color: #0f172a;
 }
 
 :global(.theme-inverted) .toggle.active::after {
-  background: #000000;
+  background: #ffffff;
 }

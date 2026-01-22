@@ -9,11 +9,6 @@
     overflow-x: hidden;
 }
 
-/* Counter the global invert filter when theme is inverted */
-:global(.theme-inverted) .wrapper {
-    filter: invert(1) hue-rotate(180deg);
-}
-
 .loadingContainer {
     display: flex;
     align-items: center;
