@@ -139,10 +139,13 @@ export default function Menu() {
             </Link>
 
             {/* Settings Toggle */}
-            <div className={styles.settingsSection}>
+            <div 
+              className={styles.settingsSection}
+              onMouseEnter={() => setIsSettingsOpen(true)}
+              onMouseLeave={() => setIsSettingsOpen(false)}
+            >
               <button
                 className={styles.settingsToggle}
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               >
                 SETTINGS
               </button>

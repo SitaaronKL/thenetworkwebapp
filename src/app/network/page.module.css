@@ -1109,3 +1109,16 @@
    Media counter-inversion is handled globally in globals.css via .invert-media class.
    Apply .invert-media to any <img> that should preserve its original colors in light mode.
 */
+
+/* ============================================================================
+   NETWORK GRAPH IMAGE COUNTER-INVERSION
+   ============================================================================
+   When light mode is active, the global invert filter inverts the entire page.
+   Profile images in the D3 network graph need to be counter-inverted so they
+   appear with their original colors (not inverted/contrasted).
+   
+   The SVG <image> elements are created by D3 inside .graphContainer.
+   ============================================================================ */
+:global(html.theme-light) .graphContainer image {
+    filter: invert(1) hue-rotate(180deg);
+}
