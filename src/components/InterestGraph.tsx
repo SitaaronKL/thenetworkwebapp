@@ -88,8 +88,9 @@ const GraphController: React.FC<{
     }, [showLabels, sigma]);
     
     // Memoize ForceAtlas2 settings to prevent hook recreation
+    // PERFORMANCE: Reduced iterations from 150 to 50 for faster loading
     const forceAtlasSettings = useMemo(() => ({
-        iterations: 150,
+        iterations: 50,
         settings: {
             gravity: isMobileRef.current ? 0.02 : 0.05,
             scalingRatio: isMobileRef.current ? 80 : 50,
@@ -214,7 +215,8 @@ const GraphController: React.FC<{
                 fixed: true,
             });
 
-            const particleCount = mobile ? 70 : 100; // Fewer particles on mobile for cleaner look
+            // PERFORMANCE: Reduced particle count for faster loading (was 100/70)
+            const particleCount = mobile ? 35 : 50;
             const particleIds: string[] = [];
 
             for (let j = 0; j < particleCount; j++) {
@@ -235,42 +237,26 @@ const GraphController: React.FC<{
                 });
             }
 
-            for (let k = 0; k < 3; k++) {
-                const randomIdx = Math.floor(Math.random() * particleCount);
-                if (!graph.hasEdge(centerId, particleIds[randomIdx])) {
-                    graph.addEdge(centerId, particleIds[randomIdx], {
-                        size: 0,
-                        color: 'rgba(0,0,0,0)',
-                        weight: 5
-                    });
-                }
+            // PERFORMANCE: Removed inter-particle edges - they were invisible anyway
+            // and caused O(n) iterations per cluster. Just add minimal edges for layout.
+            if (particleIds.length > 0) {
+                graph.addEdge(centerId, particleIds[0], {
+                    size: 0,
+                    color: 'rgba(0,0,0,0)',
+                    weight: 5
+                });
             }
-
-            particleIds.forEach(pid => {
-                if (Math.random() > 0.7) {
-                    const targetIdx = Math.floor(Math.random() * particleCount);
-                    const targetId = particleIds[targetIdx];
-                    if (pid !== targetId && !graph.hasEdge(pid, targetId)) {
-                        graph.addEdge(pid, targetId, {
-                            size: 0,
-                            color: 'rgba(0,0,0,0)',
-                            weight: 0.1,
-                            hidden: true,
-                        });
-                    }
-                }
-            });
         });
 
         loadGraph(graph);
         assignForceAtlas2();
 
-        // Wait for ForceAtlas2 to fully complete and render
-        // Using longer delay to ensure layout is completely stable
+        // PERFORMANCE: Reduced delay from 1000ms to 300ms
+        // ForceAtlas2 completes quickly with fewer iterations
         setTimeout(() => {
             setIsReady(true);
             if (onGraphLoaded) onGraphLoaded();
-        }, 1000);
+        }, 300);
 
     }, [interests, userFullName, loadGraph, assignForceAtlas2, onGraphLoaded, setIsReady]);
 
