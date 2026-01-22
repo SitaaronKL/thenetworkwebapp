@@ -1739,8 +1739,7 @@ export default function NetworkProfilePage() {
                                 {friendsWithSelectedInterest.length > 0 && (
                                     <div className={styles.friendsInterestCard}>
                                         <h4 className={styles.friendsInterestTitle}>
-                                            Friends interested in {selectedInterest.toLowerCase()}
-                                            <span className={styles.friendsCount}>({friendsWithSelectedInterest.length})</span>
+                                            Friends interested in {selectedInterest}
                                         </h4>
                                         <div className={styles.friendsHorizontalScroll}>
                                             {friendsWithSelectedInterest.map((friend) => (
@@ -1766,12 +1765,6 @@ export default function NetworkProfilePage() {
                             </>
                         ) : (
                             <div className={styles.selectInterestPrompt}>
-                                <div className={styles.promptIcon}>
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <path d="M12 16v-4M12 8h.01"/>
-                                    </svg>
-                                </div>
                                 <h4>Select an Interest</h4>
                                 <p>Click on any interest in the map to see details and friends who share it.</p>
                             </div>

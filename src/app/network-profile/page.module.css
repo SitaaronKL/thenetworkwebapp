@@ -55,7 +55,6 @@
     height: 180px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
 }
 
@@ -70,7 +69,6 @@
     font-size: 72px;
     font-weight: 700;
     color: #fff;
-    border: 4px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
 }
 
@@ -970,26 +968,35 @@
 
 /* ============================================
    Interests Tab Layout
+   ============================================
+   Matches the About tab's spacing and column widths for consistency.
+   - Left column: 260px (same as About tab)
+   - Gap: 20px between columns (same as About tab)
    ============================================ */
 .interestsTabContent {
     display: grid;
-    grid-template-columns: 220px 1fr 320px;
-    gap: 0;
+    grid-template-columns: 260px 1fr 300px;
+    gap: 20px; /* Match About tab spacing */
     min-height: calc(100vh - 280px);
     margin: 0 auto;
-    max-width: 100%;
-    padding-bottom: 60px;
+    max-width: 1200px;
+    padding: 20px;
+    padding-bottom: 80px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1100px) {
     .interestsTabContent {
-        grid-template-columns: 200px 1fr 280px;
+        grid-template-columns: 240px 1fr 280px;
+        gap: 16px;
+        padding: 16px;
+        padding-bottom: 80px;
     }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 900px) {
     .interestsTabContent {
         grid-template-columns: 1fr 280px;
+        gap: 16px;
     }
     .interestsLeftColumn {
         display: none;
@@ -1000,6 +1007,9 @@
     .interestsTabContent {
         grid-template-columns: 1fr;
         min-height: auto;
+        gap: 16px;
+        padding: 16px;
+        padding-bottom: 80px;
     }
     .interestsRightPanel {
         position: fixed;
@@ -1012,59 +1022,72 @@
     }
 }
 
+/* Left Column - matches About tab's leftColumn styling */
 .interestsLeftColumn {
-    background: #000;
-    padding: 16px;
-    overflow-y: auto;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    overflow-y: visible;
+    padding-right: 8px;
 }
 
-.interestsLeftColumn::-webkit-scrollbar {
-    width: 4px;
-}
+/* Scrollbar styling removed - matches About tab's leftColumn which uses overflow: visible */
 
-.interestsLeftColumn::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.interestsLeftColumn::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-}
-
-/* Interest Graph Container */
+/* ============================================
+   Interest Graph Container
+   ============================================
+   
+   THEME SYSTEM: Dark-Mode-First Approach
+   --------------------------------------
+   All colors here are styled for DARK MODE:
+   - Background: Black (#000000)
+   - Text: White/light colors
+   - Borders: Semi-transparent white
+   
+   LIGHT MODE is handled automatically by the global CSS filter on <html>:
+   `filter: invert(1) hue-rotate(180deg)`
+   
+   This inverts black → white, white → black, etc., so we only need
+   to define colors once (for dark mode) and light mode "just works".
+   
+   The InterestGraph component (InterestGraph.tsx) also applies black
+   backgrounds at multiple levels to override Sigma.js library defaults.
+   ============================================ */
 .interestsGraphContainer {
     position: relative;
-    background: #fff;
+    background: #000000;
     overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Loading overlay while graph initializes - matches dark background */
 .graphLoadingOverlay {
     position: absolute;
     inset: 0;
-    background: #fff;
+    background: #000000;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
 }
 
+/* Shown when user has no interests to display */
 .noInterestsMessage {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.5); /* Light text for dark mode */
     font-size: 15px;
     padding: 40px;
     text-align: center;
 }
 
 /* Right Panel - Interest Details */
+/* Container for the interest detail cards - transparent background */
 .interestsRightPanel {
-    background: rgba(255, 255, 255, 0.03);
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 16px;
+    background: transparent;
+    padding: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1256,17 +1279,11 @@
 .selectInterestPrompt {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 40px 20px;
-    height: 100%;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0;
     color: rgba(255, 255, 255, 0.5);
-}
-
-.promptIcon {
-    margin-bottom: 16px;
-    opacity: 0.4;
 }
 
 .selectInterestPrompt h4 {
@@ -1280,7 +1297,6 @@
     font-size: 13px;
     line-height: 1.5;
     margin: 0;
-    max-width: 220px;
 }
 
 /* ============================================

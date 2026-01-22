@@ -1,3 +1,44 @@
+/**
+ * InterestGraph.tsx
+ * =================
+ * 
+ * An interactive visualization of user interests using Sigma.js graph library.
+ * Displays interests as colorful particle clusters that users can click to explore.
+ * 
+ * THEME SYSTEM (Dark-Mode-First Approach)
+ * ----------------------------------------
+ * This component follows the app's "dark-mode-first" theme strategy:
+ * 
+ * 1. All colors are styled for DARK MODE by default:
+ *    - Background: Black (#000000)
+ *    - Labels: White (#ffffff)
+ *    - Toggle button: White/dark contrast
+ * 
+ * 2. LIGHT MODE is achieved via a global CSS filter on <html>:
+ *    `filter: invert(1) hue-rotate(180deg)`
+ *    This automatically inverts all colors, turning:
+ *    - Black backgrounds → White backgrounds
+ *    - White text → Black text
+ *    - Colors are hue-rotated to maintain their appearance
+ * 
+ * 3. WHY THIS APPROACH?
+ *    - Consistent theming across the entire app
+ *    - Single source of truth for theme switching
+ *    - No need for duplicate color definitions
+ *    - Media elements (images) can be counter-inverted where needed
+ * 
+ * SIGMA.JS BACKGROUND FIX
+ * -----------------------
+ * The @react-sigma/core library imports its own stylesheet (line 8) that sets
+ * a default WHITE background on the canvas. To override this, we must set
+ * `background: '#000000'` on MULTIPLE layers:
+ *   - The outer wrapper div
+ *   - The inner container div  
+ *   - The SigmaContainer's style prop
+ * 
+ * This ensures no white background "bleeds through" from the library's defaults.
+ */
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -5,6 +46,8 @@ import { SigmaContainer, useLoadGraph, useSigma, useRegisterEvents } from '@reac
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
 import { NodeCircleProgram } from 'sigma/rendering';
+// NOTE: This import brings in Sigma's default styles, which include a white background.
+// We override this with explicit background colors on our container elements.
 import '@react-sigma/core/lib/style.css';
 
 interface InterestGraphProps {
@@ -246,7 +289,15 @@ export default function InterestGraph({
     // Check mobile once on mount, use ref to avoid re-renders
     const isMobileRef = React.useRef(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
-    // Settings should NOT change after mount to prevent graph re-renders
+    /**
+     * Sigma.js Renderer Settings
+     * 
+     * IMPORTANT: Settings are memoized with empty deps to prevent graph re-renders.
+     * Changing settings after mount causes Sigma to reinitialize, losing graph state.
+     * 
+     * THEME: Labels use white (#ffffff) for dark mode. The global invert filter
+     * will automatically make them black when light mode is active.
+     */
     const settings = useMemo(() => {
         const mobile = isMobileRef.current;
         return {
@@ -258,7 +309,8 @@ export default function InterestGraph({
             labelFont: 'Inter, system-ui, sans-serif',
             labelWeight: '600',
             labelSize: mobile ? 12 : 14,
-            labelColor: { color: '#000000' },
+            // THEME: White labels for dark mode - inverts to black in light mode
+            labelColor: { color: '#ffffff' },
             renderEdgeLabels: false,
             defaultNodeColor: '#06b6d4',
             defaultEdgeColor: 'rgba(0,0,0,0)',
@@ -274,32 +326,58 @@ export default function InterestGraph({
     // For button styling, we can use a simple check
     const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
 
+    /**
+     * Component Render
+     * 
+     * THEME LAYERING (all black backgrounds for dark mode):
+     * 1. Outer div: background: #000000 - catches any gaps
+     * 2. Inner container div: background: #000000 - wraps Sigma
+     * 3. SigmaContainer style: background: #000000 - overrides library default
+     * 
+     * All three layers are needed because:
+     * - Sigma's imported CSS sets a white background on its canvas
+     * - CSS specificity requires inline styles to override
+     * - Multiple layers ensure no white "bleeds through" during render
+     */
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', background: '#ffffff' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000000' }}>
 
-            {/* Label Toggle - pill-shaped like Menu toggle */}
+            {/* 
+              Label Toggle Button
+              A pill-shaped horizontal toggle that shows/hides interest labels on the graph.
+              Positioned at the top center of the graph container.
+            */}
             <div
                 onClick={() => setShowLabels(!showLabels)}
                 className="interest-graph-toggle-btn"
                 title={showLabels ? "Hide Labels" : "Show Labels"}
             />
             
-            {/* Inline styles for the toggle button with media query support */}
+            {/* 
+              Toggle Button Styles (using styled-jsx for media query support)
+              
+              THEME: Styled for dark mode with white/black contrast.
+              - Active (labels on): White background, black knob (knob on right)
+              - Inactive (labels off): Dark gray background, white knob (knob on left)
+              Global invert filter will flip these for light mode.
+              
+              POSITION: Top center, horizontal orientation
+            */}
             <style jsx>{`
                 .interest-graph-toggle-btn {
                     position: absolute;
-                    right: 20px;
-                    top: 50%;
-                    transform: translateY(-50%);
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
                     z-index: 10;
-                    width: 34px;
-                    height: 64px;
+                    width: 64px;
+                    height: 34px;
                     border-radius: 999px;
-                    background: ${showLabels ? '#0f172a' : '#e5e7eb'};
-                    border: 1px solid ${showLabels ? '#0f172a' : '#d1d5db'};
+                    background: ${showLabels ? '#ffffff' : '#333333'};
+                    border: 1px solid ${showLabels ? '#ffffff' : '#555555'};
                     cursor: pointer;
                     transition: background 0.15s ease, border 0.15s ease;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
                 }
                 
                 .interest-graph-toggle-btn::after {
@@ -308,11 +386,11 @@ export default function InterestGraph({
                     width: 28px;
                     height: 28px;
                     border-radius: 50%;
-                    background: #ffffff;
-                    left: 2px;
-                    top: ${showLabels ? '32px' : '2px'};
-                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-                    transition: top 0.15s ease;
+                    background: ${showLabels ? '#000000' : '#ffffff'};
+                    top: 2px;
+                    left: ${showLabels ? '32px' : '2px'};
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+                    transition: left 0.15s ease;
                 }
                 
                 .interest-graph-toggle-btn:hover {
@@ -321,20 +399,29 @@ export default function InterestGraph({
                 
                 @media (max-width: 768px) {
                     .interest-graph-toggle-btn {
-                        right: 16px;
-                        top: 30%;
-                        transform: translateY(-50%);
+                        top: 16px;
                     }
                 }
             `}</style>
 
-            {/* Graph Container - No fade, instant display */}
+            {/* 
+              Graph Container
+              
+              CRITICAL: Both this div AND the SigmaContainer need explicit black backgrounds.
+              The @react-sigma/core library's CSS (imported at top) sets a white background
+              on the Sigma canvas by default. We must override at multiple levels to ensure
+              the dark theme is properly applied.
+              
+              Without these overrides, the graph would appear white even though the rest
+              of the page is dark, breaking the theme consistency.
+            */}
             <div style={{
                 width: '100%',
-                height: '100%'
+                height: '100%',
+                background: '#000000'
             }}>
                 <SigmaContainer
-                    style={{ height: '100%', width: '100%' }}
+                    style={{ height: '100%', width: '100%', background: '#000000' }}
                     settings={settings}
                 >
                     <GraphController
