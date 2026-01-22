@@ -18,12 +18,22 @@ export async function getAdminData(password: string) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
   try {
-    // 1. Total Count
-    const { count: totalCount, error: countError } = await supabase
+    // 1. Waitlist Count
+    const { count: waitlistCount, error: countError } = await supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
 
     if (countError) throw countError
+
+    // 1b. Profiles Count (actual users on the webapp)
+    const { count: profilesCount, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+
+    if (profilesError) throw profilesError
+
+    // Total users = waitlist + profiles
+    const totalCount = (waitlistCount || 0) + (profilesCount || 0)
 
     // 2. Today's Count
     const todayStart = new Date()
@@ -70,6 +80,7 @@ export async function getAdminData(password: string) {
         sources[source] = (sources[source] || 0) + 1
     })
 
+    // Calculate percentages based on totalCount (waitlist + profiles) so they add up to 100%
     const sourceList = Object.entries(sources)
       .map(([source, count]) => ({ 
           source, 
@@ -77,6 +88,17 @@ export async function getAdminData(password: string) {
           percentage: totalCount ? ((count / totalCount) * 100).toFixed(1) : '0' 
       }))
       .sort((a, b) => b.count - a.count)
+    
+    // Add profiles as a separate source category so we can see where all users came from
+    if (profilesCount && profilesCount > 0) {
+      sourceList.push({
+        source: 'Direct Signup (Profiles)',
+        count: profilesCount,
+        percentage: totalCount ? ((profilesCount / totalCount) * 100).toFixed(1) : '0'
+      })
+      // Re-sort after adding profiles
+      sourceList.sort((a, b) => b.count - a.count)
+    }
 
     // 5. Recent Signups Table
     const { data: recentSignups, error: signupsError } = await supabase
@@ -91,6 +113,8 @@ export async function getAdminData(password: string) {
       success: true,
       data: {
         totalCount: totalCount || 0,
+        waitlistCount: waitlistCount || 0,
+        profilesCount: profilesCount || 0,
         todayCount: todayCount || 0,
         recentData: recentData || [],
         sourceList,

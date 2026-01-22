@@ -189,6 +189,7 @@ export default function NetworkProfilePage() {
     const [connectionsCount, setConnectionsCount] = useState(0);
     const [networkDistribution, setNetworkDistribution] = useState<NetworkDistribution[]>([]);
     const [hoveredNetwork, setHoveredNetwork] = useState<string | null>(null);
+    const [totalUsers, setTotalUsers] = useState<number | null>(null);
     
     // Edit Basic Info Modal
     const [showEditModal, setShowEditModal] = useState(false);
@@ -330,6 +331,16 @@ export default function NetworkProfilePage() {
             
             // 3. Calculate network data
             await calculateNetworkData(profile, extras || {});
+            
+            // 4. Fetch total user count (waitlist + profiles)
+            const [waitlistResult, profilesResult] = await Promise.all([
+                supabase.from('waitlist').select('*', { count: 'exact', head: true }),
+                supabase.from('profiles').select('*', { count: 'exact', head: true })
+            ]);
+            
+            const waitlistCount = waitlistResult.count || 0;
+            const profilesCount = profilesResult.count || 0;
+            setTotalUsers(waitlistCount + profilesCount);
             
         } catch (error) {
             console.error('Error loading profile:', error);
@@ -1048,6 +1059,11 @@ export default function NetworkProfilePage() {
                         <div className={styles.scoreNumber}>{networkScore}</div>
                         <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
                         <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                        {totalUsers !== null && (
+                            <p className={styles.scoreStats} style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                                {totalUsers.toLocaleString()} total users on The Network
+                            </p>
+                        )}
                     </div>
 
                     {/* Your Quote Card */}
@@ -1533,6 +1549,11 @@ export default function NetworkProfilePage() {
                             <div className={styles.scoreNumber}>{networkScore}</div>
                             <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
                             <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                            {totalUsers !== null && (
+                                <p className={styles.scoreStats} style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                                    {totalUsers.toLocaleString()} total users on The Network
+                                </p>
+                            )}
                         </div>
 
                         {/* Your Quote Card */}

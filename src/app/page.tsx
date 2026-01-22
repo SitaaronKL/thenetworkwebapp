@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ConstellationSphere from '@/components/ConstellationSphere';
 import InstagramFloat from '@/components/InstagramFloat';
 import WaitlistModal from '@/components/WaitlistModal';
+import { createClient } from '@/utils/supabase/client';
 
 // --- Helper Components from Waitlist ---
 
@@ -302,6 +303,7 @@ function LandingPageContent() {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [showYouTubeWarning, setShowYouTubeWarning] = useState(false);
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const lastTapRef = useRef<number>(0);
 
   // Double-tap handler for hidden login access via logo
@@ -336,6 +338,27 @@ function LandingPageContent() {
       localStorage.setItem('marketing_campaign_school', school);
     }
   }, [searchParams]);
+
+  // Fetch total users count (waitlist + profiles)
+  useEffect(() => {
+    const fetchTotalUsers = async () => {
+      try {
+        const supabase = createClient();
+        const [waitlistResult, profilesResult] = await Promise.all([
+          supabase.from('waitlist').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true })
+        ]);
+        
+        const waitlistCount = waitlistResult.count || 0;
+        const profilesCount = profilesResult.count || 0;
+        setTotalUsers(waitlistCount + profilesCount);
+      } catch (error) {
+        console.error('Error fetching total users:', error);
+      }
+    };
+
+    fetchTotalUsers();
+  }, []);
   // === SCROLL Y TRACKER (uncomment to debug scroll positions) ===
   // const [scrollY, setScrollY] = useState(0);
 
@@ -594,6 +617,11 @@ function LandingPageContent() {
               >
                 Join The Network
               </button>
+              {totalUsers !== null && (
+                <p className="text-sm md:text-base text-white/70 mt-2 animate-fade-in-up opacity-0" style={{ animationDelay: '0.5s' }}>
+                  Join {totalUsers.toLocaleString()} users on The Network
+                </p>
+              )}
             </div>
 
             {/* YouTube Permission Warning */}

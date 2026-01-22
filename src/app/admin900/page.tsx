@@ -149,10 +149,18 @@ export default function AdminPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Waitlist</h3>
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Users</h3>
             <p className="text-5xl font-bold mt-2 text-gray-900">{data.totalCount.toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-2">
+              {data.waitlistCount?.toLocaleString() || 0} waitlist + {data.profilesCount?.toLocaleString() || 0} profiles
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Webapp Profiles</h3>
+            <p className="text-5xl font-bold mt-2 text-blue-600">{data.profilesCount?.toLocaleString() || 0}</p>
+            <p className="text-xs text-gray-400 mt-2">Active users on platform</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">New Today</h3>
