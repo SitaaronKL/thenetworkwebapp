@@ -90,7 +90,7 @@ export async function getAdminData(password: string) {
       .sort((a, b) => b.count - a.count)
     
     // Add profiles as a separate source category so we can see where all users came from
-    if (profilesCount > 0) {
+    if (profilesCount && profilesCount > 0) {
       sourceList.push({
         source: 'Direct Signup (Profiles)',
         count: profilesCount,
