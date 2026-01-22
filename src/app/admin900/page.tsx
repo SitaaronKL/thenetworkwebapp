@@ -12,41 +12,80 @@ export default function AdminPage() {
   const [data, setData] = useState<any>(null)
 
   const chartData = useMemo(() => {
-    if (!data?.recentData || !data?.totalCount) return []
+    if (!data) return []
     
-    const dailyGrowth: Record<string, number> = {}
+    // Check if we have chartData from server (old format) - use it directly
+    if (data.chartData && Array.isArray(data.chartData) && data.chartData.length > 0) {
+      return data.chartData
+    }
+    
+    // Otherwise, process recentData (new format)
+    const rawData = data.recentData || []
+    const totalCount = data.totalCount || 0
     
     // Get the range (last 30 days)
     const now = new Date()
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    thirtyDaysAgo.setHours(0, 0, 0, 0)
 
-    // Pre-fill all days with 0 to ensure we have every date in the chart
+    // Create a map of date strings to Date objects for proper sorting
+    const dateMap = new Map<string, Date>()
     for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
         const dateKey = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        dailyGrowth[dateKey] = 0
+        dateMap.set(dateKey, new Date(d))
     }
 
-    // Fill in actual counts from recentData
-    data.recentData.forEach((item: any) => {
-        const dateKey = new Date(item.created_at).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric' 
-        })
-        if (dateKey in dailyGrowth) {
-            dailyGrowth[dateKey]++
-        }
+    const dailyGrowth: Record<string, number> = {}
+    
+    // Initialize all days with 0
+    dateMap.forEach((_, dateKey) => {
+        dailyGrowth[dateKey] = 0
     })
 
+    // Fill in actual counts from recentData (sorted by created_at first)
+    if (rawData && Array.isArray(rawData)) {
+      // Sort by created_at to ensure chronological order
+      const sortedRawData = [...rawData].sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime()
+        const dateB = new Date(b.created_at).getTime()
+        return dateA - dateB
+      })
+
+      sortedRawData.forEach((item: any) => {
+          if (item && item.created_at) {
+            const itemDate = new Date(item.created_at)
+            // Only count items within the 30-day window
+            if (itemDate >= thirtyDaysAgo && itemDate <= now) {
+              const dateKey = itemDate.toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric' 
+              })
+              if (dateKey in dailyGrowth) {
+                  dailyGrowth[dateKey]++
+              }
+            }
+          }
+      })
+    }
+
     // To make it CUMULATIVE growth:
-    // Start from the total count MINUS the users who joined in the last 30 days
-    let runningTotal = data.totalCount - data.recentData.length
+    // Calculate baseline: total users minus users who joined in last 30 days
+    const usersInLast30Days = Array.isArray(rawData) ? rawData.length : 0
+    const baseline = Math.max(0, totalCount - usersInLast30Days)
     
-    return Object.entries(dailyGrowth).map(([date, count]) => {
-        runningTotal += count
+    // Convert to array and sort by actual date values
+    const sortedEntries = Array.from(dateMap.entries())
+      .sort((a, b) => a[1].getTime() - b[1].getTime())
+      .map(([dateKey]) => [dateKey, dailyGrowth[dateKey]] as [string, number])
+    
+    // Calculate cumulative values
+    let runningTotal = baseline
+    return sortedEntries.map(([date, dailyCount]) => {
+        runningTotal += dailyCount
         return { date, count: runningTotal }
     })
-  }, [data?.recentData, data?.totalCount])
+  }, [data])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,17 +176,23 @@ export default function AdminPage() {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold mb-6 text-gray-800">User Growth (Last 30 Days)</h3>
                 <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                            <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} />
-                            <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                            />
-                            <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    {chartData && chartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} />
+                                <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} />
+                                <Tooltip 
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                />
+                                <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                            No data available for the last 30 days
+                        </div>
+                    )}
                 </div>
             </div>
 
