@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function AddUserIcon() {
     return (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'invert(1) hue-rotate(180deg)' }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g clipPath="url(#clip0_4012_260)">
                 <foreignObject x="-35.3018" y="-60.2" width="117.802" height="119">
                     <div style={{ backdropFilter: 'blur(7.58px)', clipPath: 'url(#bgblur_1_4012_260_clip_path)', height: '100%', width: '100%' }}></div>

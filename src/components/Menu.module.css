@@ -1,9 +1,26 @@
+/* =============================================================================
+   MENU COMPONENT STYLES
+   =============================================================================
+   
+   THEME BEHAVIOR:
+   ---------------
+   This menu uses DARK MODE styling as its base (black background, white text).
+   
+   When light mode is active, the global invert filter on <html> automatically
+   inverts these colors (black → white, white → black).
+   
+   DO NOT add any `.theme-light` overrides here - the inversion handles it.
+   
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   CSS VARIABLES
+   ----------------------------------------------------------------------------- */
 :root {
   --menu-width: 780px;
   --menu-button-size: 96px;
 }
 
-/* Mobile: Smaller menu */
 @media (max-width: 768px) {
   :root {
     --menu-width: 100vw;
@@ -11,6 +28,9 @@
   }
 }
 
+/* -----------------------------------------------------------------------------
+   HAMBURGER BUTTON (opens the menu)
+   ----------------------------------------------------------------------------- */
 .menuButton {
   position: fixed;
   top: 14px;
@@ -28,7 +48,6 @@
   transition: transform 0.2s ease;
 }
 
-/* Mobile: Smaller button position */
 @media (max-width: 768px) {
   .menuButton {
     top: 10px;
@@ -40,6 +59,7 @@
   display: none;
 }
 
+/* Close button inside the menu panel */
 .menuButton.inner {
   position: absolute;
   left: auto;
@@ -50,7 +70,6 @@
   display: none;
 }
 
-/* Mobile: Smaller inner button */
 @media (max-width: 768px) {
   .menuButton.inner {
     right: 10px;
@@ -58,6 +77,10 @@
   }
 }
 
+/* -----------------------------------------------------------------------------
+   HAMBURGER LINES (the 3 bars)
+   Dark mode: white lines (will invert to black in light mode)
+   ----------------------------------------------------------------------------- */
 .menuLines {
   width: 48px;
   height: 32px;
@@ -65,7 +88,6 @@
   gap: 10px;
 }
 
-/* Mobile: Smaller menu lines */
 @media (max-width: 768px) {
   .menuLines {
     width: 32px;
@@ -81,7 +103,7 @@
 .menuLines span {
   display: block;
   height: 6px;
-  background: #ffffff;
+  background: #ffffff; /* White in dark mode, inverts to black in light mode */
   border-radius: 999px;
 }
 
@@ -89,13 +111,17 @@
   background: #ffffff;
 }
 
+/* -----------------------------------------------------------------------------
+   MENU PANEL (the slide-out sidebar)
+   Dark mode: black background (will invert to white in light mode)
+   ----------------------------------------------------------------------------- */
 .menuPanel {
   position: fixed;
   top: 0;
   left: 0;
   width: var(--menu-width);
   height: 100vh;
-  background: #000000;
+  background: #000000; /* Black in dark mode, inverts to white in light mode */
   border-right: none;
   box-shadow: none;
   transform: translateX(-100%);
@@ -106,7 +132,6 @@
   padding: 20px;
 }
 
-/* Mobile: Full width panel */
 @media (max-width: 768px) {
   .menuPanel {
     padding: 16px;
@@ -121,22 +146,24 @@
   transform: translateX(calc(var(--menu-width) - var(--menu-button-size) - 34px));
 }
 
-/* Mobile: Don't transform the button on open */
 @media (max-width: 768px) {
   .menuButton.open {
     transform: translateX(0);
   }
 }
 
+/* -----------------------------------------------------------------------------
+   MENU CONTENT (title, links)
+   Dark mode: white text (will invert to black in light mode)
+   ----------------------------------------------------------------------------- */
 .menuTitle {
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 72px;
   font-weight: 800;
-  color: #ffffff;
+  color: #ffffff; /* White in dark mode, inverts to black in light mode */
   letter-spacing: 0.01em;
 }
 
-/* Mobile: Smaller title */
 @media (max-width: 768px) {
   .menuTitle {
     font-size: 36px;
@@ -151,11 +178,10 @@
   font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 72px;
   font-weight: 800;
-  color: #ffffff;
+  color: #ffffff; /* White in dark mode, inverts to black in light mode */
   letter-spacing: 0.01em;
 }
 
-/* Mobile: Smaller menu content */
 @media (max-width: 768px) {
   .menuContent {
     font-size: 32px;
@@ -172,9 +198,12 @@
 }
 
 .menuContent a:hover {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.6); /* Dimmed white, inverts to dimmed black */
 }
 
+/* -----------------------------------------------------------------------------
+   MENU FOOTER (contains theme toggle)
+   ----------------------------------------------------------------------------- */
 .menuFooter {
   position: absolute;
   bottom: 24px;
@@ -189,7 +218,6 @@
   color: #ffffff;
 }
 
-/* Mobile: Move toggle higher up */
 @media (max-width: 768px) {
   .menuFooter {
     bottom: 150px !important;
@@ -198,11 +226,21 @@
   }
 }
 
+/* -----------------------------------------------------------------------------
+   THEME TOGGLE SWITCH
+   
+   The toggle itself shows its state visually:
+   - OFF (left): Dark mode active - dark track, white knob
+   - ON (right): Light mode active - white track, black knob
+   
+   Note: These colors will ALSO be inverted by the global filter when in light
+   mode, so we choose colors that look correct AFTER inversion.
+   ----------------------------------------------------------------------------- */
 .toggle {
   width: 64px;
   height: 34px;
   border-radius: 999px;
-  background: #333333;
+  background: #333333; /* Dark track in dark mode */
   border: 1px solid #444444;
   position: relative;
   cursor: pointer;
@@ -215,23 +253,27 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #ffffff;
+  background: #ffffff; /* White knob */
   top: 2px;
   left: 2px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
   transition: transform 0.15s ease;
 }
 
+/* Toggle in "active" state (light mode selected) */
 .toggle.active {
-  background: #ffffff;
+  background: #ffffff; /* White track when light mode */
   border-color: #ffffff;
 }
 
 .toggle.active::after {
-  transform: translateX(30px);
-  background: #000000;
+  transform: translateX(30px); /* Move knob to right */
+  background: #000000; /* Black knob when light mode */
 }
 
+/* -----------------------------------------------------------------------------
+   SETTINGS SECTION (expandable submenu)
+   ----------------------------------------------------------------------------- */
 .settingsSection {
   display: flex;
   flex-direction: column;
@@ -274,7 +316,7 @@
 .subMenuItem {
   font-size: 32px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.5) !important; /* Dimmed white */
   padding-left: 20px;
   text-decoration: none;
   background: none;
@@ -285,7 +327,6 @@
   transition: color 0.15s ease;
 }
 
-/* Mobile: Smaller sub menu items */
 @media (max-width: 768px) {
   .subMenuItem {
     font-size: 18px;
@@ -295,67 +336,4 @@
 
 .subMenuItem:hover {
   color: #ffffff !important;
-}
-
-/* ============================================
-   Light Mode Styles (when global invert is active)
-   Counter the invert filter and use light colors
-   ============================================ */
-:global(.theme-inverted) .menuPanel {
-  filter: invert(1) hue-rotate(180deg);
-  background: #ffffff;
-}
-
-:global(.theme-inverted) .menuLines span {
-  background: #000000;
-}
-
-:global(.theme-inverted) .menuContent {
-  color: #0f172a;
-}
-
-:global(.theme-inverted) .menuContent a:hover {
-  color: #64748b;
-}
-
-:global(.theme-inverted) .menuTitle {
-  color: #0f172a;
-}
-
-:global(.theme-inverted) .menuFooter {
-  color: #0f172a;
-}
-
-:global(.theme-inverted) .settingsToggle:hover {
-  color: #64748b;
-}
-
-:global(.theme-inverted) .subMenuItem {
-  color: #64748b !important;
-}
-
-:global(.theme-inverted) .subMenuItem:hover {
-  color: #0f172a !important;
-}
-
-:global(.theme-inverted) .menuButton.inner .menuLines span {
-  background: #0f172a;
-}
-
-:global(.theme-inverted) .toggle {
-  background: #e5e7eb;
-  border-color: #d1d5db;
-}
-
-:global(.theme-inverted) .toggle::after {
-  background: #ffffff;
-}
-
-:global(.theme-inverted) .toggle.active {
-  background: #0f172a;
-  border-color: #0f172a;
-}
-
-:global(.theme-inverted) .toggle.active::after {
-  background: #ffffff;
 }

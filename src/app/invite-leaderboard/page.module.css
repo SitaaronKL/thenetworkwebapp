@@ -109,8 +109,8 @@
   opacity: 0.8;
 }
 
-/* When global theme inversion is active, counter-invert gold gradient */
-:global(html.theme-inverted) .userStats::before {
+/* When light mode is active, counter-invert gold gradient to preserve colors */
+:global(html.theme-light) .userStats::before {
   filter: invert(1) hue-rotate(180deg);
 }
 
@@ -223,12 +223,12 @@
   border-color: rgba(255, 215, 0, 0.5);
 }
 
-/* When global theme inversion is active, counter-invert the entire currentUser row to preserve gold colors */
-:global(html.theme-inverted) .leaderboardItem.currentUser {
+/* When light mode is active, counter-invert the entire currentUser row to preserve gold colors */
+:global(html.theme-light) .leaderboardItem.currentUser {
   filter: invert(1) hue-rotate(180deg);
 }
 
-:global(html.theme-inverted) .leaderboardItem.currentUser:hover {
+:global(html.theme-light) .leaderboardItem.currentUser:hover {
   filter: invert(1) hue-rotate(180deg);
 }
 
@@ -258,10 +258,10 @@
   text-shadow: 0 0 20px rgba(205, 127, 50, 0.5);
 }
 
-/* When global theme inversion is active, counter-invert medal emoji/rank colors */
-:global(html.theme-inverted) .leaderboardItem:nth-child(1) .rank,
-:global(html.theme-inverted) .leaderboardItem:nth-child(2) .rank,
-:global(html.theme-inverted) .leaderboardItem:nth-child(3) .rank {
+/* When light mode is active, counter-invert medal emoji/rank colors */
+:global(html.theme-light) .leaderboardItem:nth-child(1) .rank,
+:global(html.theme-light) .leaderboardItem:nth-child(2) .rank,
+:global(html.theme-light) .leaderboardItem:nth-child(3) .rank {
   filter: invert(1) hue-rotate(180deg);
 }
 
@@ -295,10 +295,10 @@
   box-shadow: 0 0 20px rgba(205, 127, 50, 0.2);
 }
 
-/* When global theme inversion is active, counter-invert top 3 avatars to preserve gold/silver/bronze borders */
-:global(html.theme-inverted) .leaderboardItem:nth-child(1) .avatar,
-:global(html.theme-inverted) .leaderboardItem:nth-child(2) .avatar,
-:global(html.theme-inverted) .leaderboardItem:nth-child(3) .avatar {
+/* When light mode is active, counter-invert top 3 avatars to preserve gold/silver/bronze borders */
+:global(html.theme-light) .leaderboardItem:nth-child(1) .avatar,
+:global(html.theme-light) .leaderboardItem:nth-child(2) .avatar,
+:global(html.theme-light) .leaderboardItem:nth-child(3) .avatar {
   filter: invert(1) hue-rotate(180deg);
 }
 
@@ -320,8 +320,8 @@
   margin-left: 8px;
 }
 
-/* When global theme inversion is active, counter-invert orange badge */
-:global(html.theme-inverted) .youBadge {
+/* When light mode is active, counter-invert orange badge */
+:global(html.theme-light) .youBadge {
   filter: invert(1) hue-rotate(180deg);
 }
 

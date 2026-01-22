@@ -29,9 +29,9 @@ export default function YouTubeAccountDisclaimerPage() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    // Clean up any leftover style filters
+    // Clean up any leftover style filters (this page has its own theme handling)
     document.documentElement.style.filter = '';
-    document.documentElement.classList.remove('theme-inverted');
+    document.documentElement.classList.remove('theme-light');
   }, [theme, mounted]);
 
   // If already authenticated, redirect

@@ -26,7 +26,8 @@ export default React.memo(function NetworkGalaxy({
     mutualConnectionIds = new Set(),
     isLoadingFriendNetwork = false
 }: NetworkGalaxyProps) {
-    const [isInverted, setIsInverted] = useState(false);
+    // Theme note: This component uses dark mode styling (black bg, white text).
+    // Light mode is handled by the global invert filter on <html>.
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     // Use ref to track mobile state without causing re-renders that break useEffect
@@ -59,25 +60,6 @@ export default React.memo(function NetworkGalaxy({
     const getViewboxScale = () => isMobileRef.current ? 3.2 : 2.4;
     // Helper function to get viewbox offset based on current mobile state
     const getViewboxOffsetX = () => isMobileRef.current ? 0 : 180;
-
-    useEffect(() => {
-        const checkInverted = () => {
-            setIsInverted(document.documentElement.classList.contains('theme-inverted'));
-        };
-        checkInverted();
-
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    checkInverted();
-                }
-            });
-        });
-
-        observer.observe(document.documentElement, { attributes: true });
-
-        return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -434,7 +416,7 @@ export default React.memo(function NetworkGalaxy({
                             .style('font-family', 'Inter, system-ui, sans-serif')
                             .style('font-size', (d: any) => d.isBranchNode ? '10px' : '11px')
                             .style('font-weight', '400')
-                            .style('fill', isInverted ? '#ffffff' : '#000000')
+                            .style('fill', '#ffffff') // White text for dark mode, global invert handles light
                             .text((d: any) => d.name || '');
 
                         // Apply greyscale filter to group
@@ -601,27 +583,18 @@ export default React.memo(function NetworkGalaxy({
         }
     }, [graphData]);
 
-    // Keep label color synced with inversion changes (no need to rebuild the graph)
-    useEffect(() => {
-        if (!svgRef.current) return;
-        const svg = d3.select(svgRef.current);
-        svg.selectAll('text').style('fill', isInverted ? '#ffffff' : '#000000');
-    }, [isInverted]);
-
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {/* Background */}
-            <div style={{ position: 'absolute', inset: 0, background: '#ffffff', zIndex: 0 }} />
+            {/* Background - dark mode default, global invert filter handles light mode */}
+            <div style={{ position: 'absolute', inset: 0, background: '#000000', zIndex: 0 }} />
 
-            {/* Graph Layer (SVG) */}
+            {/* Graph Layer (SVG) - no local filter, global invert handles light mode */}
             <div
                 style={{
                     position: 'absolute',
                     inset: 0,
                     zIndex: 1,
-                    background: 'transparent',
-                    filter: isInverted ? 'invert(1) hue-rotate(180deg)' : 'none',
-                    transition: 'filter 0.3s'
+                    background: 'transparent'
                 }}
             >
                 <div ref={containerRef} style={{ width: '100%', height: '100%' }} />

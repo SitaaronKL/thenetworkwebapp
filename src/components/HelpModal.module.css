@@ -115,38 +115,9 @@
   margin: 0;
 }
 
-/* When theme is inverted (dark mode), adjust colors */
-.theme-inverted .modal {
-  background: #0f172a;
-}
-
-.theme-inverted .title,
-.theme-inverted .pageName {
-  color: #ffffff;
-}
-
-.theme-inverted .description,
-.theme-inverted .pageDesc {
-  color: #cbd5e1;
-}
-
-.theme-inverted .header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.theme-inverted .allPagesSection {
-  border-top-color: rgba(255, 255, 255, 0.1);
-}
-
-.theme-inverted .closeButton {
-  color: #ffffff;
-}
-
-.theme-inverted .closeButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.theme-inverted .overlay {
-  background: rgba(255, 255, 255, 0.1);
-}
+/* 
+   Theme note: This component follows the global theme automatically.
+   The base styles are for dark mode. Light mode is handled by the global invert filter.
+   No .theme-light overrides needed.
+*/
 

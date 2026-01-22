@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function SearchIcon() {
     return (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ filter: 'invert(1) hue-rotate(180deg)' }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <g clipPath="url(#clip0_4012_261)">
                 <foreignObject x="-36.4639" y="-60.2" width="118.964" height="119">
                     <div style={{ backdropFilter: 'blur(7.58px)', clipPath: 'url(#bgblur_1_4012_261_clip_path)', height: '100%', width: '100%' }}></div>

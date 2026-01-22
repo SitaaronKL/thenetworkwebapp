@@ -412,9 +412,9 @@ function LandingPageContent() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Clean up any leftover style filters
+    // Clean up any leftover style filters (landing page has its own theme handling)
     document.documentElement.style.filter = '';
-    document.documentElement.classList.remove('theme-inverted');
+    document.documentElement.classList.remove('theme-light');
   }, [theme, mounted]);
 
   // === SCROLL Y TRACKER useEffect (uncomment along with state above to enable) ===

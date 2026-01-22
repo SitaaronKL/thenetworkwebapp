@@ -39,17 +39,9 @@
   fill: none;
 }
 
-/* When theme is inverted (dark mode), adjust colors */
-.theme-inverted .helpButton {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.theme-inverted .helpButton:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.theme-inverted .helpIcon {
-  color: #ffffff;
-}
+/* 
+   Theme note: This component follows the global theme automatically.
+   The base styles are for dark mode. Light mode is handled by the global invert filter.
+   No .theme-light overrides needed.
+*/
 
