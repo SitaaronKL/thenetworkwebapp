@@ -109,6 +109,35 @@ export async function getAdminData(password: string) {
 
     if (signupsError) throw signupsError
 
+    // 6. AB Campaign Analytics with Discord clicks
+    const { data: campaignAnalytics, error: campaignError } = await supabase
+      .from('ab_marketing_campaigns')
+      .select('id, campaign_code, campaign_name, school, variant, is_active, discord_clicks, discord_url, created_at')
+      .order('created_at', { ascending: false })
+
+    // Don't throw on campaign error - it's okay if the table doesn't have the new columns yet
+    if (campaignError) {
+      console.warn('Campaign analytics fetch warning:', campaignError)
+    }
+
+    // Get signup counts per campaign
+    const campaignSignupCounts: Record<string, number> = {}
+    sourceData.forEach(item => {
+      if (item.campaign_code) {
+        campaignSignupCounts[item.campaign_code] = (campaignSignupCounts[item.campaign_code] || 0) + 1
+      }
+    })
+
+    // Merge signup counts with campaign data
+    const campaignsWithStats = (campaignAnalytics || []).map(campaign => ({
+      ...campaign,
+      signup_count: campaignSignupCounts[campaign.campaign_code] || 0,
+      discord_clicks: campaign.discord_clicks || 0,
+    }))
+
+    // Calculate total Discord clicks
+    const totalDiscordClicks = campaignsWithStats.reduce((sum, c) => sum + (c.discord_clicks || 0), 0)
+
     return {
       success: true,
       data: {
@@ -118,7 +147,9 @@ export async function getAdminData(password: string) {
         todayCount: todayCount || 0,
         recentData: recentData || [],
         sourceList,
-        recentSignups
+        recentSignups,
+        campaignAnalytics: campaignsWithStats,
+        totalDiscordClicks,
       }
     }
 
