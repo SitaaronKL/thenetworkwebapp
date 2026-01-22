@@ -184,7 +184,7 @@
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-radius: 100px;
+    border-radius: 40px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     
     /* Subtle glow */
@@ -687,6 +687,21 @@
     display: none;
 }
 
+.suggestionsDefault {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+}
+
+.suggestionsHeader {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
 .suggestionCard {
     width: 100%;
     min-height: 110px;
@@ -739,7 +754,7 @@
     object-fit: cover;
     background: var(--muted);
     flex-shrink: 0;
-    border: 2px solid var(--border);
+    border: none;
 }
 
 /* Mobile: Smaller avatar */
@@ -754,9 +769,37 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
     flex: 1;
     min-width: 0;
     gap: 6px;
+}
+
+.viewProfileButton {
+    align-self: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border 0.2s ease, opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.viewProfileButton:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 768px) {
+    .viewProfileButton {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
 }
 
 /* Mobile: Smaller gap */

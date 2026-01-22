@@ -33,7 +33,6 @@ import InviteIcon from '@/components/icons/InviteIcon';
 import WeeklyDropIcon from '@/components/icons/WeeklyDropIcon';
 import FriendRequestsModal from '@/components/FriendRequestsModal';
 import SearchUserModal from '@/components/SearchUserModal';
-import SuggestionDetailModal from '@/components/SuggestionDetailModal';
 import InviteModal from '@/components/InviteModal';
 
 // Helper to resolve avatar URL
@@ -478,6 +477,7 @@ export default function Home() {
   const [people, setPeople] = useState<NetworkPerson[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<NetworkPerson | null>(null);
   const [isLoadingNetwork, setIsLoadingNetwork] = useState(true);
+  const [connectionCount, setConnectionCount] = useState(0);
 
   // Ari's Suggestions State
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -504,8 +504,6 @@ export default function Home() {
   const [showSearchUser, setShowSearchUser] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  // Suggestion Detail Modal State
-  const [selectedSuggestion, setSelectedSuggestion] = useState<any | null>(null);
 
   // Mobile suggestions panel state
   const [showMobileSuggestions, setShowMobileSuggestions] = useState(false);
@@ -515,6 +513,26 @@ export default function Home() {
   const [friendOfFriendData, setFriendOfFriendData] = useState<NetworkPerson[]>([]);
   const [mutualConnectionIds, setMutualConnectionIds] = useState<Set<string>>(new Set());
   const [isLoadingFriendNetwork, setIsLoadingFriendNetwork] = useState(false);
+
+  const shouldShowDefaultSuggestions =
+    !expandedPanel &&
+    !isEligibleForMondayDrop &&
+    connectionCount < 3 &&
+    suggestions.length > 0;
+
+  const openSuggestionProfile = (suggestion: any) => {
+    const person: NetworkPerson = {
+      id: suggestion.id,
+      name: suggestion.name,
+      imageUrl: suggestion.avatar,
+      starColor: '#8E5BFF',
+      x: 0,
+      y: 0,
+      connections: []
+    };
+    setSelectedPerson(person);
+    setExpandedPanel('profile');
+  };
 
   // Helper function to create current user node
   const createCurrentUserNode = (id: string, name: string, color: string, avatarUrl?: string): NetworkPerson => ({
@@ -887,6 +905,7 @@ export default function Home() {
       }
 
       setInteractedSuggestionIds(interactedIds);
+      setConnectionCount(connectionCount);
 
       // Show Weekly Drop if user has > 4 connections OR has interacted with 3+ suggestions
       if (connectionCount > 4 || interactedIds.size >= 3 || debugForceEligible) {
@@ -1187,7 +1206,9 @@ export default function Home() {
 
       // 8. Format suggestions with compelling reasons (only from not-in-network matches)
       // Only fetch remaining slots (3 minus interactions already made)
-      const remainingSuggestionCount = Math.max(0, 3 - interactedIds.size);
+      const remainingSuggestionCount = connectionCount < 3
+        ? Math.max(0, 3 - connectionCount)
+        : Math.max(0, 3 - interactedIds.size);
       const topNotInNetworkMatches = notInNetworkMatches.slice(0, remainingSuggestionCount);
       const formattedSuggestionsPromises = topNotInNetworkMatches
         .map(async (match: any) => {
@@ -1258,7 +1279,9 @@ export default function Home() {
         });
 
       // Calculate how many suggestions we should show (3 minus how many they've interacted with)
-      const remainingSuggestionSlots = Math.max(0, 3 - interactedIds.size);
+      const remainingSuggestionSlots = connectionCount < 3
+        ? Math.max(0, 3 - connectionCount)
+        : Math.max(0, 3 - interactedIds.size);
 
       const formattedSuggestions = (await Promise.all(formattedSuggestionsPromises))
         .filter((s: any) => s !== null)
@@ -1267,7 +1290,7 @@ export default function Home() {
 
       // If all suggestions have been interacted with, show message
       if (formattedSuggestions.length === 0) {
-        setShouldShowMessage(true);
+        setShouldShowMessage(connectionCount >= 3);
         setSuggestions([]);
       } else {
         setShouldShowMessage(false);
@@ -1802,8 +1825,8 @@ export default function Home() {
 {/* Weekly Drop button removed - card now shows automatically when no other panel is open */}
           </div>
           
-          {/* Expanded Panel Content - only shows when there's a panel selected OR a valid weekly drop */}
-          {(expandedPanel || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) && (
+          {/* Expanded Panel Content - shows when panel selected, weekly drop, or default suggestions */}
+          {(expandedPanel || shouldShowDefaultSuggestions || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) && (
             <div className={styles.expandedContent}>
               {expandedPanel === 'friendRequests' && (
                 <FriendRequestsPanel onClose={() => setExpandedPanel(null)} onRequestAccepted={loadNetworkData} />
@@ -1847,6 +1870,43 @@ export default function Home() {
                   onSkip={() => handleMondayDropInteraction('skipped')}
                 />
               )}
+              {!expandedPanel && shouldShowDefaultSuggestions && (
+                <div className={styles.suggestionsDefault}>
+                  <div className={styles.suggestionsHeader}>
+                    The Network's Suggestions:
+                  </div>
+                  <div className={styles.suggestionList}>
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        className={styles.suggestionCard}
+                        onClick={() => openSuggestionProfile(suggestion)}
+                        type="button"
+                      >
+                        <img
+                          src={suggestion.avatar}
+                          alt={suggestion.name}
+                          className={`${styles.cardAvatar} invert-media`}
+                        />
+                        <div className={styles.cardInfo}>
+                          <div className={styles.cardName}>{suggestion.name}</div>
+                          <div className={styles.cardReason}>{suggestion.reason}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.viewProfileButton}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openSuggestionProfile(suggestion);
+                          }}
+                        >
+                          View Profile
+                        </button>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1882,170 +1942,6 @@ export default function Home() {
       <InviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-      />
-
-      {/* Suggestion Detail Modal */}
-      <SuggestionDetailModal
-        isOpen={selectedSuggestion !== null}
-        onClose={() => {
-          setSelectedSuggestion(null);
-        }}
-        person={selectedSuggestion}
-        onRequestSent={async () => {
-          // Track interaction when user sends a request
-          if (selectedSuggestion) {
-            const suggestionId = selectedSuggestion.id;
-
-            // Handle Weekly Drop connection
-            if (isEligibleForMondayDrop && mondayDrop?.candidate?.id === suggestionId) {
-              await handleMondayDropInteraction('connected');
-              setSelectedSuggestion(null);
-              return;
-            }
-
-            // Immediately remove the suggestion from the list (before async operations)
-            const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
-            setSuggestions(updatedSuggestions);
-
-            // Update interacted IDs and check total count
-            const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
-            setInteractedSuggestionIds(newInteractedIds);
-
-            // If user has interacted with 3 total suggestions, transition to Weekly Drop UI immediately
-            if (newInteractedIds.size >= 3) {
-              setIsEligibleForMondayDrop(true);
-              setShouldShowMessage(false);
-              setSuggestions([]);
-              loadMondayDrop();
-            } else if (updatedSuggestions.length === 0) {
-              setShouldShowMessage(true);
-              setSuggestions([]); // Clear any remaining suggestions
-            }
-
-            // Close the modal immediately
-            setSelectedSuggestion(null);
-
-            // Track in database (non-blocking, fire-and-forget)
-            (async () => {
-              try {
-                const supabase = createClient();
-                const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
-                if (authError) {
-                  return;
-                }
-                if (!currentUser) {
-                  return;
-                }
-
-                const { data: insertData, error: insertError } = await supabase
-                  .from('suggestion_interactions')
-                  .upsert({
-                    user_id: currentUser.id,
-                    suggested_user_id: suggestionId,
-                    interaction_type: 'connected'
-                  }, { onConflict: 'user_id,suggested_user_id' })
-                  .select();
-
-                if (insertError) {
-                  // Error inserting suggestion interaction
-                } else {
-                  // Verify the insert worked by querying it back
-                  const { data: verifyData, error: verifyError } = await supabase
-                    .from('suggestion_interactions')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .eq('suggested_user_id', suggestionId)
-                    .single();
-
-                  if (verifyError) {
-                    // Could not verify inserted interaction
-                  }
-                }
-              } catch (err) {
-                // Error tracking interaction
-              }
-            })();
-
-            // Refresh network data to show new connections
-            loadNetworkData();
-          }
-        }}
-        onDismiss={async () => {
-          // Track interaction when user dismisses
-          if (selectedSuggestion) {
-            const suggestionId = selectedSuggestion.id;
-
-            // Handle Weekly Drop skip
-            if (isEligibleForMondayDrop && mondayDrop?.candidate?.id === suggestionId) {
-              await handleMondayDropInteraction('skipped');
-              setSelectedSuggestion(null);
-              return;
-            }
-
-            // Immediately remove the suggestion from the list (before async operations)
-            const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
-            setSuggestions(updatedSuggestions);
-
-            // Update interacted IDs and check total count
-            const newInteractedIds = new Set([...interactedSuggestionIds, suggestionId]);
-            setInteractedSuggestionIds(newInteractedIds);
-
-            // If user has interacted with 3 total suggestions, transition to Weekly Drop UI immediately
-            if (newInteractedIds.size >= 3) {
-              setIsEligibleForMondayDrop(true);
-              setShouldShowMessage(false);
-              setSuggestions([]);
-              loadMondayDrop();
-            } else if (updatedSuggestions.length === 0) {
-              setShouldShowMessage(true);
-              setSuggestions([]); // Clear any remaining suggestions
-            }
-
-            // Close the modal immediately
-            setSelectedSuggestion(null);
-
-            // Track in database (non-blocking, fire-and-forget)
-            (async () => {
-              try {
-                const supabase = createClient();
-                const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
-                if (authError) {
-                  return;
-                }
-                if (!currentUser) {
-                  return;
-                }
-
-                const { data: insertData, error: insertError } = await supabase
-                  .from('suggestion_interactions')
-                  .upsert({
-                    user_id: currentUser.id,
-                    suggested_user_id: suggestionId,
-                    interaction_type: 'skipped'
-                  }, { onConflict: 'user_id,suggested_user_id' })
-                  .select();
-
-                if (insertError) {
-                  // Error inserting suggestion interaction
-                } else {
-                  // Verify the insert worked by querying it back
-                  const { data: verifyData, error: verifyError } = await supabase
-                    .from('suggestion_interactions')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .eq('suggested_user_id', suggestionId)
-                    .single();
-
-                  if (verifyError) {
-                    // Could not verify inserted interaction
-                  }
-                }
-              } catch (err) {
-                // Error tracking interaction
-              }
-            })();
-          }
-        }}
       />
 
       {/* Debug Menu
