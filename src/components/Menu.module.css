@@ -337,3 +337,82 @@
 .subMenuItem:hover {
   color: #ffffff !important;
 }
+
+/* -----------------------------------------------------------------------------
+  LOGOUT CONFIRMATION MODAL
+  ----------------------------------------------------------------------------- */
+.logoutOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.logoutModal {
+  width: min(420px, 90vw);
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.logoutTitle {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.logoutBody {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.logoutActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.logoutPrimary,
+.logoutSecondary {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, border 0.15s ease;
+}
+
+.logoutPrimary {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.logoutSecondary {
+  background: transparent;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.logoutPrimary:hover,
+.logoutSecondary:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+  .logoutModal {
+    padding: 20px;
+  }
+}

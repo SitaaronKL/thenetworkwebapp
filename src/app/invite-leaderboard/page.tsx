@@ -16,6 +16,7 @@ export default function InviteLeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [userStats, setUserStats] = useState<{ rank: number; inviteCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [period, setPeriod] = useState<Period>('all-time');
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function InviteLeaderboardPage() {
   }, [user, period]);
 
   const loadLeaderboard = async () => {
-    setLoading(true);
+    setIsFetching(true);
     try {
       const [leaderboardData, stats] = await Promise.all([
         getInviteLeaderboard(period),
@@ -43,6 +44,7 @@ export default function InviteLeaderboardPage() {
       console.error('Error loading leaderboard:', error);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
@@ -52,21 +54,10 @@ export default function InviteLeaderboardPage() {
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-images/${path}`;
   };
 
-  if (authLoading || loading) {
-    return (
-      <>
-        <Menu />
-        <div className={styles.container}>
-          <div className={styles.loading}>Loading...</div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <Menu />
-      <div className={styles.container}>
+      <div className={`${styles.container} ${isFetching ? styles.isFetching : ''}`}>
         <div className={styles.content}>
           <h1 className={styles.title}>Invite Leaderboard</h1>
 
@@ -106,8 +97,12 @@ export default function InviteLeaderboardPage() {
             </div>
           )}
 
+          {loading && (
+            <div className={styles.loadingOverlay}>Loading...</div>
+          )}
+
           {/* Leaderboard List */}
-          <div className={styles.leaderboard}>
+          <div className={`${styles.leaderboard} ${isFetching ? styles.leaderboardUpdating : ''}`}>
             {leaderboard.length === 0 ? (
               <div className={styles.empty}>No invites yet. Be the first!</div>
             ) : (

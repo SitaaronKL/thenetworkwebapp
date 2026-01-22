@@ -41,6 +41,7 @@ export default function Menu() {
   const [isLightMode, setIsLightMode] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -92,6 +93,8 @@ export default function Menu() {
   };
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(false);
+    setIsOpen(false);
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/');
@@ -168,7 +171,7 @@ export default function Menu() {
                   </Link>
                 )}
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   className={styles.subMenuItem}
                 >
                   LOGOUT
@@ -203,6 +206,42 @@ export default function Menu() {
           </div>
         </button>
       </div>
+
+      {showLogoutConfirm && (
+        <div
+          className={styles.logoutOverlay}
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            className={styles.logoutModal}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-confirm-title"
+          >
+            <h2 id="logout-confirm-title" className={styles.logoutTitle}>
+              Log out?
+            </h2>
+            <p className={styles.logoutBody}>
+              Are you sure you want to log out of your account?
+            </p>
+            <div className={styles.logoutActions}>
+              <button
+                className={styles.logoutSecondary}
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.logoutPrimary}
+                onClick={handleLogout}
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

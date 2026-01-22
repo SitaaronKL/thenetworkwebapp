@@ -1,15 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { YouTubeService } from '@/services/youtube';
 
 export default function AuthCallback() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [status, setStatus] = useState('Completing sign in...');
+    const hasAuthError = Boolean(
+        searchParams.get('error') ||
+        searchParams.get('error_code') ||
+        searchParams.get('error_description')
+    );
 
     useEffect(() => {
+        if (hasAuthError) {
+            router.replace('/');
+            return;
+        }
         const handleAuthCallback = async () => {
             const supabase = createClient();
 
@@ -53,8 +63,7 @@ export default function AuthCallback() {
                 userId = result.userId;
                 session = result.session;
             } catch (error: any) {
-                setStatus('Authentication failed. Redirecting...');
-                setTimeout(() => router.push('/'), 2000);
+                router.replace('/');
                 return;
             }
 
@@ -274,7 +283,11 @@ export default function AuthCallback() {
         };
 
         handleAuthCallback();
-    }, [router]);
+    }, [router, hasAuthError]);
+
+    if (hasAuthError) {
+        return null;
+    }
 
     return (
         <div className="callback-container">

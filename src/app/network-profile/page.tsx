@@ -12,6 +12,10 @@ import styles from './page.module.css';
 // Dynamically import InterestGraph to avoid SSR issues with Sigma.js
 const InterestGraph = dynamic(() => import('@/components/InterestGraph'), { ssr: false });
 
+// Module-level variable to track if graph has been loaded (persists across component unmounts)
+// This prevents showing loading spinner when switching tabs
+let moduleGraphHasLoaded = false;
+
 // Types
 interface ProfileData {
     id: string;
@@ -231,11 +235,17 @@ export default function NetworkProfilePage() {
     const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
     const [interestExplanation, setInterestExplanation] = useState<string | null>(null);
     const [isExplanationLoading, setIsExplanationLoading] = useState(false);
+    // Use ref to persist graph ready state across tab switches (prevents reload flash)
+    const isInterestGraphReadyRef = useRef(false);
     const [isInterestGraphReady, setIsInterestGraphReady] = useState(false);
     const [friendsWithSelectedInterest, setFriendsWithSelectedInterest] = useState<ClusterFriend[]>([]);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [avatarLoadError, setAvatarLoadError] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Ref to track if data has been loaded (prevents reload on tab switch)
+    const hasLoadedDataRef = useRef(false);
+    const currentUserIdRef = useRef<string | null>(null);
 
     // Auth Redirect
     useEffect(() => {
@@ -245,10 +255,16 @@ export default function NetworkProfilePage() {
     }, [user, loading, router]);
 
     // Load profile data
-    const loadProfileData = useCallback(async () => {
+    const loadProfileData = useCallback(async (forceReload = false) => {
         if (!user) return;
         
+        // Skip reload if data already loaded for this user (prevents reload on tab switch)
+        if (!forceReload && hasLoadedDataRef.current && currentUserIdRef.current === user.id) {
+            return;
+        }
+        
         setIsLoading(true);
+        currentUserIdRef.current = user.id;
         const supabase = createClient();
         
         try {
@@ -346,6 +362,7 @@ export default function NetworkProfilePage() {
             console.error('Error loading profile:', error);
         } finally {
             setIsLoading(false);
+            hasLoadedDataRef.current = true;
         }
     }, [user]);
 
@@ -853,8 +870,10 @@ export default function NetworkProfilePage() {
         }
     }, [hierarchicalInterests, interestClusters]);
     
-    // Handle graph loaded
+    // Handle graph loaded - persist in module variable to survive component unmounts
     const handleGraphLoaded = useCallback(() => {
+        moduleGraphHasLoaded = true;
+        isInterestGraphReadyRef.current = true;
         setIsInterestGraphReady(true);
     }, []);
     
@@ -909,8 +928,8 @@ export default function NetworkProfilePage() {
                 setAvatarLoadError(false); // Reset error state for new avatar
             }
             
-            // Reload profile data to get updated avatar
-            await loadProfileData();
+            // Reload profile data to get updated avatar (force reload)
+            await loadProfileData(true);
             
         } catch (error: any) {
             console.error('Error uploading avatar:', error);
@@ -1538,9 +1557,11 @@ export default function NetworkProfilePage() {
             </div>
             )}
 
-            {/* Interests Tab Content */}
-            {activeTab === 'interests' && (
-                <div className={styles.interestsTabContent}>
+            {/* Interests Tab Content - Always rendered, hidden with CSS to preserve graph state */}
+            <div 
+                className={styles.interestsTabContent}
+                style={{ display: activeTab === 'interests' ? 'grid' : 'none' }}
+            >
                     {/* Left Sidebar - Same as About tab */}
                     <div className={styles.interestsLeftColumn}>
                         {/* Network Score Card */}
@@ -1710,13 +1731,16 @@ export default function NetworkProfilePage() {
 
                     {/* Center - Interest Graph */}
                     <div className={styles.interestsGraphContainer}>
-                        {!isInterestGraphReady && interests.length > 0 && (
+                        {/* Only show loading if graph has NEVER been loaded in this session */}
+                        {/* moduleGraphHasLoaded persists even when component unmounts (tab switch) */}
+                        {!moduleGraphHasLoaded && !isInterestGraphReady && interests.length > 0 && (
                             <div className={styles.graphLoadingOverlay}>
                                 <div className={styles.loader}></div>
                             </div>
                         )}
                         {interests.length > 0 ? (
                             <InterestGraph
+                                key={`interest-graph-${interests.join('-')}`}
                                 interests={interests}
                                 userFullName={profileData?.full_name || 'Me'}
                                 onInterestClick={handleInterestClick}
@@ -1791,8 +1815,7 @@ export default function NetworkProfilePage() {
                             </div>
                         )}
                     </div>
-                </div>
-            )}
+            </div>
 
             {/* Cluster Friends Modal */}
             {selectedCluster && (

@@ -175,35 +175,60 @@
     color: rgba(255, 255, 255, 0.3);
 }
 
-/* Tab Navigation */
+/* Tab Navigation - Liquid Glass Pills */
 .tabNav {
     display: flex;
     gap: 8px;
 }
 
 .tabButton {
-    padding: 10px 20px;
+    padding: 12px 24px;
     font-size: 14px;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: 100px;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
+/* Active tab - solid white pill */
 .tabButtonActive {
-    background: #fff;
-    color: #000;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 4px 16px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* Inactive tab - glass effect */
 .tabButtonInactive {
-    background: transparent;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 4px 12px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Inner glass highlight for inactive tabs */
+.tabButtonInactive::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 0 rgba(0, 0, 0, 0.1);
 }
 
 .tabButtonInactive:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* ============================================
@@ -1246,7 +1271,6 @@
     height: 56px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
     transition: transform 0.2s ease;
 }
 
@@ -1261,7 +1285,6 @@
     font-size: 20px;
     font-weight: 600;
     color: #fff;
-    border: 2px solid rgba(255, 255, 255, 0.1);
     transition: transform 0.2s ease;
 }
 
