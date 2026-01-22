@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { YouTubeService } from '@/services/youtube';
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [status, setStatus] = useState('Completing sign in...');
@@ -332,5 +332,34 @@ export default function AuthCallback() {
         }
       `}</style>
         </div>
+    );
+}
+
+export default function AuthCallback() {
+    return (
+        <Suspense fallback={
+            <div className="callback-container" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '100vh',
+                background: '#fff'
+            }}>
+                <div className="callback-loader" style={{ textAlign: 'center', color: '#000' }}>
+                    <div style={{
+                        width: '48px',
+                        height: '48px',
+                        border: '3px solid rgba(0, 0, 0, 0.1)',
+                        borderTopColor: '#000',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 16px'
+                    }}></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+        }>
+            <AuthCallbackContent />
+        </Suspense>
     );
 }
