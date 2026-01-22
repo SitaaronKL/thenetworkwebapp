@@ -48,15 +48,6 @@ export async function getAdminData(password: string) {
 
     if (recentError) throw recentError
 
-    // Process for Chart
-    const dailyGrowth: Record<string, number> = {}
-    recentData.forEach(item => {
-        const date = new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        dailyGrowth[date] = (dailyGrowth[date] || 0) + 1
-    })
-
-    const chartData = Object.entries(dailyGrowth).map(([date, count]) => ({ date, count }))
-
     // 4. Acquisition Sources (All time)
     // We fetch just the campaign_code to aggregate
     const { data: sourceData, error: sourceError } = await supabase
@@ -101,7 +92,7 @@ export async function getAdminData(password: string) {
       data: {
         totalCount: totalCount || 0,
         todayCount: todayCount || 0,
-        chartData,
+        recentData: recentData || [],
         sourceList,
         recentSignups
       }
