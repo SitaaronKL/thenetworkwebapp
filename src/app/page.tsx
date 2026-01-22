@@ -617,11 +617,6 @@ function LandingPageContent() {
               >
                 Join The Network
               </button>
-              {totalUsers !== null && (
-                <p className="text-sm md:text-base text-white/70 mt-2 animate-fade-in-up opacity-0" style={{ animationDelay: '0.5s' }}>
-                  Join {totalUsers.toLocaleString()} users on The Network
-                </p>
-              )}
             </div>
 
             {/* YouTube Permission Warning */}
