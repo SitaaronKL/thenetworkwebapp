@@ -612,10 +612,10 @@ function LandingPageContent() {
       </section>
 
       {/* Fixed Bottom Navigation - Desktop */}
-      <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+      <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
         <div className="relative w-full h-28 pointer-events-auto">
           <div className="absolute bottom-1 left-4 z-20">
-            <InstagramFloat variant="navbar" />
+            <InstagramFloat variant="navbar" isOnDarkBackground={true} />
           </div>
           {/* Double-tap logo to access login */}
           <button 
@@ -623,20 +623,24 @@ function LandingPageContent() {
             className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer bg-transparent border-none p-0"
             aria-label="Network Icon - Double tap to login"
           >
-            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 hover:opacity-70 transition-opacity" />
+            <img 
+              src="/app_icon.svg" 
+              alt="Network Icon" 
+              className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" 
+            />
           </button>
 
           <div className="absolute bottom-16 left-6 right-28 z-10">
-            <div className="h-[1px] bg-black opacity-30"></div>
+            <div className="h-[1px] bg-white"></div>
           </div>
         </div>
       </nav>
 
       {/* Fixed Bottom Navigation - Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
         <div className="relative w-full pointer-events-auto px-4 pb-4">
           <div className="absolute bottom-0 left-2 z-20 translate-y-[10px]">
-            <InstagramFloat variant="navbar" />
+            <InstagramFloat variant="navbar" isOnDarkBackground={true} />
           </div>
           {/* App Icon - Double-tap to access login */}
           <button 
@@ -644,12 +648,16 @@ function LandingPageContent() {
             className="absolute bottom-2 right-4 w-12 h-12 cursor-pointer z-20 bg-transparent border-none p-0"
             aria-label="Network Icon - Double tap to login"
           >
-            <img src="/app_icon.svg" alt="Network Icon" className="w-full h-full brightness-0 hover:opacity-70 transition-opacity" />
+            <img 
+              src="/app_icon.svg" 
+              alt="Network Icon" 
+              className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity" 
+            />
           </button>
 
           {/* Horizontal Line - Cut off early for logo */}
           <div className="absolute bottom-8 left-4 right-20 z-10">
-            <div className="h-[1px] bg-black opacity-30"></div>
+            <div className="h-[1px] bg-white"></div>
           </div>
         </div>
       </nav>
