@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { getAdminData } from './actions'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -10,6 +10,43 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
+
+  const chartData = useMemo(() => {
+    if (!data?.recentData || !data?.totalCount) return []
+    
+    const dailyGrowth: Record<string, number> = {}
+    
+    // Get the range (last 30 days)
+    const now = new Date()
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    // Pre-fill all days with 0 to ensure we have every date in the chart
+    for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
+        const dateKey = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        dailyGrowth[dateKey] = 0
+    }
+
+    // Fill in actual counts from recentData
+    data.recentData.forEach((item: any) => {
+        const dateKey = new Date(item.created_at).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+        })
+        if (dateKey in dailyGrowth) {
+            dailyGrowth[dateKey]++
+        }
+    })
+
+    // To make it CUMULATIVE growth:
+    // Start from the total count MINUS the users who joined in the last 30 days
+    let runningTotal = data.totalCount - data.recentData.length
+    
+    return Object.entries(dailyGrowth).map(([date, count]) => {
+        runningTotal += count
+        return { date, count: runningTotal }
+    })
+  }, [data?.recentData, data?.totalCount])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,7 +138,7 @@ export default function AdminPage() {
                 <h3 className="text-lg font-bold mb-6 text-gray-800">User Growth (Last 30 Days)</h3>
                 <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={data.chartData}>
+                        <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} />
                             <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} />
