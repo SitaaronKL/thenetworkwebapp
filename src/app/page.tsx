@@ -123,22 +123,102 @@ function LiveCounter({ realCount }: { realCount: number }) {
   );
 }
 
-// Animated Word Switcher Component
+// Animated Phrase Switcher Component
 function AnimatedWord({ isDark = false }: { isDark?: boolean }) {
-  const words: Array<{
-    text: string;
-    fontStyle: string;
-    gradient: string | null;
-    scale: string;
-  }> = [
-      { text: 'people', fontStyle: 'font-bold uppercase', gradient: null, scale: 'scale-x-60' },
-      { text: 'friends ', fontStyle: 'font-semibold italic', gradient: null, scale: 'scale-x-95' },
-      { text: 'creators', fontStyle: 'font-bold underline', gradient: null, scale: 'scale-x-95' },
-      { text: 'dreamers', fontStyle: 'font-medium italic', gradient: null, scale: 'scale-x-95' },
-      { text: 'thinkers', fontStyle: 'font-medium', gradient: null, scale: 'scale-x-100' },
-      { text: 'leaders', fontStyle: 'font-bold underline', gradient: null, scale: 'scale-x-95' },
-      { text: 'artists', fontStyle: 'font-medium italic', gradient: null, scale: 'scale-x-95' },
-    ];
+  const phrases: string[] = [
+    "meet the right people, faster",
+    "turn mutuals into friends",
+    "stop networking. start connecting.",
+    "the social layer for real life",
+    "your people, already nearby",
+    "find the friend of a friend",
+    "make intros that actually land",
+    "connections with context",
+    "know how you're connected",
+    "build your inner circle",
+    "discover your next cofounder",
+    "find your next roommate",
+    "find your next study group",
+    "meet people who match your taste",
+    "friends, but smarter",
+    "IRL > online",
+    "social discovery, rebuilt",
+    "your network, organized",
+    "your social cheat code",
+    "your OS for social life",
+    "social graphs you can use",
+    "meet beyond your bubble",
+    "community, on autopilot",
+    "your social home base",
+    "the fastest way to belong",
+    "go from \"we should hang\" to plans",
+    "less scrolling, more living",
+    "meet people worth meeting",
+    "discover the hidden connectors",
+    "track friendships like a pro",
+    "the CRM for your social life",
+    "turn names into relationships",
+    "see who's actually close",
+    "find people you'd vibe with",
+    "upgrade your social luck",
+    "your network, in HD",
+    "mutuals with meaning",
+    "meet through shared obsessions",
+    "make every intro personal",
+    "context turns strangers into friends",
+    "the easiest way to expand circles",
+    "meet people by what you love",
+    "find your niche on campus",
+    "discover every sub-community",
+    "find your people",
+    "see how mutuals are connected",
+    "unlock warm introductions",
+    "the anti-awkward app",
+    "skip \"what's your major?\"",
+    "start with what matters",
+    "real connections, no grind",
+    "your social life GPS",
+    "never forget a face again",
+    "remember who introduced you",
+    "track who's who in life",
+    "connect across campuses",
+    "build meaningful connections",
+    "\"wait, you know them too?\"",
+    "the cleanest way to network",
+    "build social momentum",
+    "meet people, consistently",
+    "new connections, every week",
+    "your social graph, visualized",
+    "see the rooms you should be in",
+    "meet people before you meet them",
+    "social discovery without cringe",
+    "the smart way to socialize",
+    "depth is the new clout",
+    "curated proximity",
+    "traverse dynamic social graphs",
+    "never forget how you knew someone",
+    "the network effect, for you",
+    "your second brain for people",
+    "relationships, searchable",
+    "find the bridge between circles",
+    "make your network legible",
+    "friends of friends, instantly",
+    "unlock the \"who should I meet?\"",
+    "meet the top 1% of your campus",
+    "your next opportunity is a person",
+    "your network, now actionable",
+    "uncover campus communities",
+    "keep track of who you know",
+    "never forget you know someone",
+    "discover shared interests",
+    "more user data, greater depth",
+    "privacy-first by design",
+    "the first social designed for real life",
+    "never lose anyone",
+    "deepen your conversations",
+    "built on shared social networks",
+  ];
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
@@ -146,51 +226,28 @@ function AnimatedWord({ isDark = false }: { isDark?: boolean }) {
     const interval = setInterval(() => {
       setIsFadingOut(true);
       setTimeout(() => {
-        setCurrentIndex(prev => (prev + 1) % words.length);
+        setCurrentIndex(prev => (prev + 1) % phrases.length);
         setIsFadingOut(false);
-      }, 300);
-    }, 2000);
+      }, 400);
+    }, 2800);
     return () => clearInterval(interval);
-  }, [words.length]);
+  }, [phrases.length]);
 
-  const currentWord = words[currentIndex];
-
-  const getGradientStyle = () => {
-    if (!currentWord.gradient) return {};
-    if (currentWord.gradient === 'from-blue-500 to-purple-500') {
-      return { backgroundImage: 'linear-gradient(to right, #3b82f6, #a855f7)' };
-    } else if (currentWord.gradient === 'from-pink-500 to-red-500') {
-      return { backgroundImage: 'linear-gradient(to right, #ec4899, #ef4444)' };
-    } else if (currentWord.gradient === 'from-green-500 to-teal-500') {
-      return { backgroundImage: 'linear-gradient(to right, #10b981, #14b8a6)' };
-    } else {
-      return { backgroundImage: 'linear-gradient(to right, #f97316, #eab308)' };
-    }
-  };
-
-  const hasGradient = currentWord.gradient !== null;
+  const currentPhrase = phrases[currentIndex];
 
   return (
     <div
-      className="relative flex items-center justify-center text-center h-20"
-      style={{ width: 'min(20ch, 90%)' }}
+      className="relative flex items-center justify-center text-center min-h-[4rem] md:min-h-[5rem] px-4"
+      style={{ width: 'min(90vw, 800px)' }}
     >
       <span
-        className={`inline-block origin-center ${currentWord.scale} ${currentWord.fontStyle} transition-opacity duration-500 ease-out text-4xl md:text-6xl`}
+        className="inline-block font-semibold transition-opacity duration-500 ease-out text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight"
         style={{
           opacity: isFadingOut ? 0 : 1,
-          ...(hasGradient ? {
-            ...getGradientStyle(),
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            color: 'transparent',
-          } : {
-            color: isDark ? '#000000' : '#ffffff',
-          }),
+          color: isDark ? '#000000' : '#ffffff',
         }}
       >
-        {currentWord.text}
+        {currentPhrase}
       </span>
     </div>
   );
