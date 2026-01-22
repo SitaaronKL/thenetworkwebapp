@@ -11,6 +11,7 @@ const RESERVED_ROUTES = [
   'auth',
   'consent',
   'digital-dna',
+  'discord',
   'edit-profile',
   'invite',
   'invite-friends',
