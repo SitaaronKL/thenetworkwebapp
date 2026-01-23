@@ -22,6 +22,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [school, setSchool] = useState('');
+  const [interestedInBeta, setInterestedInBeta] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -36,15 +37,15 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       const storedCampaignCode = localStorage.getItem('marketing_campaign_code');
       const storedCampaignSchool = localStorage.getItem('marketing_campaign_school');
       const storedReferralCode = localStorage.getItem('waitlist_referral_code');
-      
+
       if (storedCampaignCode) {
         setCampaignCode(storedCampaignCode);
       }
-      
+
       if (storedReferralCode) {
         setReferredByCode(storedReferralCode);
       }
-      
+
       // Pre-fill school if we have it from the campaign
       if (storedCampaignSchool && !school) {
         setSchool(storedCampaignSchool);
@@ -60,7 +61,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
     try {
       const supabase = createClient();
       const normalizedEmail = email.trim().toLowerCase();
-      
+
       // Check if email already exists on waitlist
       const { data: existingEntry, error: checkError } = await supabase
         .rpc('get_waitlist_entry_by_email', { p_email: normalizedEmail });
@@ -91,12 +92,12 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
           .select('id')
           .eq('campaign_code', campaignCode)
           .single();
-        
+
         if (campaign) {
           campaignId = campaign.id;
         }
       }
-      
+
       // Use the database function to create entry with invite code
       const { data: result, error: insertError } = await supabase
         .rpc('create_waitlist_entry', {
@@ -106,6 +107,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
           p_campaign_code: campaignCode,
           p_campaign_id: campaignId,
           p_referred_by_code: referredByCode,
+          p_interested_in_beta: interestedInBeta,
         });
 
       if (insertError) {
@@ -127,7 +129,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       setEmail('');
       setSchool('');
       setIsSubmitted(true);
-      
+
       // Clear campaign and referral data from localStorage after successful signup
       if (typeof window !== 'undefined') {
         localStorage.removeItem('marketing_campaign_code');
@@ -186,7 +188,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
 
   return (
     <div className={styles.overlay} onClick={handleClose}>
-      <div 
+      <div
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -194,7 +196,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
           color: theme === 'dark' ? '#000000' : '#ffffff',
         }}
       >
-        <button 
+        <button
           className={styles.closeButton}
           onClick={handleClose}
           style={{
@@ -217,21 +219,21 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
             </div>
             <h2 className={styles.titleSuccess}>You&apos;re on the waitlist!</h2>
             <p className={styles.subtitleCompact}>
-              We&apos;ll reach out when we have more updates. In the meantime, follow our <a 
-                href="https://www.instagram.com/join.thenetwork/" 
-                target="_blank" 
+              We&apos;ll reach out when we have more updates. In the meantime, follow our <a
+                href="https://www.instagram.com/join.thenetwork/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className={styles.instaLink}
               >Insta</a> to stay updated.
             </p>
-            
+
             {/* Referral Section */}
             <div className={styles.referralSection}>
               <h3 className={styles.referralTitle}>Want to skip the line?</h3>
               <p className={styles.referralSubtitle}>
                 Invite friends to unlock exclusive rewards
               </p>
-              
+
               {/* Reward Tiers */}
               <div className={styles.rewardTiers}>
                 <div className={`${styles.rewardTier} ${isEarlyTester ? styles.rewardUnlocked : ''}`}>
@@ -250,7 +252,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                     <span className={styles.rewardName}>Early Tester Access</span>
                   </div>
                 </div>
-                
+
                 <div className={`${styles.rewardTier} ${hasLaunchTicket ? styles.rewardUnlocked : ''}`}>
                   <div className={styles.rewardIcon}>
                     {hasLaunchTicket ? (
@@ -268,12 +270,12 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                   </div>
                 </div>
               </div>
-              
+
               {/* Progress Bar */}
               <div className={styles.progressContainer}>
                 <div className={styles.progressBar}>
-                  <div 
-                    className={styles.progressFill} 
+                  <div
+                    className={styles.progressFill}
                     style={{ width: `${Math.min((referralCount / 5) * 100, 100)}%` }}
                   />
                   <div className={styles.progressMarker} style={{ left: '60%' }} />
@@ -283,11 +285,11 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                   <span>{Math.max(5 - referralCount, 0)} to go</span>
                 </div>
               </div>
-              
+
               {/* Invite Link */}
               <div className={styles.inviteLinkSection}>
                 <p className={styles.inviteLinkLabel}>Your personal invite link</p>
-                <div 
+                <div
                   className={styles.inviteLinkBox}
                   style={{
                     backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
@@ -364,6 +366,24 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                   }}
                 />
               </div>
+
+              {/* Beta Tester Interest Checkbox */}
+              <label
+                className={styles.checkboxLabel}
+                style={{
+                  color: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={interestedInBeta}
+                  onChange={(e) => setInterestedInBeta(e.target.checked)}
+                  className={styles.checkbox}
+                />
+                <span>
+                  I am interested in being a beta tester. Make note that involves being in contact with the founding team, giving feedback, and contributing to new feature development.
+                </span>
+              </label>
 
               {error && (
                 <div className={styles.error} style={{ color: theme === 'dark' ? '#ef4444' : '#fca5a5' }}>

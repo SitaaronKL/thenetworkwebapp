@@ -121,6 +121,29 @@
   opacity: 0.5;
 }
 
+/* Checkbox styles */
+.checkboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  padding: 12px 0;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 4px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  accent-color: #22c55e;
+  margin-top: 2px;
+}
+
 .error {
   font-size: 14px;
   text-align: left;

@@ -11,8 +11,8 @@ export async function getAdminData(password: string) {
   }
 
   if (!SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY is missing')
-      return { error: 'Service configuration error. Check server logs.' }
+    console.error('SUPABASE_SERVICE_ROLE_KEY is missing')
+    return { error: 'Service configuration error. Check server logs.' }
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -38,7 +38,7 @@ export async function getAdminData(password: string) {
     // 2. Today's Count
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    
+
     const { count: todayCount, error: todayError } = await supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
@@ -63,32 +63,32 @@ export async function getAdminData(password: string) {
     const { data: sourceData, error: sourceError } = await supabase
       .from('waitlist')
       .select('campaign_code, referred_by_code')
-    
+
     if (sourceError) throw sourceError
 
     const sources: Record<string, number> = {}
     sourceData.forEach(item => {
-        // If they have a referred_by_code, count it as "Referral"
-        // If they have a campaign_code, use that
-        // Otherwise Direct
-        let source = 'Direct / Unknown'
-        if (item.referred_by_code) {
-            source = 'Referral'
-        } else if (item.campaign_code) {
-            source = item.campaign_code
-        }
-        sources[source] = (sources[source] || 0) + 1
+      // If they have a referred_by_code, count it as "Referral"
+      // If they have a campaign_code, use that
+      // Otherwise Direct
+      let source = 'Direct / Unknown'
+      if (item.referred_by_code) {
+        source = 'Referral'
+      } else if (item.campaign_code) {
+        source = item.campaign_code
+      }
+      sources[source] = (sources[source] || 0) + 1
     })
 
     // Calculate percentages based on totalCount (waitlist + profiles) so they add up to 100%
     const sourceList = Object.entries(sources)
-      .map(([source, count]) => ({ 
-          source, 
-          count, 
-          percentage: totalCount ? ((count / totalCount) * 100).toFixed(1) : '0' 
+      .map(([source, count]) => ({
+        source,
+        count,
+        percentage: totalCount ? ((count / totalCount) * 100).toFixed(1) : '0'
       }))
       .sort((a, b) => b.count - a.count)
-    
+
     // Add profiles as a separate source category so we can see where all users came from
     if (profilesCount && profilesCount > 0) {
       sourceList.push({
@@ -103,11 +103,22 @@ export async function getAdminData(password: string) {
     // 5. Recent Signups Table
     const { data: recentSignups, error: signupsError } = await supabase
       .from('waitlist')
-      .select('*')
+      .select('*, interested_in_beta, beta_status')
       .order('created_at', { ascending: false })
       .limit(100)
 
     if (signupsError) throw signupsError
+
+    // 5b. Beta Testers - users interested in being beta testers
+    const { data: betaTesters, count: betaTestersCount, error: betaError } = await supabase
+      .from('waitlist')
+      .select('id, name, email, school, created_at, beta_status', { count: 'exact' })
+      .eq('interested_in_beta', true)
+      .order('created_at', { ascending: false })
+
+    if (betaError) {
+      console.warn('Beta testers fetch warning:', betaError)
+    }
 
     // 6. AB Campaign Analytics
     const { data: campaignAnalytics, error: campaignError } = await supabase
@@ -145,11 +156,34 @@ export async function getAdminData(password: string) {
         sourceList,
         recentSignups,
         campaignAnalytics: campaignsWithStats,
+        betaTesters: betaTesters || [],
+        betaTestersCount: betaTestersCount || 0,
       }
     }
 
   } catch (error: any) {
     console.error('Admin Data Fetch Error:', error)
     return { error: error.message || 'Failed to fetch data' }
+  }
+}
+
+export async function updateBetaStatus(password: string, userId: string, status: 'accepted' | 'rejected' | 'pending') {
+  if (password !== 'Ironman1234@') {
+    return { error: 'Invalid password' }
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+  try {
+    const { error } = await supabase
+      .from('waitlist')
+      .update({ beta_status: status })
+      .eq('id', userId)
+
+    if (error) throw error
+    return { success: true }
+  } catch (error: any) {
+    console.error('Update Beta Status Error:', error)
+    return { error: error.message || 'Failed to update status' }
   }
 }

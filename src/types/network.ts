@@ -12,6 +12,13 @@ export interface NetworkPerson {
     isBranchNode?: boolean; // True if this node belongs to a friend's network (not user's direct connection)
     isGreyedOut?: boolean; // True if this node should be displayed in greyscale
     parentFriendId?: string; // The friend ID this branch node is connected through
+    
+    // Discovery node properties (floating circles with no connection lines)
+    isDiscoveryNode?: boolean; // True if this is a discovery/suggested user (not connected yet)
+    proximityScore?: number; // 0-1, determines distance from user node
+    proximityLevel?: 'very_close' | 'close' | 'nearby' | 'distant' | 'far';
+    sharedNetworks?: string[]; // Networks shared with current user
+    whyYouMightMeet?: string; // Description shown when clicked
 }
 
 export interface Profile {

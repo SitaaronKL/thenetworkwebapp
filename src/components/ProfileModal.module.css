@@ -143,6 +143,37 @@
     letter-spacing: 0.5px;
 }
 
+/* Overlap Score Badge for Discovery Users */
+.overlapScoreBadge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #a5b4fc;
+}
+
+.overlapScoreBadge span {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(165, 180, 252, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.overlapLevel {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(165, 180, 252, 0.7);
+    text-transform: capitalize;
+    margin-top: 2px;
+}
+
 /* Legacy compatibility percentage - hidden, using badge instead */
 .compatibilityPercentage {
     display: none;

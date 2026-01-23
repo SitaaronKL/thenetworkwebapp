@@ -90,7 +90,7 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
 
     // Update friend request status to accepted
     await supabase.from('friend_requests').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', requestId);
-    
+
     // Create user_connection with current user as sender (required by RLS policy)
     // First check if connection already exists in either direction
     const { data: existingConns1 } = await supabase
@@ -98,13 +98,13 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
       .select('id, status')
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id);
-    
+
     const { data: existingConns2 } = await supabase
       .from('user_connections')
       .select('id, status')
       .eq('sender_id', user.id)
       .eq('receiver_id', senderId);
-    
+
     const existingConns = [...(existingConns1 || []), ...(existingConns2 || [])];
 
     if (existingConns && existingConns.length > 0) {
@@ -115,14 +115,14 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
         .eq('id', existingConns[0].id);
     } else {
       // Create new connection with current user as sender (to pass RLS)
-      await supabase.from('user_connections').insert({ 
-        sender_id: user.id, 
-        receiver_id: senderId, 
+      await supabase.from('user_connections').insert({
+        sender_id: user.id,
+        receiver_id: senderId,
         status: 'accepted',
         created_at: new Date().toISOString()
       });
     }
-    
+
     setRequests(prev => prev.filter(r => r.id !== requestId));
     setProcessingIds(prev => { const next = new Set(prev); next.delete(requestId); return next; });
     onRequestAccepted?.();
@@ -163,14 +163,14 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
                 <div className={styles.embeddedListName}>{req.sender_profile?.full_name || 'Unknown'}</div>
               </div>
               <div className={styles.embeddedListActions}>
-                <button 
+                <button
                   className={`${styles.embeddedListAction} ${styles.accept}`}
                   onClick={() => handleAccept(req.id, req.sender_id)}
                   disabled={processingIds.has(req.id)}
                 >
                   Accept
                 </button>
-                <button 
+                <button
                   className={`${styles.embeddedListAction} ${styles.decline}`}
                   onClick={() => handleDecline(req.id)}
                   disabled={processingIds.has(req.id)}
@@ -275,7 +275,7 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
               <div className={styles.embeddedListInfo}>
                 <div className={styles.embeddedListName}>{profile.full_name}</div>
               </div>
-              <button 
+              <button
                 className={styles.embeddedListAction}
                 onClick={() => sendRequest(profile.id)}
                 disabled={sentRequests.has(profile.id)}
@@ -290,9 +290,9 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnect, onSkip }: { 
-  onClose: () => void; 
-  mondayDrop: any; 
+function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnect, onSkip }: {
+  onClose: () => void;
+  mondayDrop: any;
   showCloseButton?: boolean;
   onConnect?: () => void;
   onSkip?: () => void;
@@ -312,16 +312,16 @@ function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnec
         </div>
         <div className={styles.embeddedPanelBody}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '16px 0' }}>
-            <img 
-              src={candidate.avatar} 
+            <img
+              src={candidate.avatar}
               alt={candidate.name}
-              style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
                 objectFit: 'cover',
                 border: '2px solid rgba(255,255,255,0.1)'
-              }} 
+              }}
             />
             <div style={{ textAlign: 'center' }} className={styles.weeklyDropTextContainer}>
               <div className={styles.weeklyDropName}>{candidate.name}</div>
@@ -447,7 +447,7 @@ function InviteFriendsPanel({ onClose }: { onClose: () => void }) {
           <>
             <div className={styles.embeddedInviteLink}>
               <span className={styles.embeddedInviteLinkText}>{stats?.inviteLink || 'Loading...'}</span>
-              <button 
+              <button
                 className={`${styles.embeddedCopyButton} ${copied ? styles.copied : ''}`}
                 onClick={copyLink}
               >
@@ -498,7 +498,7 @@ export default function Home() {
   // Expandable pill panel state
   const [expandedPanel, setExpandedPanel] = useState<'friendRequests' | 'searchUsers' | 'weeklyDrop' | 'inviteFriends' | 'suggestions' | 'profile' | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
-  
+
   // Legacy modal states (kept for backwards compatibility, but we'll use expandedPanel)
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showSearchUser, setShowSearchUser] = useState(false);
@@ -513,6 +513,9 @@ export default function Home() {
   const [friendOfFriendData, setFriendOfFriendData] = useState<NetworkPerson[]>([]);
   const [mutualConnectionIds, setMutualConnectionIds] = useState<Set<string>>(new Set());
   const [isLoadingFriendNetwork, setIsLoadingFriendNetwork] = useState(false);
+
+  // Discovery profiles state (floating circles - people in your networks but not connected)
+  const [discoveryPeople, setDiscoveryPeople] = useState<NetworkPerson[]>([]);
 
   const shouldShowDefaultSuggestions =
     !expandedPanel &&
@@ -682,7 +685,7 @@ export default function Home() {
     // This prevents the flash of old connections
     setFriendOfFriendData([]);
     setMutualConnectionIds(new Set());
-    
+
     setIsLoadingFriendNetwork(true);
     setExpandedFriendId(friendId);
     const supabase = createClient();
@@ -701,10 +704,10 @@ export default function Home() {
 
       // Fallback to direct query if RPC fails (might be RLS restricted)
       let friendOfFriendIds = new Set<string>();
-      
+
       if (rpcError || !friendConnectionsRpc) {
         console.log('⚠️ RPC failed, trying direct query (may be limited by RLS)');
-        
+
         // Fetch friend's connections from user_connections
         const { data: friendConnections, error: connError } = await supabase
           .from('user_connections')
@@ -776,7 +779,7 @@ export default function Home() {
         .from('profiles')
         .select('id, full_name, avatar_url')
         .in('id', branchNodeIds);
-      
+
       // Fetch extras for bio if needed
       const branchExtras = branchNodeIds.length > 0 ? await supabase
         .from('user_profile_extras')
@@ -808,7 +811,7 @@ export default function Home() {
         const totalBranches = branchProfiles.length;
         const angleSpread = Math.PI * 0.7; // 126 degrees spread
         const startAngle = directionAngle - angleSpread / 2;
-        const angle = totalBranches > 1 
+        const angle = totalBranches > 1
           ? startAngle + (index / (totalBranches - 1)) * angleSpread
           : directionAngle; // Single branch goes straight out
         const radius = 180; // Distance from the friend node
@@ -841,6 +844,55 @@ export default function Home() {
       setIsLoadingFriendNetwork(false);
     }
   }, [user, people]);
+
+  // Function to load discovery profiles (people in your networks but not connected)
+  const loadDiscoveryProfiles = useCallback(async () => {
+    if (!user) return;
+
+    const supabase = createClient();
+
+    try {
+      // Fetch discovery profiles from the database
+      const { data: profiles, error } = await supabase
+        .from('discovery_profiles')
+        .select('*')
+        .eq('is_active', true)
+        .order('proximity_score', { ascending: false });
+
+      if (error) {
+        console.error('Error loading discovery profiles:', error);
+        setDiscoveryPeople([]);
+        return;
+      }
+
+      if (!profiles || profiles.length === 0) {
+        setDiscoveryPeople([]);
+        return;
+      }
+
+      // Convert discovery profiles to NetworkPerson format
+      const discoveryNodes: NetworkPerson[] = profiles.map((profile: any) => ({
+        id: profile.id,
+        name: profile.full_name?.split(' ')[0] || 'User',
+        imageUrl: profile.avatar_url,
+        starColor: '#6366f1', // Indigo for discovery nodes
+        x: 0, // Will be positioned by NetworkGalaxy based on proximity
+        y: 0,
+        connections: [], // No connections (no lines!)
+        bio: profile.bio,
+        isDiscoveryNode: true,
+        proximityScore: profile.proximity_score || 0.5,
+        proximityLevel: profile.proximity_level || 'nearby',
+        sharedNetworks: profile.networks || [],
+        whyYouMightMeet: profile.why_you_might_meet
+      }));
+
+      setDiscoveryPeople(discoveryNodes);
+    } catch (error) {
+      console.error('Error loading discovery profiles:', error);
+      setDiscoveryPeople([]);
+    }
+  }, [user]);
 
   // Auth redirect
   useEffect(() => {
@@ -1195,8 +1247,8 @@ export default function Home() {
       const topMatchIds = notInNetworkMatches.slice(0, 10).map((m: any) => m.id);
       const { data: fullProfiles } = await supabase
         .from('profiles')
-              .select('id, full_name, avatar_url')
-              .in('id', topMatchIds);
+        .select('id, full_name, avatar_url')
+        .in('id', topMatchIds);
 
       if (!fullProfiles || fullProfiles.length === 0) {
         setSuggestions([]);
@@ -1687,7 +1739,8 @@ export default function Home() {
     loadNetworkData();
     loadAriaSuggestions();
     checkPendingFriendRequests();
-  }, [loadNetworkData, loadAriaSuggestions, checkPendingFriendRequests]);
+    // loadDiscoveryProfiles(); // Load discovery nodes (floating circles)
+  }, [loadNetworkData, loadAriaSuggestions, checkPendingFriendRequests, loadDiscoveryProfiles]);
 
   // Refresh friend request count when modal opens
   useEffect(() => {
@@ -1728,7 +1781,7 @@ export default function Home() {
           onFriendExpand={(friendId) => {
             if (friendId) {
               const person = people.find(p => p.id === friendId);
-              
+
               // If clicking the same friend that's already expanded, just collapse
               if (expandedFriendId === friendId) {
                 setExpandedFriendId(null);
@@ -1753,6 +1806,7 @@ export default function Home() {
           friendOfFriendData={friendOfFriendData}
           mutualConnectionIds={mutualConnectionIds}
           isLoadingFriendNetwork={isLoadingFriendNetwork}
+          discoveryPeople={discoveryPeople}
         />
       </div>
 
@@ -1786,7 +1840,7 @@ export default function Home() {
 
         <div className={`${styles.actionIconsPill} ${(expandedPanel || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) ? styles.expanded : ''}`}>
           <div className={styles.actionIcons}>
-            <div 
+            <div
               className={`${styles.iconButtonWrapper} ${expandedPanel === 'inviteFriends' ? styles.active : ''}`}
               onClick={() => setExpandedPanel(expandedPanel === 'inviteFriends' ? null : 'inviteFriends')}
             >
@@ -1797,7 +1851,7 @@ export default function Home() {
               </div>
               <span className={styles.iconLabel}>Invite Friends</span>
             </div>
-            <div 
+            <div
               className={`${styles.iconButtonWrapper} ${expandedPanel === 'searchUsers' ? styles.active : ''}`}
               onClick={() => setExpandedPanel(expandedPanel === 'searchUsers' ? null : 'searchUsers')}
             >
@@ -1808,8 +1862,8 @@ export default function Home() {
               </div>
               <span className={styles.iconLabel}>Search Users</span>
             </div>
-            <div 
-              className={`${styles.iconButtonWrapper} ${expandedPanel === 'friendRequests' ? styles.active : ''}`} 
+            <div
+              className={`${styles.iconButtonWrapper} ${expandedPanel === 'friendRequests' ? styles.active : ''}`}
               onClick={() => setExpandedPanel(expandedPanel === 'friendRequests' ? null : 'friendRequests')}
             >
               <div className={styles.iconButton} style={{ position: 'relative' }}>
@@ -1822,9 +1876,9 @@ export default function Home() {
               </div>
               <span className={styles.iconLabel}>Friend Requests</span>
             </div>
-{/* Weekly Drop button removed - card now shows automatically when no other panel is open */}
+            {/* Weekly Drop button removed - card now shows automatically when no other panel is open */}
           </div>
-          
+
           {/* Expanded Panel Content - shows when panel selected, weekly drop, or default suggestions */}
           {(expandedPanel || shouldShowDefaultSuggestions || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) && (
             <div className={styles.expandedContent}>
@@ -1839,7 +1893,7 @@ export default function Home() {
               )}
               {expandedPanel === 'profile' && selectedPerson && (
                 <div className={styles.profilePanelContent}>
-                  <button 
+                  <button
                     className={styles.embeddedPanelClose}
                     onClick={() => {
                       setExpandedPanel(null);
@@ -1862,9 +1916,9 @@ export default function Home() {
               )}
               {/* Weekly Drop shows by default ONLY when there's an actual match to show */}
               {!expandedPanel && mondayDrop?.status === 'shown' && mondayDrop?.candidate && (
-                <WeeklyDropPanel 
-                  onClose={() => {}} 
-                  mondayDrop={mondayDrop} 
+                <WeeklyDropPanel
+                  onClose={() => { }}
+                  mondayDrop={mondayDrop}
                   showCloseButton={false}
                   onConnect={() => handleMondayDropInteraction('connected')}
                   onSkip={() => handleMondayDropInteraction('skipped')}

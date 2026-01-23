@@ -93,6 +93,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
     const [isConnected, setIsConnected] = useState<boolean>(false);
     const [requestStatus, setRequestStatus] = useState<RequestStatus>('checking');
     const [isSending, setIsSending] = useState(false);
+    // Overlap score for discovery users
+    const [overlapScore, setOverlapScore] = useState<number | null>(null);
+    const [overlapLevel, setOverlapLevel] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user || !person) return;
@@ -105,6 +108,72 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                 // First, check connection status
                 const { data: { user: authUser } } = await supabase.auth.getUser();
                 if (!authUser) {
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Handle discovery users (fake users) - calculate overlap score
+                if (person.isDiscoveryNode) {
+                    // Fetch discovery profile data
+                    const { data: discoveryProfile } = await supabase
+                        .from('discovery_profiles')
+                        .select('*')
+                        .eq('id', person.id)
+                        .eq('is_active', true)
+                        .single();
+
+                    if (discoveryProfile) {
+                        // Use pre-computed proximity score from database
+                        const score = discoveryProfile.proximity_score || 0.5;
+                        setOverlapScore(Math.round(score * 100));
+                        setOverlapLevel(discoveryProfile.proximity_level || 'nearby');
+
+                        // Format shared networks from discovery profile
+                        const networks: SharedNetwork[] = [];
+                        if (discoveryProfile.networks && Array.isArray(discoveryProfile.networks)) {
+                            discoveryProfile.networks.forEach((net: string) => {
+                                // Classify network type (simple heuristic)
+                                let type = 'community';
+                                const netLower = net.toLowerCase();
+                                if (netLower.includes('college') || netLower.includes('university')) type = 'college';
+                                else if (netLower.includes('high school') || netLower.includes('school')) type = 'high_school';
+                                else if (netLower.includes('company') || netLower.includes('inc') || netLower.includes('corp')) type = 'company';
+                                else if (netLower.includes('new york') || netLower.includes('nyc') || netLower.includes('city')) type = 'city';
+                                else if (netLower.includes('thenetwork') || netLower.includes('startup')) type = 'startup';
+                                
+                                networks.push({ name: net, type });
+                            });
+                        }
+                        if (discoveryProfile.college) {
+                            networks.push({ name: discoveryProfile.college, type: 'college' });
+                        }
+                        if (discoveryProfile.high_school) {
+                            networks.push({ name: discoveryProfile.high_school, type: 'high_school' });
+                        }
+                        if (discoveryProfile.company) {
+                            networks.push({ name: discoveryProfile.company, type: 'company' });
+                        }
+                        setSharedNetworks(networks);
+
+                        // Set profile data
+                        setProfileData({
+                            full_name: discoveryProfile.full_name,
+                            avatar_url: discoveryProfile.avatar_url,
+                            bio: discoveryProfile.bio,
+                            networks: discoveryProfile.networks || [],
+                            school: discoveryProfile.college || null,
+                            company: discoveryProfile.company || null,
+                        });
+
+                        // Set description
+                        if (discoveryProfile.why_you_might_meet) {
+                            setCompatibilityDescription(discoveryProfile.why_you_might_meet);
+                        }
+
+                        // Discovery users are never connected
+                        setIsConnected(false);
+                        setRequestStatus('none');
+                    }
                     setIsLoading(false);
                     return;
                 }
@@ -506,13 +575,14 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
     };
 
     const getButtonText = () => {
+        if (person.isDiscoveryNode) return 'Discovery User';
         if (requestStatus === 'checking') return 'Checking...';
         if (requestStatus === 'pending') return 'Request Sent';
         if (requestStatus === 'accepted') return 'Connected';
         return 'Add Friend';
     };
 
-    const isButtonDisabled = requestStatus !== 'none' || isSending;
+    const isButtonDisabled = person.isDiscoveryNode || requestStatus !== 'none' || isSending;
 
     const modalContent = (
         <>
@@ -533,7 +603,23 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                 </div>
                 <div className={styles.headerInfo}>
                     <h2 className={styles.name}>{person.name}</h2>
-                    {compatibilityPercentage !== null && (
+                    {/* Show overlap score for discovery users */}
+                    {person.isDiscoveryNode && overlapScore !== null && (
+                        <div className={styles.overlapScoreBadge}>
+                            {overlapScore}% <span>OVERLAP</span>
+                            {overlapLevel && (
+                                <div className={styles.overlapLevel}>
+                                    {overlapLevel === 'very_close' && 'Very Close'}
+                                    {overlapLevel === 'close' && 'Close'}
+                                    {overlapLevel === 'nearby' && 'Nearby'}
+                                    {overlapLevel === 'distant' && 'Distant'}
+                                    {overlapLevel === 'far' && 'Far'}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {/* Show compatibility for regular users */}
+                    {!person.isDiscoveryNode && compatibilityPercentage !== null && (
                         <div className={styles.compatibilityBadge}>
                             {compatibilityPercentage}% <span>{isConnected ? 'COMPATIBLE' : 'COMPATIBLE'}</span>
                         </div>

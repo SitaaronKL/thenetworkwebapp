@@ -14,6 +14,8 @@ interface NetworkGalaxyProps {
     friendOfFriendData?: NetworkPerson[];
     mutualConnectionIds?: Set<string>;
     isLoadingFriendNetwork?: boolean;
+    // Discovery nodes (floating circles with no lines)
+    discoveryPeople?: NetworkPerson[];
 }
 
 export default React.memo(function NetworkGalaxy({
@@ -24,7 +26,8 @@ export default React.memo(function NetworkGalaxy({
     onFriendExpand,
     friendOfFriendData = [],
     mutualConnectionIds = new Set(),
-    isLoadingFriendNetwork = false
+    isLoadingFriendNetwork = false,
+    discoveryPeople = []
 }: NetworkGalaxyProps) {
     // Theme note: This component uses dark mode styling (black bg, white text).
     // Light mode is handled by the global invert filter on <html>.
@@ -40,21 +43,23 @@ export default React.memo(function NetworkGalaxy({
     const nodeSelRef = useRef<d3.Selection<SVGGElement, any, SVGGElement, unknown> | null>(null);
     const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const containerGroupRef = useRef<SVGGElement | null>(null);
-    
+
     // Refs for callbacks and data to avoid stale closures
     const onPersonClickRef = useRef(onPersonClick);
     const onFriendExpandRef = useRef(onFriendExpand);
     const peopleRef = useRef(people);
     const friendOfFriendDataRef = useRef(friendOfFriendData);
-    
+    const discoveryPeopleRef = useRef(discoveryPeople);
+
     // Keep refs updated
     useEffect(() => {
         onPersonClickRef.current = onPersonClick;
         onFriendExpandRef.current = onFriendExpand;
         peopleRef.current = people;
         friendOfFriendDataRef.current = friendOfFriendData;
-    }, [onPersonClick, onFriendExpand, people, friendOfFriendData]);
-    
+        discoveryPeopleRef.current = discoveryPeople;
+    }, [onPersonClick, onFriendExpand, people, friendOfFriendData, discoveryPeople]);
+
     // Helper function to get viewbox scale based on current mobile state
     // Higher value = more zoomed out (can see more of the network)
     const getViewboxScale = () => isMobileRef.current ? 3.2 : 2.4;
@@ -123,9 +128,50 @@ export default React.memo(function NetworkGalaxy({
                 y,
                 isGreyedOut: shouldGreyOut(p.id),
                 isBranchNode: false,
-                isExpandedFriend
+                isExpandedFriend,
+                isDiscoveryNode: false,
+                proximityLevel: undefined as 'very_close' | 'close' | 'nearby' | 'distant' | 'far' | undefined
             };
         });
+
+        // Add discovery nodes (floating circles with no connection lines)
+        // Position them based on proximity score (higher = closer to user)
+        if (discoveryPeople.length > 0) {
+            discoveryPeople.forEach((dp, index) => {
+                // Calculate position based on proximity score
+                // Higher proximity = closer to center (user)
+                const proximityScore = dp.proximityScore || 0.5;
+                // Distance: inverse of proximity (closer score = closer distance)
+                // Range: 150 (very close) to 600 (far)
+                const minDistance = isMobileRef.current ? 200 : 250;
+                const maxDistance = isMobileRef.current ? 500 : 700;
+                const distance = minDistance + (1 - proximityScore) * (maxDistance - minDistance);
+
+                // Spread discovery nodes in a separate arc (opposite side from connections)
+                // This keeps them visually distinct from actual friends
+                const totalDiscovery = discoveryPeople.length;
+                const arcSpread = Math.PI * 0.8; // 144 degrees
+                const startAngle = Math.PI * 1.1; // Start from bottom-left area
+                const angle = totalDiscovery > 1
+                    ? startAngle + (index / (totalDiscovery - 1)) * arcSpread
+                    : startAngle + arcSpread / 2;
+
+                nodes.push({
+                    id: dp.id,
+                    name: dp.name,
+                    r: 30, // Slightly smaller than regular nodes
+                    color: dp.starColor || '#6366f1', // Indigo for discovery nodes
+                    imgUrl: dp.imageUrl,
+                    x: Math.cos(angle) * distance,
+                    y: Math.sin(angle) * distance,
+                    isGreyedOut: false,
+                    isBranchNode: false,
+                    isExpandedFriend: false,
+                    isDiscoveryNode: true,
+                    proximityLevel: dp.proximityLevel || 'nearby'
+                });
+            });
+        }
 
         // Add branch nodes (friend-of-friend connections) when a friend is expanded
         if (expandedFriendId && friendOfFriendData.length > 0) {
@@ -143,7 +189,7 @@ export default React.memo(function NetworkGalaxy({
                 const totalBranches = friendOfFriendData.length;
                 const angleSpread = Math.PI * 0.7; // 126 degrees spread
                 const startAngle = directionAngle - angleSpread / 2;
-                const angle = totalBranches > 1 
+                const angle = totalBranches > 1
                     ? startAngle + (index / (totalBranches - 1)) * angleSpread
                     : directionAngle; // Single branch goes straight out
                 const radius = 180; // Distance from the friend node
@@ -161,7 +207,9 @@ export default React.memo(function NetworkGalaxy({
                     y: friendY + Math.sin(angle) * radius,
                     isGreyedOut: !isMutual, // Grey out if not a mutual connection
                     isBranchNode: true,
-                    isExpandedFriend: false
+                    isExpandedFriend: false,
+                    isDiscoveryNode: false,
+                    proximityLevel: undefined
                 });
             });
         }
@@ -178,7 +226,7 @@ export default React.memo(function NetworkGalaxy({
 
             // Add branch nodes (friend-of-friend - not in main network)
             friendOfFriendData.forEach(fof => expandedFriendConnections.add(fof.id));
-            
+
             // Add mutual connections (people in both main network and friend's network)
             mutualConnectionIds.forEach(mutualId => {
                 if (mutualId !== currentUserId && mutualId !== expandedFriendId && nodeIds.has(mutualId)) {
@@ -191,20 +239,20 @@ export default React.memo(function NetworkGalaxy({
         people.forEach(p => {
             // Skip links from expanded friend - we'll add those separately
             if (p.id === expandedFriendId) return;
-            
+
             if (p.connections) {
                 p.connections.forEach(targetId => {
                     // Skip links to expanded friend - those will be added separately
                     if (targetId === expandedFriendId) return;
-                    
+
                     if (nodeIds.has(targetId)) {
                         const linkKey = [p.id, targetId].sort().join('-');
                         if (!linkSet.has(linkKey)) {
                             linkSet.add(linkKey);
-                            links.push({ 
-                                source: p.id, 
-                                target: targetId, 
-                                isBranchLink: false 
+                            links.push({
+                                source: p.id,
+                                target: targetId,
+                                isBranchLink: false
                             });
                         }
                     }
@@ -222,9 +270,9 @@ export default React.memo(function NetworkGalaxy({
                         linkSet.add(linkKey);
                         // Only make it purple if it's a mutual connection
                         const isMutual = mutualConnectionIds.has(connId);
-                        links.push({ 
-                            source: expandedFriendId, 
-                            target: connId, 
+                        links.push({
+                            source: expandedFriendId,
+                            target: connId,
                             isBranchLink: isMutual // Purple only for mutuals
                         });
                     }
@@ -233,7 +281,7 @@ export default React.memo(function NetworkGalaxy({
         }
 
         return { nodes, links };
-    }, [people, currentUserId, expandedFriendId, friendOfFriendData, mutualConnectionIds]);
+    }, [people, currentUserId, expandedFriendId, friendOfFriendData, mutualConnectionIds, discoveryPeople]);
 
     // Initialize D3 chart once (mirrors the Observable chart = { ... } block)
     useEffect(() => {
@@ -366,18 +414,18 @@ export default React.memo(function NetworkGalaxy({
         (svgRef.current as any).__update = ({ nodes, links }: { nodes: any[]; links: any[] }) => {
             // Recycle old nodes to preserve position & velocity
             const old = new Map<string, any>((node as any).data().map((d: any) => [d.id, d]));
-            
+
             // For existing nodes, preserve their EXACT current position (x, y, vx, vy)
             // Only new nodes get their initial positions from the input
             const nextNodes = nodes.map((d: any) => {
                 const existing = old.get(d.id);
                 if (existing) {
                     // Preserve position and velocity, only update visual properties
-                    return { 
-                        ...d, 
-                        x: existing.x, 
-                        y: existing.y, 
-                        vx: existing.vx || 0, 
+                    return {
+                        ...d,
+                        x: existing.x,
+                        y: existing.y,
+                        vx: existing.vx || 0,
                         vy: existing.vy || 0,
                         fx: existing.fx,
                         fy: existing.fy
@@ -393,11 +441,21 @@ export default React.memo(function NetworkGalaxy({
                     (enter: any) => {
                         const g = enter.append('g').call(drag(simulation));
 
+                        // Circle with different styles for discovery nodes
                         g.append('circle')
                             .attr('r', (d: any) => d.r)
                             .attr('fill', (d: any) => d.color)
-                            .attr('stroke', (d: any) => d.isExpandedFriend ? '#000' : '#fff')
-                            .attr('stroke-width', (d: any) => d.isExpandedFriend ? 3 : 1.5);
+                            .attr('stroke', (d: any) => {
+                                if (d.isDiscoveryNode) return '#6366f1'; // Indigo for discovery
+                                if (d.isExpandedFriend) return '#000';
+                                return '#fff';
+                            })
+                            .attr('stroke-width', (d: any) => {
+                                if (d.isDiscoveryNode) return 2;
+                                if (d.isExpandedFriend) return 3;
+                                return 1.5;
+                            })
+                            .attr('stroke-dasharray', (d: any) => d.isDiscoveryNode ? '4,3' : 'none');
 
                         g.append('image')
                             .attr('x', (d: any) => -d.r)
@@ -414,14 +472,14 @@ export default React.memo(function NetworkGalaxy({
                             .attr('y', (d: any) => d.r + 18)
                             // Make labels thinner / non-bold for readability
                             .style('font-family', 'Inter, system-ui, sans-serif')
-                            .style('font-size', (d: any) => d.isBranchNode ? '10px' : '11px')
+                            .style('font-size', (d: any) => (d.isBranchNode || d.isDiscoveryNode) ? '10px' : '11px')
                             .style('font-weight', '400')
                             .style('fill', '#ffffff') // White text for dark mode, global invert handles light
                             .text((d: any) => d.name || '');
 
-                        // Apply greyscale filter to group
+                        // Apply greyscale filter to group (not for discovery nodes)
                         g.style('filter', (d: any) => d.isGreyedOut ? 'grayscale(1) opacity(0.4)' : 'none')
-                         .style('transition', 'filter 0.3s ease');
+                            .style('transition', 'filter 0.3s ease');
 
                         return g;
                     },
@@ -430,22 +488,31 @@ export default React.memo(function NetworkGalaxy({
                         update.select('circle')
                             .attr('r', (d: any) => d.r)
                             .attr('fill', (d: any) => d.color)
-                            .attr('stroke', (d: any) => d.isExpandedFriend ? '#000' : '#fff')
-                            .attr('stroke-width', (d: any) => d.isExpandedFriend ? 3 : 1.5);
-                        
+                            .attr('stroke', (d: any) => {
+                                if (d.isDiscoveryNode) return '#6366f1';
+                                if (d.isExpandedFriend) return '#000';
+                                return '#fff';
+                            })
+                            .attr('stroke-width', (d: any) => {
+                                if (d.isDiscoveryNode) return 2;
+                                if (d.isExpandedFriend) return 3;
+                                return 1.5;
+                            })
+                            .attr('stroke-dasharray', (d: any) => d.isDiscoveryNode ? '4,3' : 'none');
+
                         update.select('image')
                             .attr('x', (d: any) => -d.r)
                             .attr('y', (d: any) => -d.r)
                             .attr('width', (d: any) => d.r * 2)
                             .attr('height', (d: any) => d.r * 2);
-                        
+
                         update.select('text')
-                            .style('font-size', (d: any) => d.isBranchNode ? '10px' : '11px');
-                        
+                            .style('font-size', (d: any) => (d.isBranchNode || d.isDiscoveryNode) ? '10px' : '11px');
+
                         // Update greyscale filter
                         update.style('filter', (d: any) => d.isGreyedOut ? 'grayscale(1) opacity(0.4)' : 'none')
-                              .style('transition', 'filter 0.3s ease');
-                        
+                            .style('transition', 'filter 0.3s ease');
+
                         return update;
                     }
                 );
@@ -467,33 +534,41 @@ export default React.memo(function NetworkGalaxy({
 
             // Add click handlers to all nodes (existing and new)
             // First click expands network, clicking expanded friend or branch node opens profile
+            // Discovery nodes always open profile modal
             node.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
-               .on('click', (event: any, d: any) => {
-                   if (d.id === currentUserId) return;
-                   
-                   // Use refs to get current values (avoids stale closures)
-                   const currentPeople = peopleRef.current;
-                   const currentFriendOfFriendData = friendOfFriendDataRef.current;
-                   const currentOnPersonClick = onPersonClickRef.current;
-                   const currentOnFriendExpand = onFriendExpandRef.current;
-                   
-                   // Find the person in people array or friendOfFriendData
-                   const person = currentPeople.find(p => p.id === d.id) || 
-                                  currentFriendOfFriendData.find(p => p.id === d.id);
-                   
-                   if (d.isBranchNode) {
-                       // Branch nodes: open profile modal
-                       if (person && currentOnPersonClick) {
-                           currentOnPersonClick(person);
-                       }
-                   } else if (currentOnFriendExpand) {
-                       // Main network nodes: expand/collapse their network
-                       currentOnFriendExpand(d.id);
-                   } else if (person && currentOnPersonClick) {
-                       // Fallback to old behavior if no onFriendExpand provided
-                       currentOnPersonClick(person);
-                   }
-               });
+                .on('click', (event: any, d: any) => {
+                    if (d.id === currentUserId) return;
+
+                    // Use refs to get current values (avoids stale closures)
+                    const currentPeople = peopleRef.current;
+                    const currentFriendOfFriendData = friendOfFriendDataRef.current;
+                    const currentDiscoveryPeople = discoveryPeopleRef.current;
+                    const currentOnPersonClick = onPersonClickRef.current;
+                    const currentOnFriendExpand = onFriendExpandRef.current;
+
+                    // Find the person in people array, friendOfFriendData, or discoveryPeople
+                    const person = currentPeople.find(p => p.id === d.id) ||
+                        currentFriendOfFriendData.find(p => p.id === d.id) ||
+                        currentDiscoveryPeople.find(p => p.id === d.id);
+
+                    if (d.isDiscoveryNode) {
+                        // Discovery nodes: always open profile modal
+                        if (person && currentOnPersonClick) {
+                            currentOnPersonClick(person);
+                        }
+                    } else if (d.isBranchNode) {
+                        // Branch nodes: open profile modal
+                        if (person && currentOnPersonClick) {
+                            currentOnPersonClick(person);
+                        }
+                    } else if (currentOnFriendExpand) {
+                        // Main network nodes: expand/collapse their network
+                        currentOnFriendExpand(d.id);
+                    } else if (person && currentOnPersonClick) {
+                        // Fallback to old behavior if no onFriendExpand provided
+                        currentOnPersonClick(person);
+                    }
+                });
 
             // Apply to sim
             simulation.nodes(nextNodes);
@@ -501,11 +576,11 @@ export default React.memo(function NetworkGalaxy({
 
             // STOP the simulation completely to prevent any movement
             simulation.stop();
-            
+
             // Check if we actually have new nodes being added
             const newNodeIds = nextNodes.filter((n: any) => !old.has(n.id)).map((n: any) => n.id);
             const hasNewNodes = newNodeIds.length > 0;
-            
+
             // Only do physics for truly new nodes, otherwise just update visuals
             if (hasNewNodes) {
                 // Fix ALL existing nodes in place - they should not move at all
@@ -515,10 +590,10 @@ export default React.memo(function NetworkGalaxy({
                         n.fy = n.y;
                     }
                 });
-                
+
                 // Very brief, gentle simulation just to position new nodes
                 simulation.alpha(0.05).alphaDecay(0.1).restart();
-                
+
                 // Stop simulation completely after new nodes settle
                 setTimeout(() => {
                     simulation.stop();
@@ -529,7 +604,7 @@ export default React.memo(function NetworkGalaxy({
                     });
                 }, 200);
             }
-            
+
             // Always update visual positions without physics
             ticked();
 
@@ -550,7 +625,7 @@ export default React.memo(function NetworkGalaxy({
             zoomRef.current = null;
             containerGroupRef.current = null;
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dimensions.width, dimensions.height]); // Only recreate on dimension changes, NOT on data changes
 
     // Keep SVG sized and viewBox centered on resize
@@ -567,7 +642,7 @@ export default React.memo(function NetworkGalaxy({
         svg.attr('width', width)
             .attr('height', height)
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH]);
-        
+
         // Re-apply zoom behavior after resize to ensure it still works
         if (zoomRef.current) {
             svg.call(zoomRef.current as any);
