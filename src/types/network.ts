@@ -19,6 +19,11 @@ export interface NetworkPerson {
     proximityLevel?: 'very_close' | 'close' | 'nearby' | 'distant' | 'far';
     sharedNetworks?: string[]; // Networks shared with current user
     whyYouMightMeet?: string; // Description shown when clicked
+    
+    // Suggestion node properties (AI-suggested people with invisible links)
+    isSuggestionNode?: boolean; // True if this is a suggested user (connected with invisible links)
+    similarity?: number; // 0-1, similarity score from user_matches - determines link distance
+    suggestionReason?: string; // Why this person is suggested
 }
 
 export interface Profile {

@@ -517,6 +517,23 @@ export default function Home() {
   // Discovery profiles state (floating circles - people in your networks but not connected)
   const [discoveryPeople, setDiscoveryPeople] = useState<NetworkPerson[]>([]);
 
+  // Convert suggestions to NetworkPerson format for the graph
+  const suggestionPeople: NetworkPerson[] = React.useMemo(() => {
+    return suggestions.map(s => ({
+      id: s.id,
+      name: s.name,
+      imageUrl: s.avatar,
+      starColor: '#8E5BFF',
+      x: 0, // Will be positioned by NetworkGalaxy
+      y: 0,
+      connections: [], // No visible connections
+      bio: s.reason, // Use the suggestion reason as bio
+      isSuggestionNode: true,
+      similarity: s.similarity,
+      suggestionReason: s.reason
+    }));
+  }, [suggestions]);
+
   const shouldShowDefaultSuggestions =
     !expandedPanel &&
     !isEligibleForMondayDrop &&
@@ -1749,7 +1766,9 @@ export default function Home() {
     }
   }, [showFriendRequests, checkPendingFriendRequests]);
 
-  if (loading || isLoadingNetwork) {
+  // Wait for both network AND suggestions to load before showing the graph
+  // This prevents suggestions from popping in after the graph is visible
+  if (loading || isLoadingNetwork || isLoadingSuggestions) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loader}></div>
@@ -1807,6 +1826,7 @@ export default function Home() {
           mutualConnectionIds={mutualConnectionIds}
           isLoadingFriendNetwork={isLoadingFriendNetwork}
           discoveryPeople={discoveryPeople}
+          suggestionPeople={suggestionPeople}
         />
       </div>
 

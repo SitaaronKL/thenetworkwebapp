@@ -4,6 +4,58 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { NetworkPerson } from '@/types/network';
 
+// ============================================================================
+// SUGGESTION DISTANCE CONFIGURATION
+// Adjust these values to control how far suggestions appear from the user
+// ============================================================================
+
+/**
+ * Base distance for suggestions from the user (minimum distance)
+ * This should be GREATER than FRIEND_LINK_DISTANCE to ensure suggestions
+ * are always farther than connected friends.
+ * 
+ * Desktop: Suggestions start at this distance from the user
+ * Mobile: Uses SUGGESTION_BASE_DISTANCE_MOBILE
+ */
+const SUGGESTION_BASE_DISTANCE = 650;
+const SUGGESTION_BASE_DISTANCE_MOBILE = 450;
+
+/**
+ * Range of additional distance based on similarity
+ * Lower similarity = pushed further away by this amount
+ * 
+ * Example: If similarity = 0.8 (80% similar), distance = BASE + (1-0.8) * RANGE = BASE + 0.2 * RANGE
+ * Example: If similarity = 0.2 (20% similar), distance = BASE + (1-0.2) * RANGE = BASE + 0.8 * RANGE
+ */
+const SUGGESTION_SIMILARITY_RANGE = 400;
+const SUGGESTION_SIMILARITY_RANGE_MOBILE = 300;
+
+/**
+ * Friend link distance (for reference - this is how far friends are)
+ * Suggestions should always be farther than this value.
+ */
+const FRIEND_LINK_DISTANCE = 450;
+const FRIEND_LINK_DISTANCE_MOBILE = 350;
+
+/**
+ * Calculate the distance for a suggestion based on similarity
+ * @param similarity - Value between 0 and 1 (1 = most similar)
+ * @param isMobile - Whether the user is on mobile
+ * @returns Distance in pixels from the user node
+ */
+export function calculateSuggestionDistance(similarity: number, isMobile: boolean): number {
+    const baseDistance = isMobile ? SUGGESTION_BASE_DISTANCE_MOBILE : SUGGESTION_BASE_DISTANCE;
+    const similarityRange = isMobile ? SUGGESTION_SIMILARITY_RANGE_MOBILE : SUGGESTION_SIMILARITY_RANGE;
+    
+    // Clamp similarity between 0 and 1
+    const clampedSimilarity = Math.max(0, Math.min(1, similarity));
+    
+    // Higher similarity = closer (but still far), lower similarity = even further
+    return baseDistance + (1 - clampedSimilarity) * similarityRange;
+}
+
+// ============================================================================
+
 interface NetworkGalaxyProps {
     people: NetworkPerson[];
     currentUserId: string;
@@ -16,6 +68,8 @@ interface NetworkGalaxyProps {
     isLoadingFriendNetwork?: boolean;
     // Discovery nodes (floating circles with no lines)
     discoveryPeople?: NetworkPerson[];
+    // Suggestion nodes (connected with invisible links that still apply force)
+    suggestionPeople?: NetworkPerson[];
 }
 
 export default React.memo(function NetworkGalaxy({
@@ -27,7 +81,8 @@ export default React.memo(function NetworkGalaxy({
     friendOfFriendData = [],
     mutualConnectionIds = new Set(),
     isLoadingFriendNetwork = false,
-    discoveryPeople = []
+    discoveryPeople = [],
+    suggestionPeople = []
 }: NetworkGalaxyProps) {
     // Theme note: This component uses dark mode styling (black bg, white text).
     // Light mode is handled by the global invert filter on <html>.
@@ -43,6 +98,9 @@ export default React.memo(function NetworkGalaxy({
     const nodeSelRef = useRef<d3.Selection<SVGGElement, any, SVGGElement, unknown> | null>(null);
     const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const containerGroupRef = useRef<SVGGElement | null>(null);
+    
+    // Track if user is currently dragging - prevents timeouts from stopping simulation mid-drag
+    const isDraggingRef = useRef(false);
 
     // Refs for callbacks and data to avoid stale closures
     const onPersonClickRef = useRef(onPersonClick);
@@ -50,6 +108,7 @@ export default React.memo(function NetworkGalaxy({
     const peopleRef = useRef(people);
     const friendOfFriendDataRef = useRef(friendOfFriendData);
     const discoveryPeopleRef = useRef(discoveryPeople);
+    const suggestionPeopleRef = useRef(suggestionPeople);
 
     // Keep refs updated
     useEffect(() => {
@@ -58,7 +117,8 @@ export default React.memo(function NetworkGalaxy({
         peopleRef.current = people;
         friendOfFriendDataRef.current = friendOfFriendData;
         discoveryPeopleRef.current = discoveryPeople;
-    }, [onPersonClick, onFriendExpand, people, friendOfFriendData, discoveryPeople]);
+        suggestionPeopleRef.current = suggestionPeople;
+    }, [onPersonClick, onFriendExpand, people, friendOfFriendData, discoveryPeople, suggestionPeople]);
 
     // Helper function to get viewbox scale based on current mobile state
     // Higher value = more zoomed out (can see more of the network)
@@ -105,15 +165,17 @@ export default React.memo(function NetworkGalaxy({
             const isExpandedFriend = p.id === expandedFriendId;
             const r = isUser ? 42 : 34;
 
-            // Wide initial ring; D3 simulation mutates x/y after.
+            // Random initial positions - physics will settle them naturally
+            // This creates an organic, non-geometric layout like Obsidian
             let x = 0;
             let y = 0;
             if (!isUser) {
-                const idx = Math.max(0, i - 1);
-                const count = Math.max(1, ordered.length - 1);
-                const angle = (idx / count) * Math.PI * 2;
-                // Reduced radius for tighter initial layout (was 940)
-                const radius = isMobileRef.current ? 500 : 700;
+                // Random angle (full 360°)
+                const angle = Math.random() * Math.PI * 2;
+                // Random distance within a range (not too close, not too far)
+                const minRadius = isMobileRef.current ? 200 : 300;
+                const maxRadius = isMobileRef.current ? 450 : 600;
+                const radius = minRadius + Math.random() * (maxRadius - minRadius);
                 x = Math.cos(angle) * radius;
                 y = Math.sin(angle) * radius;
             }
@@ -130,6 +192,7 @@ export default React.memo(function NetworkGalaxy({
                 isBranchNode: false,
                 isExpandedFriend,
                 isDiscoveryNode: false,
+                isSuggestionNode: false,
                 proximityLevel: undefined as 'very_close' | 'close' | 'nearby' | 'distant' | 'far' | undefined
             };
         });
@@ -137,24 +200,21 @@ export default React.memo(function NetworkGalaxy({
         // Add discovery nodes (floating circles with no connection lines)
         // Position them based on proximity score (higher = closer to user)
         if (discoveryPeople.length > 0) {
-            discoveryPeople.forEach((dp, index) => {
+            discoveryPeople.forEach((dp) => {
                 // Calculate position based on proximity score
                 // Higher proximity = closer to center (user)
                 const proximityScore = dp.proximityScore || 0.5;
                 // Distance: inverse of proximity (closer score = closer distance)
-                // Range: 150 (very close) to 600 (far)
                 const minDistance = isMobileRef.current ? 200 : 250;
                 const maxDistance = isMobileRef.current ? 500 : 700;
-                const distance = minDistance + (1 - proximityScore) * (maxDistance - minDistance);
+                const baseDistance = minDistance + (1 - proximityScore) * (maxDistance - minDistance);
+                
+                // Add some randomness to distance (±15%) for organic feel
+                const distanceVariation = baseDistance * 0.15;
+                const distance = baseDistance + (Math.random() - 0.5) * 2 * distanceVariation;
 
-                // Spread discovery nodes in a separate arc (opposite side from connections)
-                // This keeps them visually distinct from actual friends
-                const totalDiscovery = discoveryPeople.length;
-                const arcSpread = Math.PI * 0.8; // 144 degrees
-                const startAngle = Math.PI * 1.1; // Start from bottom-left area
-                const angle = totalDiscovery > 1
-                    ? startAngle + (index / (totalDiscovery - 1)) * arcSpread
-                    : startAngle + arcSpread / 2;
+                // Random angle (full 360°) for natural placement
+                const angle = Math.random() * Math.PI * 2;
 
                 nodes.push({
                     id: dp.id,
@@ -168,7 +228,44 @@ export default React.memo(function NetworkGalaxy({
                     isBranchNode: false,
                     isExpandedFriend: false,
                     isDiscoveryNode: true,
+                    isSuggestionNode: false,
                     proximityLevel: dp.proximityLevel || 'nearby'
+                });
+            });
+        }
+
+        // Add suggestion nodes (connected to user with invisible links)
+        // Position them based on similarity score (higher = closer to user, but always far)
+        // Uses the configurable calculateSuggestionDistance function
+        if (suggestionPeople.length > 0) {
+            suggestionPeople.forEach((sp) => {
+                // Calculate base distance using the configurable function
+                const similarity = sp.similarity || 0.5;
+                const baseDistance = calculateSuggestionDistance(similarity, isMobileRef.current);
+                
+                // Add some randomness to distance (±15%) for organic feel
+                const distanceVariation = baseDistance * 0.15;
+                const distance = baseDistance + (Math.random() - 0.5) * 2 * distanceVariation;
+
+                // Random angle (full 360°) for natural placement
+                const angle = Math.random() * Math.PI * 2;
+
+                nodes.push({
+                    id: sp.id,
+                    name: sp.name,
+                    r: 32, // Similar size to regular nodes
+                    color: sp.starColor || '#8E5BFF',
+                    imgUrl: sp.imageUrl,
+                    x: Math.cos(angle) * distance,
+                    y: Math.sin(angle) * distance,
+                    isGreyedOut: false,
+                    isBranchNode: false,
+                    isExpandedFriend: false,
+                    isDiscoveryNode: false,
+                    isSuggestionNode: true,
+                    proximityLevel: undefined,
+                    similarity: sp.similarity,
+                    suggestionReason: sp.suggestionReason
                 });
             });
         }
@@ -209,12 +306,13 @@ export default React.memo(function NetworkGalaxy({
                     isBranchNode: true,
                     isExpandedFriend: false,
                     isDiscoveryNode: false,
+                    isSuggestionNode: false,
                     proximityLevel: undefined
                 });
             });
         }
 
-        const links: { source: string; target: string; isBranchLink?: boolean }[] = [];
+        const links: { source: string; target: string; isBranchLink?: boolean; isSuggestionLink?: boolean; similarity?: number }[] = [];
         const linkSet = new Set<string>();
         const nodeIds = new Set(nodes.map(n => n.id));
 
@@ -280,8 +378,28 @@ export default React.memo(function NetworkGalaxy({
             });
         }
 
+        // Add invisible links from user to suggestion nodes
+        // These links are invisible but still apply force so suggestions follow when user drags
+        if (suggestionPeople.length > 0) {
+            suggestionPeople.forEach(sp => {
+                if (nodeIds.has(sp.id)) {
+                    const linkKey = [currentUserId, sp.id].sort().join('-');
+                    if (!linkSet.has(linkKey)) {
+                        linkSet.add(linkKey);
+                        links.push({
+                            source: currentUserId,
+                            target: sp.id,
+                            isBranchLink: false,
+                            isSuggestionLink: true, // Invisible link
+                            similarity: sp.similarity || 0.5 // Pass similarity for distance calculation
+                        });
+                    }
+                }
+            });
+        }
+
         return { nodes, links };
-    }, [people, currentUserId, expandedFriendId, friendOfFriendData, mutualConnectionIds, discoveryPeople]);
+    }, [people, currentUserId, expandedFriendId, friendOfFriendData, mutualConnectionIds, discoveryPeople, suggestionPeople]);
 
     // Initialize D3 chart once (mirrors the Observable chart = { ... } block)
     useEffect(() => {
@@ -297,16 +415,32 @@ export default React.memo(function NetworkGalaxy({
         const vbH = height * viewboxScale;
         const vbOffsetX = viewboxOffsetX * viewboxScale;
 
-        // Tighter layout for better initial view, especially on mobile
-        const linkDist = isMobileRef.current ? 350 : 450;
+        // Link distances: friends are close, suggestions are far
+        const friendLinkDist = isMobileRef.current ? FRIEND_LINK_DISTANCE_MOBILE : FRIEND_LINK_DISTANCE;
+        
         const simulation = d3.forceSimulation<any>()
             .force('charge', d3.forceManyBody().strength(-800).distanceMax(3000))
-            .force('link', d3.forceLink<any, any>().id((d: any) => d.id).distance(linkDist).strength(0.03))
+            .force('link', d3.forceLink<any, any>()
+                .id((d: any) => d.id)
+                .distance((d: any) => {
+                    // Use dynamic distance for suggestion links based on similarity
+                    if (d.isSuggestionLink) {
+                        const similarity = d.similarity || 0.5;
+                        return calculateSuggestionDistance(similarity, isMobileRef.current);
+                    }
+                    return friendLinkDist;
+                })
+                .strength((d: any) => {
+                    // Stronger link force for suggestions so they follow better during drag
+                    if (d.isSuggestionLink) return 0.08;
+                    return 0.05; // Slightly stronger for friends too
+                })
+            )
             .force('x', d3.forceX(0).strength(0.02))
             .force('y', d3.forceY(0).strength(0.02))
             .force('collide', d3.forceCollide<any>().radius((d: any) => (d?.r ?? 30) + 12).iterations(2))
-            .alphaDecay(0.03) // Slower decay = smoother settling
-            .velocityDecay(0.4); // Higher = more friction, less bouncing
+            .alphaDecay(0.02) // Slower decay for smoother physics during drag
+            .velocityDecay(0.35); // Slightly less friction for more responsive movement
 
         const svg = d3.create('svg')
             .attr('viewBox', [-vbW / 2 + vbOffsetX, -vbH / 2, vbW, vbH])
@@ -354,12 +488,25 @@ export default React.memo(function NetworkGalaxy({
 
         const drag = (sim: d3.Simulation<any, undefined>) => {
             function dragstarted(event: any, d: any) {
+                // Mark that we're dragging - prevents timeouts from stopping simulation
+                isDraggingRef.current = true;
+                
                 // Stop zoom behavior when dragging nodes
                 // This prevents zoom from interfering with node dragging
                 if (event.sourceEvent) {
                     event.sourceEvent.stopPropagation();
                 }
-                if (!event.active) sim.alphaTarget(0.3).restart();
+                if (!event.active) {
+                    // IMPORTANT: Set alpha AND alphaTarget to ensure simulation has energy
+                    // Also unfreeze ALL other nodes so they can respond to forces
+                    sim.nodes().forEach((n: any) => {
+                        if (n.id !== d.id) {
+                            n.fx = null;
+                            n.fy = null;
+                        }
+                    });
+                    sim.alpha(0.3).alphaTarget(0.3).restart();
+                }
                 d.fx = d.x;
                 d.fy = d.y;
             }
@@ -370,6 +517,9 @@ export default React.memo(function NetworkGalaxy({
             }
 
             function dragended(event: any, d: any) {
+                // Mark that we're done dragging
+                isDraggingRef.current = false;
+                
                 if (!event.active) sim.alphaTarget(0);
                 d.fx = null;
                 d.fy = null;
@@ -521,20 +671,44 @@ export default React.memo(function NetworkGalaxy({
                 .data(nextLinks, (d: any) => `${d.source.id || d.source}-${d.target.id || d.target}`)
                 .join(
                     (enter: any) => enter.append('line')
-                        .attr('stroke', (d: any) => d.isBranchLink ? '#3b82f6' : '#e5e7eb')
-                        .attr('stroke-opacity', (d: any) => d.isBranchLink ? 0.7 : 0.85)
-                        .attr('stroke-width', (d: any) => d.isBranchLink ? 2 : 1)
+                        .attr('stroke', (d: any) => {
+                            if (d.isSuggestionLink) return 'transparent';
+                            if (d.isBranchLink) return '#3b82f6';
+                            return '#e5e7eb';
+                        })
+                        .attr('stroke-opacity', (d: any) => {
+                            if (d.isSuggestionLink) return 0; // Invisible
+                            if (d.isBranchLink) return 0.7;
+                            return 0.85;
+                        })
+                        .attr('stroke-width', (d: any) => {
+                            if (d.isSuggestionLink) return 0;
+                            if (d.isBranchLink) return 2;
+                            return 1;
+                        })
                         .attr('stroke-dasharray', (d: any) => d.isBranchLink ? '5,5' : 'none'),
                     (update: any) => update
-                        .attr('stroke', (d: any) => d.isBranchLink ? '#3b82f6' : '#e5e7eb')
-                        .attr('stroke-opacity', (d: any) => d.isBranchLink ? 0.7 : 0.85)
-                        .attr('stroke-width', (d: any) => d.isBranchLink ? 2 : 1)
+                        .attr('stroke', (d: any) => {
+                            if (d.isSuggestionLink) return 'transparent';
+                            if (d.isBranchLink) return '#3b82f6';
+                            return '#e5e7eb';
+                        })
+                        .attr('stroke-opacity', (d: any) => {
+                            if (d.isSuggestionLink) return 0; // Invisible
+                            if (d.isBranchLink) return 0.7;
+                            return 0.85;
+                        })
+                        .attr('stroke-width', (d: any) => {
+                            if (d.isSuggestionLink) return 0;
+                            if (d.isBranchLink) return 2;
+                            return 1;
+                        })
                         .attr('stroke-dasharray', (d: any) => d.isBranchLink ? '5,5' : 'none')
                 );
 
             // Add click handlers to all nodes (existing and new)
             // First click expands network, clicking expanded friend or branch node opens profile
-            // Discovery nodes always open profile modal
+            // Discovery nodes and suggestion nodes always open profile modal
             node.style('cursor', (d: any) => d.id === currentUserId ? 'default' : 'pointer')
                 .on('click', (event: any, d: any) => {
                     if (d.id === currentUserId) return;
@@ -543,15 +717,22 @@ export default React.memo(function NetworkGalaxy({
                     const currentPeople = peopleRef.current;
                     const currentFriendOfFriendData = friendOfFriendDataRef.current;
                     const currentDiscoveryPeople = discoveryPeopleRef.current;
+                    const currentSuggestionPeople = suggestionPeopleRef.current;
                     const currentOnPersonClick = onPersonClickRef.current;
                     const currentOnFriendExpand = onFriendExpandRef.current;
 
-                    // Find the person in people array, friendOfFriendData, or discoveryPeople
+                    // Find the person in people array, friendOfFriendData, discoveryPeople, or suggestionPeople
                     const person = currentPeople.find(p => p.id === d.id) ||
                         currentFriendOfFriendData.find(p => p.id === d.id) ||
-                        currentDiscoveryPeople.find(p => p.id === d.id);
+                        currentDiscoveryPeople.find(p => p.id === d.id) ||
+                        currentSuggestionPeople.find(p => p.id === d.id);
 
-                    if (d.isDiscoveryNode) {
+                    if (d.isSuggestionNode) {
+                        // Suggestion nodes: always open profile modal
+                        if (person && currentOnPersonClick) {
+                            currentOnPersonClick(person);
+                        }
+                    } else if (d.isDiscoveryNode) {
                         // Discovery nodes: always open profile modal
                         if (person && currentOnPersonClick) {
                             currentOnPersonClick(person);
@@ -574,16 +755,38 @@ export default React.memo(function NetworkGalaxy({
             simulation.nodes(nextNodes);
             (simulation.force('link') as any).links(nextLinks);
 
-            // STOP the simulation completely to prevent any movement
-            simulation.stop();
-
             // Check if we actually have new nodes being added
             const newNodeIds = nextNodes.filter((n: any) => !old.has(n.id)).map((n: any) => n.id);
             const hasNewNodes = newNodeIds.length > 0;
+            const isFirstLoad = old.size === 0;
 
-            // Only do physics for truly new nodes, otherwise just update visuals
-            if (hasNewNodes) {
-                // Fix ALL existing nodes in place - they should not move at all
+            if (isFirstLoad) {
+                // FIRST LOAD: Run simulation to let nodes settle naturally
+                // This creates an organic, non-geometric layout
+                simulation.alpha(0.8).alphaDecay(0.02).restart();
+                
+                // Let physics run longer for natural settling
+                setTimeout(() => {
+                    // Don't change alphaTarget if user is dragging
+                    if (!isDraggingRef.current) {
+                        simulation.alphaTarget(0).alphaDecay(0.05);
+                    }
+                }, 800);
+                
+                // Stop after settling and ensure all nodes are unfrozen
+                setTimeout(() => {
+                    // Don't stop simulation if user is dragging
+                    if (!isDraggingRef.current) {
+                        simulation.stop();
+                        // Explicitly unfreeze all nodes so drag works immediately
+                        simulation.nodes().forEach((n: any) => {
+                            n.fx = null;
+                            n.fy = null;
+                        });
+                    }
+                }, 1500);
+            } else if (hasNewNodes) {
+                // NEW NODES ADDED: Fix existing nodes, let new ones settle
                 nextNodes.forEach((n: any) => {
                     if (old.has(n.id)) {
                         n.fx = n.x;
@@ -591,21 +794,30 @@ export default React.memo(function NetworkGalaxy({
                     }
                 });
 
-                // Very brief, gentle simulation just to position new nodes
-                simulation.alpha(0.05).alphaDecay(0.1).restart();
+                // Brief simulation to position new nodes
+                simulation.alpha(0.1).alphaDecay(0.1).restart();
 
-                // Stop simulation completely after new nodes settle
+                // Stop and unfreeze after settling
+                // IMPORTANT: Use simulation.nodes() to get current nodes, not captured nextNodes
                 setTimeout(() => {
+                    // Don't stop simulation if user is dragging
+                    if (!isDraggingRef.current) {
+                        simulation.stop();
+                        simulation.nodes().forEach((n: any) => {
+                            n.fx = null;
+                            n.fy = null;
+                        });
+                    }
+                }, 250);
+            } else {
+                // NO NEW NODES: Just stop simulation, positions are preserved
+                // But only if not dragging
+                if (!isDraggingRef.current) {
                     simulation.stop();
-                    // Unfreeze nodes but keep simulation stopped
-                    nextNodes.forEach((n: any) => {
-                        n.fx = null;
-                        n.fy = null;
-                    });
-                }, 200);
+                }
             }
 
-            // Always update visual positions without physics
+            // Always update visual positions
             ticked();
 
             // Update refs
