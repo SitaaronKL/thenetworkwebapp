@@ -35,14 +35,15 @@ export async function getAdminData(password: string) {
     // Total users = waitlist + profiles
     const totalCount = (waitlistCount || 0) + (profilesCount || 0)
 
-    // 2. Today's Count
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
+    // 2. "New Today" = waitlist signups in the last 24 hours
+    // (Uses 24h window to avoid timezone bugs: server is often UTC, so "midnight today"
+    // would exclude evening signups in US timezones.)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
     const { count: todayCount, error: todayError } = await supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', todayStart.toISOString())
+      .gte('created_at', twentyFourHoursAgo.toISOString())
 
     if (todayError) throw todayError
 
