@@ -35,6 +35,14 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+/* Mobile: Remove header border in embedded pill */
+@media (max-width: 768px) {
+    .header {
+        border-bottom: none;
+        padding: 16px;
+    }
+}
+
 .title {
     font-size: 20px;
     font-weight: 700;

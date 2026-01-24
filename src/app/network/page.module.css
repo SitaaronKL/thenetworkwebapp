@@ -43,28 +43,27 @@
     transform: translate(44px, -22px);
 }
 
-/* Mobile: Hide suggestions panel by default, show as modal overlay */
+/* Mobile: Position pill at bottom with spacing */
 @media (max-width: 768px) {
     .suggestionsPanel {
-        display: none;
-    }
-
-    .suggestionsPanel.mobileOpen {
-        display: flex;
         position: fixed;
-        top: 0;
+        top: auto;
+        bottom: 0;
         left: 0;
         right: 0;
-        bottom: 0;
         width: 100%;
-        height: 100%;
+        height: auto;
         transform: none;
         border-radius: 0;
-        padding: 60px 16px 20px 16px;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        padding: 0 12px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
         z-index: 100;
-        animation: slideInRight 0.3s ease-out;
-        background-color: #000000;
+        background: transparent;
+        pointer-events: none; /* Allow clicking through to graph */
+    }
+    
+    .suggestionsPanel > * {
+        pointer-events: auto; /* But children are clickable */
     }
 }
 
@@ -80,38 +79,15 @@
     }
 }
 
-/* Mobile toggle button for suggestions */
+/* Mobile toggle button for suggestions - HIDDEN, using pill menu instead */
 .mobileSuggestionsButton {
     display: none;
 }
 
+/* Keep hidden on all screen sizes - pill menu is used instead */
 @media (max-width: 768px) {
     .mobileSuggestionsButton {
-        display: flex;
-        position: fixed;
-        bottom: 24px;
-        right: 16px;
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: #ffffff;
-        border: none;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 50;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .mobileSuggestionsButton:active {
-        transform: scale(0.95);
-    }
-
-    .mobileSuggestionsButton svg {
-        width: 24px;
-        height: 24px;
-        color: #000000;
+        display: none;
     }
 }
 
@@ -120,32 +96,10 @@
     display: none;
 }
 
+/* Mobile close button - HIDDEN, using pill menu collapse instead */
 @media (max-width: 768px) {
     .mobileCloseButton {
-        display: flex;
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.1);
-        border: none;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 101;
-        transition: background 0.2s;
-    }
-
-    .mobileCloseButton:active {
-        background: rgba(0, 0, 0, 0.2);
-    }
-
-    .mobileCloseButton svg {
-        width: 20px;
-        height: 20px;
-        color: #ffffff;
+        display: none;
     }
 }
 
@@ -180,40 +134,26 @@
     margin-right: auto;
     position: relative;
     
-    /* Dark mode glass effect */
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 40px;
+    /* Matching network-profile card styling exactly */
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    
-    /* Subtle glow */
-    box-shadow: 
-        0 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 4px 20px 0 rgba(0, 0, 0, 0.3);
     
     overflow: visible;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Inner glass highlight layer */
+/* No inner highlight layer - clean look */
 .actionIconsPill::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow: 
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
+    display: none;
 }
 
 .actionIconsPill.expanded {
-    border-radius: 40px;
+    border-radius: 12px;
 }
 
 .actionIconsPill.expanded::before {
-    border-radius: 40px;
+    display: none;
 }
 
 .actionIcons {
@@ -271,26 +211,61 @@
     z-index: 10;
 }
 
-/* Mobile: Smaller action icons */
+/* Mobile: Pill expands upward - icons at bottom, content above within same container */
 @media (max-width: 768px) {
     .actionIconsPill {
-        margin-bottom: 24px;
-        border-radius: 32px;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column-reverse; /* Icons at bottom, content above */
+        /* Exact same styling as network-profile .card */
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        box-shadow: none;
     }
     
     .actionIconsPill::before {
-        border-radius: 32px;
+        /* Hide the inner highlight layer on mobile */
+        display: none;
+    }
+    
+    .actionIconsPill.expanded {
+        border-radius: 12px;
     }
     
     .actionIcons {
-        gap: 6px;
-        padding: 12px 16px 8px 16px;
+        gap: 8px;
+        padding: 14px 20px;
     }
     
+    /* Disable backdrop-filter blur inside SVG icons to prevent ghosting */
+    .iconContainer svg foreignObject {
+        display: none !important;
+    }
+    
+    /* Content expands upward within the pill */
     .expandedContent {
-        padding: 0 16px 16px 16px;
-        max-height: 350px;
-        min-height: 350px;
+        padding: 16px 16px 8px 16px;
+        max-height: 55vh;
+        min-height: auto;
+        animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 55vh;
+        padding-top: 16px;
+        padding-bottom: 8px;
     }
 }
 
