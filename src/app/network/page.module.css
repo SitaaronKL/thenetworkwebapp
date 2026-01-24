@@ -134,8 +134,10 @@
     margin-right: auto;
     position: relative;
     
-    /* Matching network-profile card styling exactly */
-    background: rgba(255, 255, 255, 0.05);
+    /* Matching network-profile card styling with blur for readability */
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     
@@ -217,12 +219,12 @@
         margin-bottom: 0;
         display: flex;
         flex-direction: column-reverse; /* Icons at bottom, content above */
-        /* Exact same styling as network-profile .card */
-        background: rgba(255, 255, 255, 0.05);
+        /* Dark background with blur for readability over graph */
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
         box-shadow: none;
     }
     
