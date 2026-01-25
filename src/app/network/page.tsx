@@ -44,6 +44,7 @@ const getAvatarUrl = (path?: string | null) => {
 
 // Embedded Panel Components
 function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => void; onRequestAccepted?: () => void }) {
+  const router = useRouter();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
@@ -162,6 +163,16 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
               <div className={styles.embeddedListInfo}>
                 <div className={styles.embeddedListName}>{req.sender_profile?.full_name || 'Unknown'}</div>
               </div>
+              <button
+                className={styles.embeddedListAction}
+                onClick={async () => {
+                  const supabase = createClient();
+                  const { data } = await supabase.rpc('get_profile_slug', { p_user_id: req.sender_id });
+                  if (data) router.push(`/network-profile/${data}`);
+                }}
+              >
+                View Profile
+              </button>
               <div className={styles.embeddedListActions}>
                 <button
                   className={`${styles.embeddedListAction} ${styles.accept}`}
@@ -187,6 +198,7 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
 }
 
 function SearchUsersPanel({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -275,6 +287,16 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
               <div className={styles.embeddedListInfo}>
                 <div className={styles.embeddedListName}>{profile.full_name}</div>
               </div>
+              <button
+                className={styles.embeddedListAction}
+                onClick={async () => {
+                  const supabase = createClient();
+                  const { data } = await supabase.rpc('get_profile_slug', { p_user_id: profile.id });
+                  if (data) router.push(`/network-profile/${data}`);
+                }}
+              >
+                View Profile
+              </button>
               <button
                 className={styles.embeddedListAction}
                 onClick={() => sendRequest(profile.id)}
@@ -1273,6 +1295,18 @@ export default function Home() {
         return;
       }
 
+      // 7b. Fetch overlap from user_overlap_scores (Network Proximity equation) for graph distance
+      // Fallback to match.similarity when no row exists. Populated by calculate-network-proximity.
+      const { data: overlapRows } = await supabase
+        .from('user_overlap_scores')
+        .select('other_user_id, overlap')
+        .eq('user_id', user.id)
+        .in('other_user_id', topMatchIds);
+      const overlapMap = new Map<string, number>();
+      (overlapRows || []).forEach((r: { other_user_id: string; overlap: number }) =>
+        overlapMap.set(r.other_user_id, r.overlap)
+      );
+
       // 8. Format suggestions with compelling reasons (only from not-in-network matches)
       // Only fetch remaining slots (3 minus interactions already made)
       const remainingSuggestionCount = connectionCount < 3
@@ -1338,12 +1372,14 @@ export default function Home() {
             return null; // Don't show suggestion on error
           }
 
+          // Use overlap (Network Proximity) for graph distance when available; else match.similarity
+          const similarityForDistance = overlapMap.get(profile.id) ?? match.similarity;
           return {
             id: profile.id,
             name: profile.full_name?.split(' ')[0] || 'User',
             reason,
             avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png',
-            similarity: match.similarity
+            similarity: similarityForDistance
           };
         });
 

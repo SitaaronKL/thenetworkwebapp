@@ -456,6 +456,14 @@ function LandingPageContent() {
     }
   }, [user, loading, router]);
 
+  // If this browser has already signed up for the waitlist, auto-open the referral modal
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading || user) return;
+    if (localStorage.getItem('waitlist_signed_up_email')) {
+      setIsWaitlistModalOpen(true);
+    }
+  }, [loading, user]);
+
   // Checkerboard transition scroll handler - COMMENTED OUT
   // useEffect(() => {
   //   const handleScroll = () => {

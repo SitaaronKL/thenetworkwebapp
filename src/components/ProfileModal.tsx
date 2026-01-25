@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { NetworkPerson } from '@/types/network';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -83,6 +84,7 @@ interface SharedNetwork {
 
 export default function ProfileModal({ person, onClose, isEmbedded = false }: ProfileModalProps) {
     const { user } = useAuth();
+    const router = useRouter();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
     const [compatibilityPercentage, setCompatibilityPercentage] = useState<number | null>(null);
     const [sharedInterests, setSharedInterests] = useState<string[]>([]);
@@ -586,7 +588,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
 
     const modalContent = (
         <>
-            {/* Header: Avatar + Name + Compatibility Badge */}
+            {/* Header: Avatar + Name + View Profile (+ Compatibility Badge) */}
             <div className={styles.header}>
                 <div className={styles.avatarContainer}>
                     {person.imageUrl ? (
@@ -603,7 +605,8 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                 </div>
                 <div className={styles.headerInfo}>
                     <h2 className={styles.name}>{person.name}</h2>
-                    {/* Show overlap score for discovery users */}
+                    {/* SCORES COMMENTED OUT: We do not show numeric scores to users. Use explanation only.
+                        Range (proximity_level: very_close | close | nearby | distant | far) is stored in DB for internal use.
                     {person.isDiscoveryNode && overlapScore !== null && (
                         <div className={styles.overlapScoreBadge}>
                             {overlapScore}% <span>OVERLAP</span>
@@ -618,13 +621,26 @@ export default function ProfileModal({ person, onClose, isEmbedded = false }: Pr
                             )}
                         </div>
                     )}
-                    {/* Show compatibility for regular users */}
                     {!person.isDiscoveryNode && compatibilityPercentage !== null && (
                         <div className={styles.compatibilityBadge}>
                             {compatibilityPercentage}% <span>{isConnected ? 'COMPATIBLE' : 'COMPATIBLE'}</span>
                         </div>
                     )}
+                    */}
                 </div>
+                {!person.isDiscoveryNode && (
+                    <button
+                        type="button"
+                        className={styles.viewProfileButton}
+                        onClick={async () => {
+                            const supabase = createClient();
+                            const { data } = await supabase.rpc('get_profile_slug', { p_user_id: person.id });
+                            if (data) router.push(`/network-profile/${data}`);
+                        }}
+                    >
+                        View Profile
+                    </button>
+                )}
             </div>
 
             {/* School, Network Handle & Networks */}

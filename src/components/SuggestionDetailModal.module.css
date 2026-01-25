@@ -37,6 +37,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    flex: 1;
+    min-width: 0;
 }
 
 .avatar {
@@ -54,6 +56,23 @@
     margin: 0;
     color: #FFFFFF;
     letter-spacing: -0.5px;
+}
+
+.viewProfileButton {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.viewProfileButton:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .closeButton {

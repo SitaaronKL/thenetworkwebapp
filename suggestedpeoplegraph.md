@@ -52,6 +52,22 @@ suggestionDistance = BASE_DISTANCE + (1 - similarity) * SIMILARITY_RANGE
 
 **Friends are always at ~450px (desktop) / ~350px (mobile) - much closer than any suggestion.**
 
+### Overlap Score (Network Proximity) — Used for Suggestion Distance
+
+Suggestion **distance uses the Overlap score** when available. Overlap combines **networks**, **mutual friends**, and **interest embeddings** (see `thenetworkwebapp/docs/NETWORK_PROXIMITY_SYSTEM_DESIGN.md` and `supabase/functions/calculate-network-proximity/`).
+
+**Final Overlap formula:**
+
+```
+Overlap = (0.55 × NetworkScore) + (0.30 × MutualScore) + (0.15 × InterestScore)
+```
+
+- **NetworkScore** = `1 − exp(−Σ w(n))` — shared networks (school, company, city, etc.) with type weights and saturation
+- **MutualScore** = `m / sqrt(deg(u) × deg(v))` — degree-normalized mutual friends, clamped to [0,1]
+- **InterestScore** = `(0.35 × embeddingSimilarity) + (0.65 × dice)` — DNA v2 `composite_vector` cosine + Dice on `profiles.interests`
+
+**Storage:** `user_overlap_scores` (see table below). Filled by the `calculate-network-proximity` Edge Function on each compute. For suggestions, `loadAriaSuggestions` reads from this table and uses `overlap` as the value passed into `calculateSuggestionDistance` (replacing pure DNA similarity when present). Fallback: `match_profiles_v2.similarity` when no row exists.
+
 ### Exported Distance Function
 
 You can use this function anywhere in your code:
@@ -83,17 +99,19 @@ const mobileDistance = calculateSuggestionDistance(0.75, true); // Mobile
 ```
 1. User logs in → loadAriaSuggestions() called
                          ↓
-2. Suggestion algorithm runs (see below)
+2. Suggestion algorithm: match_profiles_v2 (or match_profiles) → candidate IDs
                          ↓
-3. Results stored in `suggestions` state
+3. Fetch user_overlap_scores (user_id, candidate IDs) for overlap
                          ↓
-4. `suggestionPeople` useMemo converts to NetworkPerson[]
+4. For each candidate: similarity for distance = overlap ?? match.similarity
                          ↓
-5. Passed to NetworkGalaxy as `suggestionPeople` prop
+5. Results stored in `suggestions` state (reason, similarity/overlap)
                          ↓
-6. NetworkGalaxy adds nodes + invisible links to D3 simulation
+6. `suggestionPeople` useMemo converts to NetworkPerson[] (similarity used for distance)
                          ↓
-7. Links use dynamic distance based on similarity
+7. Passed to NetworkGalaxy as `suggestionPeople` prop
+                         ↓
+8. NetworkGalaxy adds nodes + invisible links; distance = calculateSuggestionDistance(similarity)
 ```
 
 ---
@@ -106,13 +124,14 @@ Look for the `loadAriaSuggestions` function (around line 920). Here's the flow:
 
 ```typescript
 const loadAriaSuggestions = useCallback(async () => {
-  // 1. Count user's connections
-  // 2. Check for already-interacted suggestions
-  // 3. Get user's profile and DNA v2 vector
-  // 4. Query user_matches table for similar users
-  // 5. Filter out users already in network
-  // 6. Generate compelling reasons via Edge Function
-  // 7. Return formatted suggestions with similarity scores
+  // 1. Count user's connections, check suggestion_interactions
+  // 2. Get user's profile and DNA v2 (or v1) vector
+  // 3. match_profiles_v2 (or match_profiles) → candidate IDs + match.similarity
+  // 4. Filter out users already in network
+  // 5. Fetch user_overlap_scores (user_id, candidate IDs) for overlap
+  // 6. For each candidate: similarity = overlap ?? match.similarity (for graph distance)
+  // 7. Generate compelling reasons via generate-suggestion-reason
+  // 8. Return formatted suggestions with similarity (overlap when available)
 }, [user]);
 ```
 
@@ -120,11 +139,26 @@ const loadAriaSuggestions = useCallback(async () => {
 
 | Table | Purpose |
 |-------|---------|
-| `user_matches` | Pre-computed similarity scores between users |
+| `user_overlap_scores` | **Overlap (0–1) from the Network Proximity equation**; used for suggestion graph distance. Populated by `calculate-network-proximity`. |
+| `user_matches` | Pre-computed DNA similarity; used when `user_overlap_scores` has no row |
 | `profiles` | User profile data (name, avatar, bio) |
-| `digital_dna_v2` | User interest vectors for similarity calculation |
+| `digital_dna_v2` | User interest vectors (composite_vector) for InterestScore |
 | `user_compatibility_descriptions` | Cached "why you'd connect" descriptions |
 | `suggestion_interactions` | Tracks which suggestions user has seen/interacted with |
+
+### `user_overlap_scores` table
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `user_id` | UUID | Viewer (PK) |
+| `other_user_id` | UUID | Other user (PK) |
+| `overlap` | FLOAT | 0–1, final score. `0.55×NetworkScore + 0.30×MutualScore + 0.15×InterestScore` |
+| `has_social_proximity` | BOOLEAN | True when at least one shared network |
+| `proximity_level` | TEXT | `very_close` \| `close` \| `nearby` \| `distant` \| `far` |
+| `components` | JSONB | `{ networkScore, mutualScore, interestScore }` (optional) |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+**Migration:** `supabase/migrations/20260124_create_user_overlap_scores.sql`. The `calculate-network-proximity` Edge Function upserts both `(user_id, other_user_id)` and `(other_user_id, user_id)` on each run.
 
 ### Suggestion Format
 
@@ -136,7 +170,7 @@ Each suggestion object has this structure:
   name: string;         // First name
   reason: string;       // "Why you'd connect" text
   avatar: string;       // Profile picture URL
-  similarity: number;   // 0-1 similarity score from user_matches (IMPORTANT for distance!)
+  similarity: number;   // 0-1, used for graph distance. From user_overlap_scores.overlap when present, else match_profiles_v2.similarity
 }
 ```
 
@@ -516,7 +550,8 @@ enhancedMatches.sort((a, b) => b.adjustedSimilarity - a.adjustedSimilarity);
 
 | Table | What It Does | How to Modify |
 |-------|--------------|---------------|
-| `user_matches` | Pre-computed similarity scores | Update the job that populates this |
+| `user_overlap_scores` | Overlap (0–1) from Network Proximity equation; used for suggestion distance | Populated by `calculate-network-proximity`; migration: `20260124_create_user_overlap_scores.sql` |
+| `user_matches` | Pre-computed DNA similarity | Update the job that populates this |
 | `digital_dna_v2` | User interest vectors (embeddings) | Generated during onboarding |
 | `profiles` | User profile data | Standard profile updates |
 | `suggestion_interactions` | Tracks seen/skipped suggestions | Used to filter already-seen |
@@ -569,7 +604,8 @@ To change the reason generation, modify the edge function in `supabase/functions
 | What You Want to Change | File to Edit |
 |------------------------|--------------|
 | Who gets suggested | `src/app/network/page.tsx` → `loadAriaSuggestions()` |
-| Similarity calculation | Backend job that populates `user_matches` |
+| Overlap / proximity equation | `supabase/functions/calculate-network-proximity/`; design: `docs/NETWORK_PROXIMITY_SYSTEM_DESIGN.md` |
+| `user_overlap_scores` table | `supabase/migrations/20260124_create_user_overlap_scores.sql` |
 | "Why you'd connect" text | `supabase/functions/generate-suggestion-reason/` |
 | Visual distance from user | `src/components/NetworkGalaxy.tsx` → top constants |
 | Node appearance/styling | `src/components/NetworkGalaxy.tsx` → node rendering |

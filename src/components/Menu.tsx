@@ -128,7 +128,7 @@ export default function Menu() {
             ))}
 
             <Link
-              href="/network-profile"
+              href="/network-profile/me"
               onClick={() => setIsOpen(false)}
             >
               YOUR PROFILE

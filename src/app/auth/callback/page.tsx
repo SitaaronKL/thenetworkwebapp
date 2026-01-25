@@ -248,11 +248,13 @@ function AuthCallbackContent() {
                     friendCount = friendIds.size;
                 }
                 
-                if (friendCount >= 3) {
-                    router.push('/network');
-                } else {
-                    router.push('/invite-friends');
-                }
+                // Bypass /invite-friends; take returning users straight to network
+                // if (friendCount >= 3) {
+                //     router.push('/network');
+                // } else {
+                //     router.push('/invite-friends');
+                // }
+                router.push('/network');
             };
 
             // Skip onboarding if user has already completed it (unless FORCE_ONBOARDING is true)

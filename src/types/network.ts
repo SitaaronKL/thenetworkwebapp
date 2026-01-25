@@ -22,7 +22,7 @@ export interface NetworkPerson {
     
     // Suggestion node properties (AI-suggested people with invisible links)
     isSuggestionNode?: boolean; // True if this is a suggested user (connected with invisible links)
-    similarity?: number; // 0-1, similarity score from user_matches - determines link distance
+    similarity?: number; // 0-1, determines link distance. For suggestions: user_overlap_scores.overlap when available, else match_profiles similarity
     suggestionReason?: string; // Why this person is suggested
 }
 

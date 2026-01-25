@@ -30,12 +30,12 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
   const [referredByCode, setReferredByCode] = useState<string | null>(null);
   const [waitlistResult, setWaitlistResult] = useState<WaitlistResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(false);
 
   // Load campaign code and referral code from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedCampaignCode = localStorage.getItem('marketing_campaign_code');
-      const storedCampaignSchool = localStorage.getItem('marketing_campaign_school');
       const storedReferralCode = localStorage.getItem('waitlist_referral_code');
 
       if (storedCampaignCode) {
@@ -45,13 +45,48 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       if (storedReferralCode) {
         setReferredByCode(storedReferralCode);
       }
-
-      // Pre-fill school if we have it from the campaign
-      if (storedCampaignSchool && !school) {
-        setSchool(storedCampaignSchool);
-      }
     }
   }, []);
+
+  // When modal opens and we have a persisted waitlist signup, fetch their entry to show the referral screen
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return;
+    const storedEmail = localStorage.getItem('waitlist_signed_up_email');
+    if (!storedEmail || waitlistResult) return;
+
+    let cancelled = false;
+    setIsLoadingExisting(true);
+
+    const load = async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc('get_waitlist_entry_by_email', { p_email: storedEmail });
+        if (cancelled) return;
+        if (error || !data || data.length === 0) {
+          localStorage.removeItem('waitlist_signed_up_email');
+          setIsLoadingExisting(false);
+          return;
+        }
+        setWaitlistResult({
+          id: data[0].id,
+          invite_code: data[0].invite_code,
+          referral_count: data[0].referral_count ?? 0,
+          is_early_tester: data[0].is_early_tester ?? false,
+          has_launch_party_ticket: data[0].has_launch_party_ticket ?? false,
+        });
+        setIsSubmitted(true);
+      } catch {
+        if (!cancelled) {
+          localStorage.removeItem('waitlist_signed_up_email');
+        }
+      } finally {
+        if (!cancelled) setIsLoadingExisting(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +116,9 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         });
         setIsSubmitted(true);
         setIsSubmitting(false);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('waitlist_signed_up_email', normalizedEmail);
+        }
         return;
       }
 
@@ -138,6 +176,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         localStorage.removeItem('marketing_campaign_variant');
         localStorage.removeItem('marketing_campaign_timestamp');
         localStorage.removeItem('waitlist_referral_code');
+        localStorage.setItem('waitlist_signed_up_email', normalizedEmail);
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -208,7 +247,14 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
           </svg>
         </button>
 
-        {isSubmitted ? (
+        {isLoadingExisting ? (
+          // Loading existing waitlist entry (returning user)
+          <div className={styles.successState}>
+            <div className={styles.loadingSpinner} />
+            <h2 className={styles.titleSuccess}>You&apos;re on the waitlist!</h2>
+            <p className={styles.subtitleCompact}>Loading your invite link...</p>
+          </div>
+        ) : (isSubmitted || waitlistResult) ? (
           // Success State with Invite Link
           <div className={styles.successState}>
             <div className={styles.successIcon}>

@@ -427,7 +427,20 @@ export default function WrappedPage() {
                 return; // Stop processing, modal will handle account deletion
             }
 
+            // NETWORKS (REQUIRED FOR COMPATIBILITY): We need to collect networks (school, company, city,
+            // high_school, etc.) and store in user_profile_extras BEFORE we can compute network proximity
+            // or overlap. Without networks, hasSocialProximity is false and overlap cannot be meaningfully
+            // calculated. Add an onboarding step (before or after wrapped) to collect: networks[], college,
+            // high_school, company, and optionally city. See: docs/ONBOARDING_COMPATIBILITY_AND_NETWORKS.md
+
             // Step 2: Derive interests and hierarchical interests (only if we have YouTube data)
+            // COMPATIBILITY / DICE: The InterestScore in the Network Proximity equation uses (1) DNA v2
+            // embedding cosine and (2) Dice coefficient on profiles.interests. derive_interests populates
+            // profiles.interests, so Dice can run when we compute overlap in calculate-network-proximity.
+            // To "score Dice" at signup: we need profiles.interests (done here). Optionally, a post-signup
+            // job could precompute Dice vs. other users or backfill user_overlap_scores; that would go
+            // after DNA v2 is ready and after we have networks in user_profile_extras. See:
+            // docs/ONBOARDING_COMPATIBILITY_AND_NETWORKS.md
             if (hasYouTubeData) {
                 try {
                     await YouTubeService.deriveInterests(user.id);
@@ -570,6 +583,14 @@ export default function WrappedPage() {
                     pollCount++;
                 }
             }
+
+            // COMPATIBILITY / OVERLAP: The Network Proximity overlap (0.55*Network + 0.30*Mutual + 0.15*Interest,
+            // with Interest = 0.35*embedding + 0.65*Dice) would be computed here once we have: (1) networks in
+            // user_profile_extras, (2) interests from derive_interests (for Dice), (3) DNA v2 (for embeddings).
+            // Currently overlap is computed on-demand in calculate-network-proximity and stored in user_overlap_scores.
+            // A batch job or post-onboarding cron could call calculate-network-proximity for this user vs. candidate
+            // IDs to backfill user_overlap_scores. DNA matching (user_matches, match_profiles_v2) is already
+            // auto-calculated elsewhere. See: docs/ONBOARDING_COMPATIBILITY_AND_NETWORKS.md
 
             // Refresh archetypes and doppelgangers after processing
             const { data: updatedProfile } = await supabase
@@ -1013,7 +1034,9 @@ export default function WrappedPage() {
                                 if (reviewEnabled) {
                                     router.push('/youtube-data-review');
                                 } else {
-                                    router.push('/invite-friends');
+                                    // Bypass /invite-friends; take user straight to network after onboarding
+                                    // router.push('/invite-friends');
+                                    router.push('/network');
                                 }
                             }}
                             className="text-[20px] md:text-[32px] font-bold text-white hover:opacity-70 transition-opacity font-display cursor-pointer flex items-center justify-center md:justify-start gap-2 w-full md:w-auto"
@@ -1137,7 +1160,9 @@ export default function WrappedPage() {
             if (reviewEnabled) {
                 router.push('/youtube-data-review');
             } else {
-                router.push('/invite-friends');
+                // Bypass /invite-friends; take user straight to network after onboarding
+                // router.push('/invite-friends');
+                router.push('/network');
             }
         }
     };

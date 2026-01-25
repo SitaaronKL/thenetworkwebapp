@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import styles from './SuggestionDetailModal.module.css';
 
@@ -20,6 +21,7 @@ interface SuggestionDetailModalProps {
 type RequestStatus = 'none' | 'pending' | 'accepted' | 'checking';
 
 export default function SuggestionDetailModal({ isOpen, onClose, person, onRequestSent, onDismiss }: SuggestionDetailModalProps) {
+  const router = useRouter();
   const [requestStatus, setRequestStatus] = useState<RequestStatus>('checking');
   const [isSending, setIsSending] = useState(false);
 
@@ -155,6 +157,18 @@ export default function SuggestionDetailModal({ isOpen, onClose, person, onReque
             <img src={person.avatar} alt={person.name} className={styles.avatar} />
             <h2 className={styles.name}>{person.name}</h2>
           </div>
+          <button
+            type="button"
+            className={styles.viewProfileButton}
+            onClick={async () => {
+              if (!person) return;
+              const supabase = createClient();
+              const { data } = await supabase.rpc('get_profile_slug', { p_user_id: person.id });
+              if (data) router.push(`/network-profile/${data}`);
+            }}
+          >
+            View Profile
+          </button>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
 
