@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Menu from '@/components/Menu';
 import InviteModal from '@/components/InviteModal';
@@ -1612,7 +1613,7 @@ export default function NetworkProfilePage() {
                             <div className={styles.tagsList}>
                                 {(profileData.interests && profileData.interests.length > 0) ? (
                                     profileData.interests.map((interest, i) => (
-                                        <span key={i} className={styles.tag}>{interest}</span>
+                                        <Link key={i} href={`/network-profile/${slug}/interest/${encodeURIComponent(interest)}`} className={styles.tag} style={{ textDecoration: 'none' }}>{interest}</Link>
                                     ))
                                 ) : (
                                     <span className={styles.infoValue}>Not set</span>
@@ -1985,6 +1986,13 @@ export default function NetworkProfilePage() {
                                             </div>
                                         )}
                                     </div>
+                                    <Link
+                                        href={`/network-profile/${slug}/interest/${encodeURIComponent(selectedInterest)}`}
+                                        className={styles.seeAllButton}
+                                        style={{ display: 'block', marginTop: 12, textAlign: 'center' }}
+                                    >
+                                        View feed →
+                                    </Link>
                                 </div>
 
                                 {/* Friends with this interest */}
