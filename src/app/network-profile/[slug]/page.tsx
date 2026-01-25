@@ -1325,12 +1325,9 @@ export default function NetworkProfilePage() {
                         
                         <div className={styles.networkTags}>
                             {networkTagsList.map((tag, i) => (
-                                <React.Fragment key={tag}>
-                                    <span className={styles.networkTag}>{tag}</span>
-                                    {i < networkTagsList.length - 1 && (
-                                        <span className={styles.networkTagSeparator}>,</span>
-                                    )}
-                                </React.Fragment>
+                                <span key={tag} className={styles.networkTag}>
+                                    {tag}{i < networkTagsList.length - 1 && <span className={styles.networkTagSeparator}>,</span>}
+                                </span>
                             ))}
                         </div>
                         
@@ -1374,7 +1371,7 @@ export default function NetworkProfilePage() {
                             <h3 className={styles.scoreTitle}>Network Score</h3>
                             <div className={styles.scoreNumber}>{networkScore}</div>
                             <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
-                            <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                            <p className={styles.scoreStats}>{connectionsCount} connections  {(profileExtras.networks || []).length} networks</p>
                             {totalUsers !== null && (
                                 <p className={styles.scoreStats} style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
                                     {totalUsers.toLocaleString()} total users on The Network
@@ -2027,7 +2024,7 @@ export default function NetworkProfilePage() {
                                 <h3 className={styles.scoreTitle}>Network Score</h3>
                                 <div className={styles.scoreNumber}>{networkScore}</div>
                                 <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
-                                <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                                <p className={styles.scoreStats}>{connectionsCount} connections  {(profileExtras.networks || []).length} networks</p>
                                 {totalUsers !== null && (
                                     <p className={styles.scoreStats} style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
                                         {totalUsers.toLocaleString()} total users on The Network
