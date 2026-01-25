@@ -462,6 +462,230 @@
     padding-right: 8px;
 }
 
+/* Myspace wall - spans center+right when Myspace tab active */
+.myspaceWallColumn {
+    grid-column: 2 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wallCard {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wallInputRow {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.wallInput {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+}
+
+.wallInput::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.wallPostButton {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wallPostButton:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.wallPostButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.wallFilters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wallFilterBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+
+.wallFilterActive {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.wallFeed {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.wallDateGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wallDateHeader {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 4px 0;
+}
+
+.wallUpdate {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.wallUpdateIcon {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+}
+
+.wallUpdateBody {
+    flex: 1;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+}
+
+.wallUpdateActor {
+    font-weight: 600;
+    color: #fff;
+}
+
+.wallUpdateMeta {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wallCommentLink {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+}
+
+.wallCommentLink:hover {
+    text-decoration: underline;
+}
+
+.wallEmpty {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 24px 0;
+    margin: 0;
+}
+
+.wallSubtitle {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    margin: -8px 0 8px 0;
+}
+
+.wallCommentThread {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.wallComment {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.wallCommentAuthor {
+    font-weight: 600;
+    color: #fff;
+    margin-right: 4px;
+}
+
+.wallCommentTime {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: 6px;
+}
+
+.wallCommentInputRow {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.wallCommentInput {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #fff;
+    outline: none;
+}
+
+.wallCommentInput::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.wallCommentSubmit {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wallCommentSubmit:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.wallCommentSubmit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .aboutCard {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
