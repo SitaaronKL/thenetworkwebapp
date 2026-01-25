@@ -312,11 +312,11 @@ function LandingPageContent() {
     const DOUBLE_TAP_DELAY = 300; // ms
     
     if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected - trigger login
-      signInWithGoogle();
+      // Double tap detected - go to auth choice page
+      router.push('/auth');
     }
     lastTapRef.current = now;
-  }, [signInWithGoogle]);
+  }, [router]);
 
   // Check for YouTube permission warning from redirect
   useEffect(() => {

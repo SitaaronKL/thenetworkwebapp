@@ -267,9 +267,8 @@ function AuthCallbackContent() {
                 // New user - needs full setup
                 setStatus('Setting up your profile...');
 
-                // Redirect to Profile Setup (Step 1)
-                // router.push('/profile-setup');
-                router.push('/profile-setup/wrapped');
+                // Redirect to new onboarding flow
+                router.push('/onboarding');
 
             } else if (isPartial) {
                 // Partial user - has interests but needs upgrade
