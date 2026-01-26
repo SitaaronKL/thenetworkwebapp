@@ -15,6 +15,9 @@ function AuthCallbackContent() {
         searchParams.get('error_description')
     );
 
+    // Check for custom redirect (e.g., from party pages)
+    const customRedirect = searchParams.get('redirect');
+
     useEffect(() => {
         if (hasAuthError) {
             router.replace('/');
@@ -70,7 +73,7 @@ function AuthCallbackContent() {
             // Check for YouTube permissions (provider_token)
             // If no provider_token, user likely didn't grant YouTube access
             const hasProviderToken = !!session.provider_token;
-            
+
             if (!hasProviderToken) {
                 // No YouTube access token - redirect to homepage with warning
                 setStatus('YouTube access required. Redirecting...');
@@ -89,7 +92,7 @@ function AuthCallbackContent() {
                         },
                     }
                 );
-                
+
                 if (!testResponse.ok) {
                     // YouTube API rejected the token - user didn't grant YouTube scope
                     setStatus('YouTube access required. Redirecting...');
@@ -237,7 +240,7 @@ function AuthCallbackContent() {
                     .select('sender_id, receiver_id')
                     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
                     .eq('status', 'accepted');
-                
+
                 let friendCount = 0;
                 if (connections) {
                     const friendIds = new Set<string>();
@@ -247,7 +250,7 @@ function AuthCallbackContent() {
                     });
                     friendCount = friendIds.size;
                 }
-                
+
                 // Bypass /invite-friends; take returning users straight to network
                 // if (friendCount >= 3) {
                 //     router.push('/network');
@@ -260,6 +263,13 @@ function AuthCallbackContent() {
             // Skip onboarding if user has already completed it (unless FORCE_ONBOARDING is true)
             if (hasCompletedOnboarding && !FORCE_ONBOARDING) {
                 setStatus('Welcome back!');
+
+                // Check for custom redirect (e.g., party page)
+                if (customRedirect) {
+                    router.push(customRedirect);
+                    return;
+                }
+
                 // Route based on friend count for returning users
                 await routeBasedOnFriendCount();
 
@@ -267,9 +277,8 @@ function AuthCallbackContent() {
                 // New user - needs full setup
                 setStatus('Setting up your profile...');
 
-                // Redirect to Profile Setup (Step 1)
-                // router.push('/profile-setup');
-                router.push('/profile-setup/wrapped');
+                // Redirect to new onboarding flow
+                router.push('/onboarding');
 
             } else if (isPartial) {
                 // Partial user - has interests but needs upgrade

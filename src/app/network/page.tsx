@@ -1987,11 +1987,17 @@ export default function Home() {
                   </div>
                   <div className={styles.suggestionList}>
                     {suggestions.map((suggestion) => (
-                      <button
+                      <div
                         key={suggestion.id}
                         className={styles.suggestionCard}
                         onClick={() => openSuggestionProfile(suggestion)}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            openSuggestionProfile(suggestion);
+                          }
+                        }}
                       >
                         <img
                           src={suggestion.avatar}
@@ -2012,7 +2018,7 @@ export default function Home() {
                         >
                           View Profile
                         </button>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>

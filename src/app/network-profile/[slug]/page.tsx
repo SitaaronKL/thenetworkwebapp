@@ -166,6 +166,34 @@ interface NetworkDistribution {
     friends: ClusterFriend[]; // Friends who share this network
 }
 
+interface MyspaceUpdate {
+    id: string;
+    actor_id: string;
+    actor_name: string;
+    actor_avatar_url?: string | null;
+    type: string;
+    content: string | null;
+    meta: Record<string, unknown>;
+    created_at: string;
+    other_user_id?: string | null;
+    other_user_name?: string | null;
+    through?: string | null;
+}
+
+// Field labels for profile_change: "Kristen changed [field] to [value]"
+const PROFILE_FIELD_LABELS: Record<string, string> = {
+    working_on: 'their quote',
+    status_text: 'profile status',
+    looking_for: 'what they\'re looking for',
+    college: 'college',
+    high_school: 'high school',
+    company: 'company',
+    job_description: 'what they\'re doing',
+    gender: 'gender',
+    age: 'age',
+    hometown: 'hometown',
+};
+
 // Looking for options
 const LOOKING_FOR_OPTIONS = [
     'Friends',
@@ -278,6 +306,7 @@ export default function NetworkProfilePage() {
             return;
         }
         setResolveStatus('resolving');
+        setResolvedUserId(null); // avoid using a previous slug's user id for this profile
         const supabase = createClient();
         supabase.rpc('resolve_profile_slug', { p_slug: slug }).then(({ data, error }) => {
             if (error) {
@@ -341,6 +370,15 @@ export default function NetworkProfilePage() {
     const [showWorkingOnModal, setShowWorkingOnModal] = useState(false);
     const [editWorkingOn, setEditWorkingOn] = useState('');
     
+    // Myspace (network feed) tab state
+    const [myspaceUpdates, setMyspaceUpdates] = useState<MyspaceUpdate[]>([]);
+    const [newStatus, setNewStatus] = useState('');
+    const [isPosting, setIsPosting] = useState(false);
+    const [expandedCommentUpdateId, setExpandedCommentUpdateId] = useState<string | null>(null);
+    const [commentsByUpdate, setCommentsByUpdate] = useState<Record<string, { user_name: string; content: string; created_at: string }[]>>({});
+    const [commentDraft, setCommentDraft] = useState('');
+    const [postingCommentFor, setPostingCommentFor] = useState<string | null>(null);
+    
     // Interests Tab State
     const [interests, setInterests] = useState<string[]>([]);
     const [hierarchicalInterests, setHierarchicalInterests] = useState<any[]>([]);
@@ -358,6 +396,7 @@ export default function NetworkProfilePage() {
     // Ref to track if data has been loaded (prevents reload on tab switch)
     const hasLoadedDataRef = useRef(false);
     const currentUserIdRef = useRef<string | null>(null);
+    const profileUserIdRef = useRef<string>(profileUserId);
 
     // Auth Redirect
     useEffect(() => {
@@ -366,12 +405,18 @@ export default function NetworkProfilePage() {
         }
     }, [user, loading, router]);
 
-    // When viewing another person's profile, only About is allowed
+    // When viewing another person's profile, only About and Myspace are allowed (Interests is own-only)
     useEffect(() => {
-        if (!isOwnProfile && (activeTab === 'network' || activeTab === 'interests')) {
+        if (!isOwnProfile && activeTab === 'interests') {
             setActiveTab('about');
         }
     }, [isOwnProfile, activeTab]);
+
+    // Clear Myspace feed when the profile we're viewing changes so we never show another user's feed
+    useEffect(() => {
+        profileUserIdRef.current = profileUserId;
+        setMyspaceUpdates([]);
+    }, [profileUserId]);
 
     // Load profile data (profileUserId: user to display; when absent, uses current user)
     const loadProfileData = useCallback(async (targetUserId: string, forceReload = false) => {
@@ -686,6 +731,118 @@ export default function NetworkProfilePage() {
             console.error('Error calculating network data:', error);
         }
     };
+
+    // Load network feed: for own profile = me+my connections; for others = that user's network
+    const loadMyspaceUpdates = useCallback(async () => {
+        if (!user || !profileUserId) return;
+        const supabase = createClient();
+        const isOwn = profileUserId === user.id;
+        const rpcName = isOwn ? 'get_network_feed' : 'get_network_feed_for_user';
+        const rpcArgs = isOwn
+            ? { p_limit: 50, p_offset: 0 }
+            : { p_user_id: profileUserId, p_limit: 50, p_offset: 0 };
+        let data: unknown;
+        let error: unknown;
+        try {
+            const res = await supabase.rpc(rpcName, rpcArgs);
+            data = res.data;
+            error = res.error;
+        } catch (e) {
+            const msg = (e as Error)?.message ?? String(e);
+            console.error('Error loading network feed (exception):', msg, '| rpc:', rpcName, '| for:', isOwn ? 'self' : profileUserId);
+            setMyspaceUpdates([]);
+            return;
+        }
+        if (error) {
+            const e = error as { message?: string; code?: string; details?: string; hint?: string };
+            let msg = e?.message ?? e?.code ?? e?.details ?? e?.hint;
+            if (msg == null) {
+                const str = typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error);
+                msg = (str === '{}' && error instanceof Error) ? (error as Error).toString() : (str || 'unknown');
+            }
+            console.error('Error loading network feed:', msg, '| rpc:', rpcName, '| for:', isOwn ? 'self' : profileUserId);
+            setMyspaceUpdates([]);
+            return;
+        }
+        // Only apply fetched data if we're still viewing this profile (avoid overwriting after nav)
+        if (profileUserIdRef.current === profileUserId) {
+            setMyspaceUpdates((data || []) as MyspaceUpdate[]);
+        }
+    }, [user, profileUserId]);
+
+    // Post to network feed (only your own post; distinct icon)
+    const postMyspaceStatus = async () => {
+        if (!user || !newStatus.trim() || isPosting) return;
+        setIsPosting(true);
+        const supabase = createClient();
+        const { error } = await supabase.from('myspace_updates').insert({
+            profile_user_id: user.id,
+            actor_id: user.id,
+            type: 'post',
+            content: newStatus.trim(),
+        });
+        if (error) {
+            console.error('Error posting:', error);
+        } else {
+            setNewStatus('');
+            await loadMyspaceUpdates();
+        }
+        setIsPosting(false);
+    };
+
+    // Fetch comments for an update (when expanding)
+    const fetchComments = async (updateId: string) => {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc('get_myspace_comments', { p_update_id: updateId });
+        if (error) {
+            console.error('Error loading comments:', error);
+            return;
+        }
+        setCommentsByUpdate(prev => ({
+            ...prev,
+            [updateId]: (data || []).map((r: { user_name: string; content: string; created_at: string }) => ({
+                user_name: r.user_name,
+                content: r.content,
+                created_at: r.created_at,
+            })),
+        }));
+    };
+
+    const toggleCommentThread = (updateId: string) => {
+        if (expandedCommentUpdateId === updateId) {
+            setExpandedCommentUpdateId(null);
+            setCommentDraft('');
+        } else {
+            setExpandedCommentUpdateId(updateId);
+            setCommentDraft('');
+            if (!commentsByUpdate[updateId]) fetchComments(updateId);
+        }
+    };
+
+    const postComment = async (updateId: string) => {
+        if (!user || !commentDraft.trim() || postingCommentFor) return;
+        setPostingCommentFor(updateId);
+        const supabase = createClient();
+        const { error } = await supabase.from('myspace_update_comments').insert({
+            update_id: updateId,
+            user_id: user.id,
+            content: commentDraft.trim(),
+        });
+        if (error) {
+            console.error('Error posting comment:', error);
+        } else {
+            setCommentDraft('');
+            await fetchComments(updateId);
+        }
+        setPostingCommentFor(null);
+    };
+
+    // Load network feed when opening Myspace tab (own = my network; other = their network)
+    useEffect(() => {
+        if (activeTab === 'myspace' && user && profileUserId) {
+            loadMyspaceUpdates();
+        }
+    }, [activeTab, user, profileUserId, loadMyspaceUpdates]);
 
     // Toggle looking for option
     const toggleLookingFor = (option: string) => {
@@ -1202,12 +1359,9 @@ export default function NetworkProfilePage() {
                         
                         <div className={styles.networkTags}>
                             {networkTagsList.map((tag, i) => (
-                                <React.Fragment key={tag}>
-                                    <span className={styles.networkTag}>{tag}</span>
-                                    {i < networkTagsList.length - 1 && (
-                                        <span className={styles.networkTagSeparator}>,</span>
-                                    )}
-                                </React.Fragment>
+                                <span key={tag} className={styles.networkTag}>
+                                    {tag}{i < networkTagsList.length - 1 && <span className={styles.networkTagSeparator}>,</span>}
+                                </span>
                             ))}
                         </div>
                         
@@ -1219,31 +1373,29 @@ export default function NetworkProfilePage() {
                             >
                                 About
                             </button>
+                            <button 
+                                className={`${styles.tabButton} ${activeTab === 'myspace' ? styles.tabButtonActive : styles.tabButtonInactive}`}
+                                onClick={() => setActiveTab('myspace')}
+                            >
+                                Myspace
+                            </button>
                             {isOwnProfile && (
-                                <>
-                                    <button 
-                                        className={`${styles.tabButton} ${activeTab === 'network' ? styles.tabButtonActive : styles.tabButtonInactive}`}
-                                        onClick={() => setActiveTab('network')}
-                                    >
-                                        Network
-                                    </button>
-                                    <button 
-                                        className={`${styles.tabButton} ${activeTab === 'interests' ? styles.tabButtonActive : styles.tabButtonInactive}`}
-                                        onClick={() => setActiveTab('interests')}
-                                    >
-                                        Interests
-                                    </button>
-                                </>
+                                <button 
+                                    className={`${styles.tabButton} ${activeTab === 'interests' ? styles.tabButtonActive : styles.tabButtonInactive}`}
+                                    onClick={() => setActiveTab('interests')}
+                                >
+                                    Interests
+                                </button>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Grid - About Tab */}
-            {activeTab === 'about' && (
-            <div className={styles.mainContent}>
-                {/* Left Column */}
+            {/* Main Content Grid - About and Myspace share the same left sidebar */}
+            {(activeTab === 'about' || activeTab === 'myspace') && (
+            <div className={`${styles.mainContent}${activeTab === 'myspace' ? ` ${styles.mainContentMyspace}` : ''}`}>
+                {/* Left Column - same for About and Myspace */}
                 <div className={styles.leftColumn}>
                     {/* Network Score Card - only on own profile; hidden when viewing someone else */}
                     {isOwnProfile && (
@@ -1251,7 +1403,7 @@ export default function NetworkProfilePage() {
                             <h3 className={styles.scoreTitle}>Network Score</h3>
                             <div className={styles.scoreNumber}>{networkScore}</div>
                             <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
-                            <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                            <p className={styles.scoreStats}>{connectionsCount} connections  {(profileExtras.networks || []).length} networks</p>
                             {totalUsers !== null && (
                                 <p className={styles.scoreStats} style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
                                     {totalUsers.toLocaleString()} total users on The Network
@@ -1260,10 +1412,10 @@ export default function NetworkProfilePage() {
                         </div>
                     )}
 
-                    {/* Your Quote Card */}
+                    {/* Quote Card: "Your Quote" when own, "Quote" when viewing another */}
                     <div className={styles.updateCard}>
                         <div className={styles.updateHeader}>
-                            <h3 className={styles.updateTitle}>Your Quote</h3>
+                            <h3 className={styles.updateTitle}>{isOwnProfile ? 'Your Quote' : 'Quote'}</h3>
                             {isOwnProfile && (
                                 <button 
                                     className={styles.editButton}
@@ -1277,7 +1429,7 @@ export default function NetworkProfilePage() {
                             )}
                         </div>
                         <p className={styles.updateText}>
-                            {profileExtras.working_on || 'Building something that increases interactions between humans.'}
+                            {profileExtras.working_on || 'This user is too busy connecting to set a quote.'}
                         </p>
                         <p className={styles.updateDate}>
                             Updated {profileExtras.working_on_updated_at 
@@ -1459,7 +1611,9 @@ export default function NetworkProfilePage() {
                     </div>
                 </div>
 
-                {/* Center Column - About */}
+                {/* Center Column - About (only when About tab) */}
+                {activeTab === 'about' && (
+                <>
                 <div className={styles.centerColumn}>
                     <div className={styles.aboutCard}>
                         <h2 className={styles.aboutTitle}>About</h2>
@@ -1755,6 +1909,153 @@ export default function NetworkProfilePage() {
                             })
                         )}
                 </div>
+                </>
+                )}
+
+                {/* Myspace: same 3-column layout as About — center uses centerColumn for identical positioning, right = empty */}
+                {activeTab === 'myspace' && (
+                <>
+                <div className={styles.centerColumn}>
+                    <div className={styles.myspaceCenterInner}>
+                    <div className={styles.myspaceFeedCard}>
+                    {isOwnProfile && (
+                    <div className={styles.wallCard}>
+                        <div className={styles.wallInputRow}>
+                            <input
+                                type="text"
+                                className={styles.wallInput}
+                                placeholder="What are you doing now?"
+                                value={newStatus}
+                                onChange={(e) => setNewStatus(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && postMyspaceStatus()}
+                            />
+                            <button
+                                className={styles.wallPostButton}
+                                onClick={postMyspaceStatus}
+                                disabled={!newStatus.trim() || isPosting}
+                            >
+                                Post
+                            </button>
+                        </div>
+                    </div>
+                    )}
+                    <p className={styles.wallSubtitle}>
+                        {isOwnProfile
+                            ? 'Updates from you and your network: posts, profile changes, and new connections.'
+                            : `Updates from ${profileData?.full_name?.split(' ')[0] || 'them'} and their network: posts, profile changes, and new connections.`}
+                    </p>
+                    <div className={styles.wallFeed}>
+                        {(() => {
+                            const byDate = myspaceUpdates.reduce<Record<string, MyspaceUpdate[]>>((acc, u) => {
+                                const d = new Date(u.created_at);
+                                const key = d.toDateString() === new Date().toDateString() ? 'Today' : d.toDateString() === new Date(Date.now() - 864e5).toDateString() ? 'Yesterday' : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                                (acc[key] = acc[key] || []).push(u);
+                                return acc;
+                            }, {});
+                            const order = ['Today', 'Yesterday'];
+                            const keys = Object.keys(byDate).sort((a, b) => {
+                                const ai = order.indexOf(a); const bi = order.indexOf(b);
+                                if (ai >= 0 && bi >= 0) return ai - bi;
+                                if (ai >= 0) return -1; if (bi >= 0) return 1;
+                                return 0;
+                            });
+                            if (myspaceUpdates.length === 0) {
+                                return (
+                                    <p className={styles.wallEmpty}>
+                                        {isOwnProfile
+                                            ? 'No updates yet. Post something above, or connect with more people to see their profile changes and new connections.'
+                                            : 'No updates yet from them or their network.'}
+                                    </p>
+                                );
+                            }
+                            const renderUpdateText = (u: MyspaceUpdate) => {
+                                if (u.type === 'post' || u.type === 'status') return u.content || '';
+                                if (u.type === 'profile_change') {
+                                    const field = (u.meta?.field as string) || '';
+                                    const newVal = (u.meta?.new_value as string) ?? '';
+                                    const label = PROFILE_FIELD_LABELS[field] || field;
+                                    return `changed ${label} to ${newVal || '(empty)'}`;
+                                }
+                                if (u.type === 'connection') {
+                                    const nameA = u.actor_name || 'Someone';
+                                    const nameB = u.other_user_name || 'Someone';
+                                    const thru = u.through;
+                                    return thru ? `${nameA} and ${nameB} connected through ${thru}` : `${nameA} and ${nameB} connected`;
+                                }
+                                return u.content || '';
+                            };
+                            const renderUpdateIcon = (u: MyspaceUpdate) => {
+                                if (u.type === 'post' || u.type === 'status') return '💬';
+                                if (u.type === 'profile_change') return '✎';
+                                if (u.type === 'connection') return '🔗';
+                                return '•';
+                            };
+                            return keys.map(dateKey => (
+                                <div key={dateKey} className={styles.wallDateGroup}>
+                                    <h4 className={styles.wallDateHeader}>{dateKey}</h4>
+                                    {byDate[dateKey].map(u => (
+                                        <div key={u.id} className={styles.wallUpdate}>
+                                            <span className={styles.wallUpdateIcon}>{renderUpdateIcon(u)}</span>
+                                            <div className={styles.wallUpdateBody}>
+                                                {(u.type === 'post' || u.type === 'status') && (
+                                                    <><span className={styles.wallUpdateActor}>{u.actor_name || 'Someone'}</span> {u.content || ''}</>
+                                                )}
+                                                {u.type === 'profile_change' && (
+                                                    <><span className={styles.wallUpdateActor}>{u.actor_name || 'Someone'}</span> {renderUpdateText(u)}</>
+                                                )}
+                                                {u.type === 'connection' && (
+                                                    <>{renderUpdateText(u)}</>
+                                                )}
+                                                {!['post','status','profile_change','connection'].includes(u.type) && (
+                                                    <><span className={styles.wallUpdateActor}>{u.actor_name || 'Someone'}</span> {u.content || ''}</>
+                                                )}
+                                                <div className={styles.wallUpdateMeta}>
+                                                    {new Date(u.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                                    <button type="button" className={styles.wallCommentLink} onClick={() => toggleCommentThread(u.id)}>
+                                                        Comment
+                                                    </button>
+                                                </div>
+                                                {expandedCommentUpdateId === u.id && (
+                                                    <div className={styles.wallCommentThread}>
+                                                        {(commentsByUpdate[u.id] || []).map((c, i) => (
+                                                            <div key={i} className={styles.wallComment}>
+                                                                <span className={styles.wallCommentAuthor}>{c.user_name}</span> {c.content}
+                                                                <span className={styles.wallCommentTime}> {new Date(c.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                                                            </div>
+                                                        ))}
+                                                        <div className={styles.wallCommentInputRow}>
+                                                            <input
+                                                                type="text"
+                                                                className={styles.wallCommentInput}
+                                                                placeholder="Write a comment..."
+                                                                value={commentDraft}
+                                                                onChange={(e) => setCommentDraft(e.target.value)}
+                                                                onKeyDown={(e) => e.key === 'Enter' && postComment(u.id)}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className={styles.wallCommentSubmit}
+                                                                onClick={() => postComment(u.id)}
+                                                                disabled={!commentDraft.trim() || postingCommentFor === u.id}
+                                                            >
+                                                                Post
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ));
+                        })()}
+                    </div>
+                    </div>
+                    </div>
+                </div>
+                <div className={styles.rightColumn} />
+                </>
+                )}
             </div>
             )}
 
@@ -1774,7 +2075,7 @@ export default function NetworkProfilePage() {
                                 <h3 className={styles.scoreTitle}>Network Score</h3>
                                 <div className={styles.scoreNumber}>{networkScore}</div>
                                 <p className={styles.scoreBadge}>Prestige/Badge/Etc Nickname</p>
-                                <p className={styles.scoreStats}>{connectionsCount} connections  {interestClusters.length} clusters</p>
+                                <p className={styles.scoreStats}>{connectionsCount} connections  {(profileExtras.networks || []).length} networks</p>
                                 {totalUsers !== null && (
                                     <p className={styles.scoreStats} style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
                                         {totalUsers.toLocaleString()} total users on The Network
@@ -1783,13 +2084,24 @@ export default function NetworkProfilePage() {
                             </div>
                         )}
 
-                        {/* Your Quote Card */}
+                        {/* Your Quote Card - same as About/Myspace left, with edit */}
                         <div className={styles.updateCard}>
                             <div className={styles.updateHeader}>
                                 <h3 className={styles.updateTitle}>Your Quote</h3>
+                                {isOwnProfile && (
+                                    <button 
+                                        className={styles.editButton}
+                                        onClick={openWorkingOnModal}
+                                        aria-label="Edit your quote"
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8.75 1.75L12.25 5.25M10.5 0.875C10.8452 0.52982 11.3048 0.333252 11.7812 0.333252C12.2577 0.333252 12.7173 0.52982 13.0625 0.875C13.4077 1.22018 13.6042 1.67982 13.6042 2.15625C13.6042 2.63268 13.4077 3.09232 13.0625 3.4375L3.5 13H0V9.5L9.5625 0C9.90768 -0.345178 10.3673 -0.541746 10.8438 -0.541746C11.3202 -0.541746 11.7798 -0.345178 12.125 0L10.5 0.875Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </button>
+                                )}
                             </div>
                             <p className={styles.updateText}>
-                                {profileExtras.working_on || 'Building something that increases interactions between humans.'}
+                                {profileExtras.working_on || 'This user is too busy connecting to set a quote.'}
                             </p>
                             <p className={styles.updateDate}>
                                 Updated {profileExtras.working_on_updated_at 
@@ -1935,7 +2247,8 @@ export default function NetworkProfilePage() {
                         </div>
                     </div>
 
-                    {/* Center - Interest Graph */}
+                    {/* Center - Interest Graph (wrapped to match About center width via padding-right) */}
+                    <div className={styles.interestsCenterColumn}>
                     <div className={styles.interestsGraphContainer}>
                         {/* Only show loading if graph has NEVER been loaded in this session */}
                         {/* moduleGraphHasLoaded persists even when component unmounts (tab switch) */}
@@ -1957,6 +2270,7 @@ export default function NetworkProfilePage() {
                                 <p>No interests found yet. Complete your profile to see your interest map.</p>
                             </div>
                         )}
+                    </div>
                     </div>
 
                     {/* Right Panel - Interest Details */}
@@ -2489,7 +2803,7 @@ export default function NetworkProfilePage() {
                                     className={styles.formInput}
                                     value={editWorkingOn}
                                     onChange={(e) => setEditWorkingOn(e.target.value)}
-                                    placeholder="e.g. Building something that increases interactions between humans."
+                                    placeholder="e.g. This user is too busy connecting to set a quote."
                                     rows={4}
                                     style={{ resize: 'vertical', minHeight: '80px' }}
                                 />
