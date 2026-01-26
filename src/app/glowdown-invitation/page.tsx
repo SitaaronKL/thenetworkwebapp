@@ -87,11 +87,7 @@ export default function GlowdownInvitationPage() {
     <div className="min-h-screen bg-black text-white overflow-x-hidden font-sans">
       <GlowdownBackground />
 
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-5 flex justify-end">
-        <Link href="/" className="text-white/90 hover:text-white text-sm font-medium tracking-wide transition-colors">
-          The Network
-        </Link>
-      </nav>
+      {/* Removed top right 'The Network' button */}
 
       <main className="relative z-10 max-w-xl mx-auto px-6 md:px-8 pt-20 pb-28 flex flex-col items-center">
         {/* You're invited — party opener */}
@@ -105,13 +101,17 @@ export default function GlowdownInvitationPage() {
         {/* Pike presents Glowdown brought to you by The Network */}
         <header className="text-center mb-10">
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 mb-4">
-            <img src={PIKE_SVG} alt="Pike" className="h-8 md:h-9 w-auto object-contain opacity-95" />
+            <img src={PIKE_SVG} alt="Pike" className="h-20 md:h-28 w-auto object-contain opacity-95" />
+          </div>
+
+          <div>
             <span className="text-white/50 text-sm md:text-base">presents</span>
           </div>
 
+
           {/* GlowDown — big, glowing, party title */}
           <h1
-            className="font-brand text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-5"
+            className="font-brand text-7xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-5"
             style={{
               letterSpacing: '-0.03em',
               color: '#fff',
@@ -124,19 +124,26 @@ export default function GlowdownInvitationPage() {
 
           <div className="flex flex-col items-center gap-2">
             <span className="text-white/55 text-sm">brought to you by</span>
-            <img src={THE_NETWORK_SVG} alt="The Network" className="h-14 md:h-20 w-auto object-contain opacity-95 brightness-0 invert" />
+            <Link href="/mcmaster">
+              <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes logo-breathing {
+                  0% { transform: scale(1); opacity: 0.9; filter: invert(1) brightness(1); }
+                  50% { transform: scale(1.05); opacity: 1; filter: invert(1) brightness(1.5) drop-shadow(0 0 15px rgba(255,255,255,0.4)); }
+                  100% { transform: scale(1); opacity: 0.9; filter: invert(1) brightness(1); }
+                }
+                .animate-logo-breathing {
+                  animation: logo-breathing 4s ease-in-out infinite;
+                }
+              `}} />
+              <img
+                src={THE_NETWORK_SVG}
+                alt="The Network"
+                className="h-14 md:h-20 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity animate-logo-breathing"
+              />
+            </Link>
           </div>
         </header>
-
-        {/* Ticket / barcode — ticket-stub style */}
-        <div className="w-full max-w-[260px] mb-10">
-          <div className="rounded-xl border-2 border-dashed border-amber-400/40 bg-amber-950/20 py-6 flex flex-col items-center justify-center gap-2">
-            <span className="text-amber-400/70 text-[11px] font-semibold tracking-[0.2em] uppercase">Your ticket</span>
-            <div className="w-36 h-12 rounded border border-amber-400/25 flex items-center justify-center">
-              <span className="text-amber-500/40 text-xs">Barcode</span>
-            </div>
-          </div>
-        </div>
 
         {/* Invitation card — ornate, party-invite feel */}
         <article className="w-full max-w-lg relative">
@@ -155,17 +162,52 @@ export default function GlowdownInvitationPage() {
               <span className="absolute bottom-4 left-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
               <span className="absolute bottom-4 right-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
 
-              <h2 className="font-brand text-xl md:text-2xl font-bold text-white mb-1" style={{ letterSpacing: '-0.02em' }}>
-                Accept the invite
+              <h2 className="font-brand text-2xl md:text-3xl font-bold text-white mb-2" style={{ letterSpacing: '-0.02em' }}>
+                122 Whitney Avenue
               </h2>
-              <p className="text-white/80 text-base md:text-lg font-ui mb-2">
-                and bring a friend
+              <p className="text-white/90 text-lg md:text-xl font-ui mb-3">
+                10:00pm
               </p>
-              <p className="text-white/50 text-sm mb-6">— we can&apos;t wait to see you —</p>
+              <p className="text-white/50 text-sm mb-6">— Wear white. Bring energy. —</p>
+
+              <div className="flex flex-col gap-4 mb-6 mt-4">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+                />
+                <input
+                  type="email"
+                  placeholder="Email address (Gmail preferred)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+                />
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Your current obsession"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+                  />
+                  <p className="text-[10px] text-white/40 text-left px-2 leading-relaxed">
+                    ie. strava, superbowl predictions, heated rivalry, dropspot vintage, starbucks dubai chocolate matcha, beli, etc.
+                  </p>
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group px-2 mt-1">
+                  <div className="mt-1">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-white/20 bg-white/5 text-amber-500 focus:ring-amber-500/50 transition-all cursor-pointer"
+                    />
+                  </div>
+                  <span className="text-[11px] text-white/50 text-left leading-tight group-hover:text-white/70 transition-colors">
+                    I want to try The Network and be matched with someone at GlowDown who shares my interests. At 12am, we’ll send you the name of another attendee. Find them, say hi, and see what happens. If you happen to meet your next best friend, no pressure, but that&apos;s kind of the point.
+                  </span>
+                </label>
+              </div>
 
               <div className="flex flex-col gap-3">
                 <Link
-                  href="/mcmaster"
+                  href="/ticket"
                   className="inline-block w-full py-4 rounded-full text-base font-bold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg text-center"
                   style={{
                     background: 'linear-gradient(90deg, #f59e0b 0%, #f97316 50%, #ec4899 100%)',
@@ -173,13 +215,16 @@ export default function GlowdownInvitationPage() {
                     boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
                   }}
                 >
-                  I&apos;m in — let&apos;s go
+                  I&apos;m in
                 </Link>
+                <p className="text-[10px] text-white/30 leading-relaxed px-4">
+                  *Confirming attendance means you consent to being added to The Network&apos;s waitlist. No information beyond your name and email address will be collected. No data will be taken, and all participation in The Network initiative is entirely optional and always controlled by you.
+                </p>
                 <Link
                   href="/mcmaster"
                   className="inline-block w-full py-3 rounded-full text-sm font-semibold text-white/90 border border-white/30 hover:border-white/50 hover:bg-white/5 transition-all duration-300 text-center"
                 >
-                  Learn more about the network
+                  Learn more about The Network
                 </Link>
               </div>
             </div>
