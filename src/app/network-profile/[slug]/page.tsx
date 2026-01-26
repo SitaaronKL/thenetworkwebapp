@@ -1394,7 +1394,7 @@ export default function NetworkProfilePage() {
 
             {/* Main Content Grid - About and Myspace share the same left sidebar */}
             {(activeTab === 'about' || activeTab === 'myspace') && (
-            <div className={styles.mainContent}>
+            <div className={`${styles.mainContent}${activeTab === 'myspace' ? ` ${styles.mainContentMyspace}` : ''}`}>
                 {/* Left Column - same for About and Myspace */}
                 <div className={styles.leftColumn}>
                     {/* Network Score Card - only on own profile; hidden when viewing someone else */}
@@ -1429,7 +1429,7 @@ export default function NetworkProfilePage() {
                             )}
                         </div>
                         <p className={styles.updateText}>
-                            {profileExtras.working_on || 'Building something that increases interactions between humans.'}
+                            {profileExtras.working_on || 'This user is too busy connecting to set a quote.'}
                         </p>
                         <p className={styles.updateDate}>
                             Updated {profileExtras.working_on_updated_at 
@@ -1912,9 +1912,12 @@ export default function NetworkProfilePage() {
                 </>
                 )}
 
-                {/* Myspace Wall - Facebook-style updates feed */}
+                {/* Myspace: same 3-column layout as About — center uses centerColumn for identical positioning, right = empty */}
                 {activeTab === 'myspace' && (
-                <div className={styles.myspaceWallColumn}>
+                <>
+                <div className={styles.centerColumn}>
+                    <div className={styles.myspaceCenterInner}>
+                    <div className={styles.myspaceFeedCard}>
                     {isOwnProfile && (
                     <div className={styles.wallCard}>
                         <div className={styles.wallInputRow}>
@@ -2047,7 +2050,11 @@ export default function NetworkProfilePage() {
                             ));
                         })()}
                     </div>
+                    </div>
+                    </div>
                 </div>
+                <div className={styles.rightColumn} />
+                </>
                 )}
             </div>
             )}
@@ -2094,7 +2101,7 @@ export default function NetworkProfilePage() {
                                 )}
                             </div>
                             <p className={styles.updateText}>
-                                {profileExtras.working_on || 'Building something that increases interactions between humans.'}
+                                {profileExtras.working_on || 'This user is too busy connecting to set a quote.'}
                             </p>
                             <p className={styles.updateDate}>
                                 Updated {profileExtras.working_on_updated_at 
@@ -2240,7 +2247,8 @@ export default function NetworkProfilePage() {
                         </div>
                     </div>
 
-                    {/* Center - Interest Graph */}
+                    {/* Center - Interest Graph (wrapped to match About center width via padding-right) */}
+                    <div className={styles.interestsCenterColumn}>
                     <div className={styles.interestsGraphContainer}>
                         {/* Only show loading if graph has NEVER been loaded in this session */}
                         {/* moduleGraphHasLoaded persists even when component unmounts (tab switch) */}
@@ -2262,6 +2270,7 @@ export default function NetworkProfilePage() {
                                 <p>No interests found yet. Complete your profile to see your interest map.</p>
                             </div>
                         )}
+                    </div>
                     </div>
 
                     {/* Right Panel - Interest Details */}
@@ -2794,7 +2803,7 @@ export default function NetworkProfilePage() {
                                     className={styles.formInput}
                                     value={editWorkingOn}
                                     onChange={(e) => setEditWorkingOn(e.target.value)}
-                                    placeholder="e.g. Building something that increases interactions between humans."
+                                    placeholder="e.g. This user is too busy connecting to set a quote."
                                     rows={4}
                                     style={{ resize: 'vertical', minHeight: '80px' }}
                                 />
