@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
+  const [schoolFilter, setSchoolFilter] = useState('')
 
   const TZ_EST = data?.timeZone || 'America/New_York'
 
@@ -374,12 +375,54 @@ export default function AdminPage() {
         {/* Recent Signups Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800">Recent Signups</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">Recent Signups</h3>
+                {!schoolFilter && (
+                  <p className="text-xs text-gray-500 mt-1">Showing most recent signups (up to 10,000)</p>
+                )}
+              </div>
+              {schoolFilter && (
+                <span className="text-sm text-gray-600 font-medium">
+                  Showing {data.recentSignups.filter((user: any) => {
+                    const school = (user.school || '').toLowerCase();
+                    return school.includes(schoolFilter.toLowerCase());
+                  }).length} user{data.recentSignups.filter((user: any) => {
+                    const school = (user.school || '').toLowerCase();
+                    return school.includes(schoolFilter.toLowerCase());
+                  }).length !== 1 ? 's' : ''} from "{schoolFilter}"
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label htmlFor="school-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                  Filter by School
+                </label>
+                <input
+                  id="school-filter"
+                  type="text"
+                  value={schoolFilter}
+                  onChange={(e) => setSchoolFilter(e.target.value)}
+                  placeholder="Type school name (e.g., Fordham University)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              {schoolFilter && (
+                <button
+                  onClick={() => setSchoolFilter('')}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">School</th>
@@ -388,8 +431,15 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {data.recentSignups.map((user: any) => (
+                {data.recentSignups
+                  .filter((user: any) => {
+                    if (!schoolFilter) return true;
+                    const school = (user.school || '').toLowerCase();
+                    return school.includes(schoolFilter.toLowerCase());
+                  })
+                  .map((user: any) => (
                   <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.name || '-'}</td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.email}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {new Date(user.created_at).toLocaleString('en-US', { timeZone: data?.timeZone || 'America/New_York' })}
@@ -442,6 +492,17 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))}
+                {data.recentSignups.filter((user: any) => {
+                  if (!schoolFilter) return false;
+                  const school = (user.school || '').toLowerCase();
+                  return school.includes(schoolFilter.toLowerCase());
+                }).length === 0 && schoolFilter && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                      No users found for "{schoolFilter}"
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

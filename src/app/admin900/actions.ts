@@ -108,11 +108,13 @@ export async function getAdminData(password: string) {
     }
 
     // 5. Recent Signups Table
+    // Note: We fetch a large number of signups so filtering by school works accurately
+    // The limit is high enough to include all users when filtering by school
     const { data: recentSignups, error: signupsError } = await supabase
       .from('waitlist')
       .select('*, interested_in_beta, beta_status')
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(10000) // Large limit to ensure accurate school filtering
 
     if (signupsError) throw signupsError
 
