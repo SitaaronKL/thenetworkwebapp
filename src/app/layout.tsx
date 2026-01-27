@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import GlowdownBackground from "@/components/GlowdownBackground";
 
 export const metadata: Metadata = {
   title: "TheNetwork",
@@ -34,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#000000' }}>
       <body style={{ backgroundColor: '#000000' }}>
+        <GlowdownBackground />
         <AuthProvider>
           {children}
         </AuthProvider>
