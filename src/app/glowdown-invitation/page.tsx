@@ -221,7 +221,7 @@ export default function GlowdownInvitationPage() {
                 <span className="absolute bottom-4 right-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
 
                 <h2 className="font-brand text-2xl md:text-3xl font-bold text-white mb-4" style={{ letterSpacing: '-0.02em' }}>
-                  Your Ticket
+                  We can't wait to see you.
                 </h2>
                 
                 {/* Barcode/Ticket Code Display */}
