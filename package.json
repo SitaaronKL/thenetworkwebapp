@@ -52,6 +52,7 @@
     "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2",
     "graphology-layout-forceatlas2": "^0.10.1",
+    "html5-qrcode": "^2.3.8",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.561.0",
     "next": "16.0.10",
