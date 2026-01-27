@@ -441,6 +441,8 @@
 
 .embeddedPanelBody {
     padding: 4px 0;
+    background: transparent;
+    color: #ffffff;
 }
 
 /* Embedded Search Input */
@@ -557,6 +559,16 @@
 
 .embeddedListAction.decline:hover {
     background: rgba(239, 68, 68, 0.2);
+}
+
+.embeddedListAction.connected {
+    background: rgba(34, 197, 94, 0.15);
+    color: rgb(22, 163, 74);
+    cursor: not-allowed;
+}
+
+.embeddedListAction.connected:hover {
+    background: rgba(34, 197, 94, 0.15);
 }
 
 .embeddedListActions {
@@ -679,9 +691,9 @@
     width: 100%;
     min-height: 110px;
     border-radius: 20px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background: rgba(15, 15, 15, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: flex-start;
     padding: 18px 20px;
@@ -715,7 +727,7 @@
     }
 
     .suggestionCard:active {
-        background: var(--accent);
+        background: rgba(25, 25, 25, 0.95);
         transform: scale(0.98);
     }
 }
@@ -871,7 +883,7 @@
 
 .cardReason {
     font-size: 14px;
-    color: var(--muted-foreground);
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 400;
     line-height: 1.6;
     margin: 0;
@@ -1097,21 +1109,21 @@
 /* Weekly Drop text - set to black so theme inversion makes it white */
 .weeklyDropTextContainer {
     text-align: center;
-    color: #000000 !important;
+    color: #ffffff !important;
 }
 
 .weeklyDropName {
     font-size: 20px;
     font-weight: 600;
     margin-bottom: 4px;
-    color: #000000 !important;
+    color: #ffffff !important;
 }
 
 .weeklyDropReason {
     font-size: 14px;
     max-width: 280px;
     opacity: 0.9;
-    color: #000000 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
 }
 
 /* Counter-invert images when theme is inverted */

@@ -61,6 +61,14 @@
     flex-shrink: 0;
 }
 
+/* Counter-invert profile images in light mode */
+:global(html.theme-light) .profileImageLarge,
+:global(html.theme-light) .clusterAvatar,
+:global(html.theme-light) .friendScrollAvatar,
+:global(html.theme-light) .friendAvatar {
+    filter: invert(1) hue-rotate(180deg);
+}
+
 .profileImagePlaceholder {
     width: 168px;
     height: 168px;

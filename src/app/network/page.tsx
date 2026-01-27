@@ -203,6 +203,7 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
 
   const performSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) { setResults([]); return; }
@@ -221,6 +222,7 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
       .ilike('full_name', searchPattern)
       .limit(10);
 
+    let searchResults = [];
     if (orError) {
       // Fallback to simple name search
       const { data: nameResults } = await supabase
@@ -229,10 +231,61 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
         .neq('id', user.id)
         .ilike('full_name', searchPattern)
         .limit(10);
-      setResults(nameResults || []);
+      searchResults = nameResults || [];
     } else {
-      setResults(orResults || []);
+      searchResults = orResults || [];
     }
+
+    // Check connection status for each result
+    if (searchResults.length > 0) {
+      const resultIds = searchResults.map(r => r.id);
+      
+      // Check user_connections table - get all connections where current user is involved
+      const { data: connections } = await supabase
+        .from('user_connections')
+        .select('sender_id, receiver_id, status')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      // Also check friend_requests table
+      const { data: friendRequests } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id, status')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      const connectedSet = new Set<string>();
+      const sentSet = new Set<string>();
+
+      // Process connections - only for users in search results
+      (connections || []).forEach((conn: any) => {
+        const otherId = conn.sender_id === user.id ? conn.receiver_id : conn.sender_id;
+        // Only add if this user is in our search results
+        if (resultIds.includes(otherId)) {
+          if (conn.status === 'accepted') {
+            connectedSet.add(otherId);
+          } else if (conn.status === 'pending' && conn.sender_id === user.id) {
+            sentSet.add(otherId);
+          }
+        }
+      });
+
+      // Process friend requests - only for users in search results
+      (friendRequests || []).forEach((req: any) => {
+        const otherId = req.sender_id === user.id ? req.receiver_id : req.sender_id;
+        // Only add if this user is in our search results
+        if (resultIds.includes(otherId)) {
+          if (req.status === 'accepted') {
+            connectedSet.add(otherId);
+          } else if (req.status === 'pending' && req.sender_id === user.id) {
+            sentSet.add(otherId);
+          }
+        }
+      });
+
+      setConnectedUsers(connectedSet);
+      setSentRequests(sentSet);
+    }
+
+    setResults(searchResults);
     setLoading(false);
   };
 
@@ -297,13 +350,22 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
               >
                 View Profile
               </button>
-              <button
-                className={styles.embeddedListAction}
-                onClick={() => sendRequest(profile.id)}
-                disabled={sentRequests.has(profile.id)}
-              >
-                {sentRequests.has(profile.id) ? 'Sent' : 'Add'}
-              </button>
+              {connectedUsers.has(profile.id) ? (
+                <button
+                  className={`${styles.embeddedListAction} ${styles.connected}`}
+                  disabled
+                >
+                  Connected
+                </button>
+              ) : (
+                <button
+                  className={styles.embeddedListAction}
+                  onClick={() => sendRequest(profile.id)}
+                  disabled={sentRequests.has(profile.id)}
+                >
+                  {sentRequests.has(profile.id) ? 'Sent' : 'Add'}
+                </button>
+              )}
             </div>
           ))
         )}
@@ -359,9 +421,9 @@ function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnec
                 style={{
                   padding: '10px 24px',
                   borderRadius: '20px',
-                  border: '1px solid rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.2)',
                   background: 'transparent',
-                  color: '#000000',
+                  color: '#ffffff',
                   fontSize: '14px',
                   fontWeight: 500,
                   cursor: 'pointer'
@@ -376,7 +438,7 @@ function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnec
                   borderRadius: '20px',
                   border: 'none',
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: '#000000',
+                  color: '#ffffff',
                   fontSize: '14px',
                   fontWeight: 500,
                   cursor: 'pointer'
