@@ -71,56 +71,93 @@ export async function POST(request: NextRequest) {
         // Generate new ticket code
         ticketCode = generateTicketCode();
         
-        // Update waitlist entry with party info and ticket
-        const { error: updateError } = await supabase
-          .from('waitlist')
-          .update({
-            party_id: partyDetails.id,
-            party_ticket_code: ticketCode,
-            interested_in_beta: interestedInBeta || false,
-          })
-          .eq('id', waitlistId);
+        // Use the secure function to update (bypasses RLS but validates email)
+        // Set school to 'McMaster University' for GlowDown registrations
+        const { data: updateSuccess, error: updateError } = await supabase
+          .rpc('update_waitlist_party_info', {
+            p_waitlist_id: waitlistId,
+            p_email: normalizedEmail,
+            p_party_id: partyDetails.id,
+            p_party_ticket_code: ticketCode,
+            p_interested_in_beta: interestedInBeta || false,
+            p_school: 'McMaster University',
+          });
 
-        if (updateError) {
-          throw updateError;
+        if (updateError || !updateSuccess) {
+          console.error('Error updating waitlist entry with party info:', updateError);
+          // Don't throw - entry exists, just without party info
+          // It will still show up in queries by campaign_code
         }
       }
     } else {
-      // Create new waitlist entry
+      // Create new waitlist entry with party info included (avoids RLS update issue)
       ticketCode = generateTicketCode();
       
+      // Use the glowdown-specific function that sets party_id and ticket_code during insert
+      // If function doesn't exist yet, fallback to regular create + update
       const { data: result, error: insertError } = await supabase
-        .rpc('create_waitlist_entry', {
+        .rpc('create_glowdown_waitlist_entry', {
           p_name: name.trim(),
           p_email: normalizedEmail,
-          p_school: null,
-          p_campaign_code: 'glowdown',
-          p_campaign_id: null,
-          p_referred_by_code: null,
           p_interested_in_beta: interestedInBeta || false,
+          p_party_id: partyDetails.id,
+          p_party_ticket_code: ticketCode,
         });
 
       if (insertError) {
-        throw insertError;
-      }
+        // If function doesn't exist, fallback to old method
+        if (insertError.message?.includes('function') || insertError.code === '42883') {
+          console.warn('create_glowdown_waitlist_entry function not found, using fallback method');
+          
+          // Fallback: use regular create_waitlist_entry
+          // Set school to 'McMaster University' for GlowDown registrations
+          const { data: fallbackResult, error: fallbackError } = await supabase
+            .rpc('create_waitlist_entry', {
+              p_name: name.trim(),
+              p_email: normalizedEmail,
+              p_school: 'McMaster University',
+              p_campaign_code: 'glowdown',
+              p_campaign_id: null,
+              p_referred_by_code: null,
+              p_interested_in_beta: interestedInBeta || false,
+            });
 
-      if (!result || result.length === 0) {
+          if (fallbackError) {
+            console.error('Error creating waitlist entry (fallback):', fallbackError);
+            throw fallbackError;
+          }
+
+          if (!fallbackResult || fallbackResult.length === 0) {
+            throw new Error('Failed to create waitlist entry');
+          }
+
+          waitlistId = fallbackResult[0].id;
+
+          // Try to update using the update function
+          // Set school to 'McMaster University' for GlowDown registrations
+          const { data: updateSuccess, error: updateError } = await supabase
+            .rpc('update_waitlist_party_info', {
+              p_waitlist_id: waitlistId,
+              p_email: normalizedEmail,
+              p_party_id: partyDetails.id,
+              p_party_ticket_code: ticketCode,
+              p_interested_in_beta: null, // Already set
+              p_school: 'McMaster University',
+            });
+
+          if (updateError || !updateSuccess) {
+            console.warn('Could not set party info on waitlist entry:', updateError);
+            // Entry still created, just without party_id - will show up in campaign_code queries
+          }
+        } else {
+          console.error('Error creating glowdown waitlist entry:', insertError);
+          throw insertError;
+        }
+      } else if (!result || result.length === 0) {
         throw new Error('Failed to create waitlist entry');
-      }
-
-      waitlistId = result[0].id;
-
-      // Update with party info and ticket code
-      const { error: updateError } = await supabase
-        .from('waitlist')
-        .update({
-          party_id: partyDetails.id,
-          party_ticket_code: ticketCode,
-        })
-        .eq('id', waitlistId);
-
-      if (updateError) {
-        throw updateError;
+      } else {
+        waitlistId = result[0].id;
+        // Party info and ticket code are already set by the function, no update needed
       }
     }
 

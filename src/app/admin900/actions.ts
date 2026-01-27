@@ -159,17 +159,12 @@ export async function getAdminData(password: string) {
     const referrersSet = new Set((sourceData || []).filter((i: any) => i.referred_by_code).map((i: any) => i.referred_by_code))
     const referrersCount = referrersSet.size
 
-    const { count: betaAccepted } = await supabase
-      .from('waitlist')
-      .select('*', { count: 'exact', head: true })
-      .eq('interested_in_beta', true)
-      .eq('beta_status', 'accepted')
     const { count: betaInterested } = await supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
       .eq('interested_in_beta', true)
-    const betaAcceptedPct = (betaInterested != null && betaInterested > 0 && betaAccepted != null)
-      ? ((betaAccepted / betaInterested) * 100).toFixed(1) : '0'
+    const betaAcceptedPct = (totalCount != null && totalCount > 0 && betaInterested != null)
+      ? ((betaInterested / totalCount) * 100).toFixed(1) : '0'
 
     const { count: withInviteCode } = await supabase
       .from('waitlist')
@@ -181,16 +176,182 @@ export async function getAdminData(password: string) {
     const avgReferralsPerUser = (waitlistCount != null && waitlistCount > 0)
       ? (totalReferrals / waitlistCount).toFixed(2) : '0'
 
-    const { data: schoolRows } = await supabase.from('waitlist').select('school').limit(50000)
-    const schoolsSet = new Set(
-      (schoolRows || [])
-        .filter((r: any) => r.school != null && String(r.school).trim() !== '')
-        .map((r: any) => String(r.school).trim())
-    )
-    const schoolsReached = schoolsSet.size
-
     const { data: schoolTimeTo20, error: timeTo20Err } = await supabase.rpc('get_school_time_to_20')
     if (timeTo20Err) console.warn('get_school_time_to_20 warning:', timeTo20Err)
+
+    // Calculate school counts from both waitlist and profiles
+    // Fetch all data to ensure we count everything (not limited by recentSignups limit)
+    const { data: waitlistSchools } = await supabase
+      .from('waitlist')
+      .select('school')
+      .not('school', 'is', null)
+    
+    const { data: profileSchools } = await supabase
+      .from('profiles')
+      .select('school')
+      .not('school', 'is', null)
+
+    // Collect all schools (including duplicates for accurate counting)
+    const allSchools: string[] = []
+    if (waitlistSchools) {
+      waitlistSchools.forEach((item: any) => {
+        const school = String(item.school || '').trim()
+        if (school) allSchools.push(school)
+      })
+    }
+    if (profileSchools) {
+      profileSchools.forEach((item: any) => {
+        const school = String(item.school || '').trim()
+        if (school) allSchools.push(school)
+      })
+    }
+    
+    // Normalization map for known school variations
+    const schoolNormalization: Record<string, string> = {
+      'mcmaster': 'McMaster University',
+      'mcmaster university': 'McMaster University',
+      'mcmaster uni': 'McMaster University',
+      'hunter college': 'Hunter College',
+      'cuny hunter college': 'Hunter College',
+      'cuny hunter': 'Hunter College',
+      'columbia': 'Columbia University',
+      'columbia university': 'Columbia University',
+      'columbia uni': 'Columbia University',
+      'rutgers': 'Rutgers University',
+      'rutgers university': 'Rutgers University',
+      'rutgers uni': 'Rutgers University',
+      'baruch college': 'Baruch College',
+      'cuny baruch': 'Baruch College',
+    }
+
+    // Helper function to detect and fix duplicate words in school names
+    function fixDuplicateWords(name: string): string {
+      // First, fix cases where words are concatenated without spaces (e.g., "McMasterMcMaster")
+      let fixed = name.replace(/([a-z])([A-Z])/g, '$1 $2') // Add space between camelCase
+      
+      // Then remove duplicate consecutive words
+      const words = fixed.split(/\s+/)
+      const seen = new Set<string>()
+      const cleaned: string[] = []
+      
+      for (const word of words) {
+        const wordLower = word.toLowerCase()
+        if (!seen.has(wordLower)) {
+          seen.add(wordLower)
+          cleaned.push(word)
+        }
+      }
+      
+      return cleaned.join(' ')
+    }
+
+    // Helper function to get canonical name
+    function getCanonicalName(school: string): string {
+      const trimmed = school.trim()
+      const normalized = trimmed.toLowerCase()
+      
+      // Check normalization map first
+      if (schoolNormalization[normalized]) {
+        return schoolNormalization[normalized]
+      }
+      
+      // Check for partial matches
+      for (const [key, canonical] of Object.entries(schoolNormalization)) {
+        if (normalized.includes(key) || key.includes(normalized)) {
+          return canonical
+        }
+      }
+      
+      // Fix duplicate words (e.g., "McMasterMcMaster University" -> "McMaster University")
+      const fixed = fixDuplicateWords(trimmed)
+      
+      // Return properly capitalized version
+      return fixed.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+    }
+
+    // Group schools by finding canonical names
+    // Map: canonical key (lowercase) -> { displayName, schools[] }
+    const schoolGroups = new Map<string, { displayName: string; schools: string[] }>()
+    
+    // Process each school and assign to a group
+    allSchools.forEach((school) => {
+      const trimmed = school.trim()
+      if (!trimmed) return
+      
+      // Get canonical name (this will fix duplicates and normalize)
+      const canonicalName = getCanonicalName(trimmed)
+      const normalized = canonicalName.toLowerCase()
+      
+      let assigned = false
+      
+      // Check if this school matches any existing canonical name
+      for (const [canonicalKey, group] of schoolGroups.entries()) {
+        // Match if one contains the other (case-insensitive)
+        if (canonicalKey.includes(normalized) || normalized.includes(canonicalKey)) {
+          group.schools.push(trimmed)
+          // Update display name to canonical name (prefer canonical over raw)
+          if (canonicalName !== trimmed && !group.displayName.includes(canonicalName)) {
+            // Use canonical name if it's better formatted
+            group.displayName = canonicalName
+          } else if (trimmed.length > group.displayName.length && !trimmed.match(/(\w+)\1/i)) {
+            // Only update if longer AND doesn't have duplicate words
+            group.displayName = trimmed
+          }
+          assigned = true
+          break
+        }
+      }
+      
+      // If no match, create new group with canonical name
+      if (!assigned) {
+        schoolGroups.set(normalized, {
+          displayName: canonicalName,
+          schools: [trimmed]
+        })
+      }
+    })
+    
+    // Convert to count map - ensure no duplicates in display names
+    const schoolCounts: Record<string, number> = {}
+    const seenDisplayNames = new Set<string>()
+    
+    schoolGroups.forEach((group) => {
+      const displayLower = group.displayName.toLowerCase()
+      // If we've seen this display name (case-insensitive), merge counts
+      if (seenDisplayNames.has(displayLower)) {
+        // Find existing entry and add to it
+        const existingKey = Object.keys(schoolCounts).find(k => 
+          k.toLowerCase() === displayLower
+        )
+        if (existingKey) {
+          schoolCounts[existingKey] += group.schools.length
+        }
+      } else {
+        schoolCounts[group.displayName] = group.schools.length
+        seenDisplayNames.add(displayLower)
+      }
+    })
+
+    // Convert to array, sort by count (descending), and add rank
+    const schoolStats = Object.entries(schoolCounts)
+      .map(([school, count]) => ({ school, count }))
+      .sort((a, b) => b.count - a.count)
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1
+      }))
+
+    // Calculate "Schools Reached" - distinct schools after normalization
+    // This should match the count in schoolStats (which uses the same normalization)
+    const schoolsReached = schoolStats.length
+
+    // Find top 3 schools closest to 20 users (but under 20)
+    const schoolsUnder20 = schoolStats
+      .filter(s => s.count < 20)
+      .sort((a, b) => b.count - a.count) // Sort by count descending (closest to 20 first)
+      .slice(0, 3)
 
     return {
       success: true,
@@ -211,6 +372,8 @@ export async function getAdminData(password: string) {
         avgReferralsPerUser,
         schoolsReached,
         schoolTimeTo20: schoolTimeTo20 || [],
+        schoolStats: schoolStats || [],
+        top3ClosestTo20: schoolsUnder20 || [],
       }
     }
 

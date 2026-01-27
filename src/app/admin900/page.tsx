@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
   const [schoolFilter, setSchoolFilter] = useState('')
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
 
   const TZ_EST = data?.timeZone || 'America/New_York'
 
@@ -81,11 +82,9 @@ export default function AdminPage() {
       .sort((a, b) => a[1].getTime() - b[1].getTime())
       .map(([dateKey]) => [dateKey, dailyGrowth[dateKey]] as [string, number])
 
-    // Calculate cumulative values
-    let runningTotal = baseline
+    // Return daily added users (not cumulative)
     return sortedEntries.map(([date, dailyCount]) => {
-      runningTotal += dailyCount
-      return { date, count: runningTotal }
+      return { date, count: dailyCount, cumulative: 0 } // count is daily, cumulative for tooltip if needed
     })
   }, [data])
 
@@ -202,7 +201,7 @@ export default function AdminPage() {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">% Beta Access Accepted</h3>
             <p className="text-5xl font-bold mt-2 text-gray-900">{data.betaAcceptedPct ?? '0'}%</p>
-            <p className="text-xs text-gray-400 mt-2">Of those who asked for beta</p>
+            <p className="text-xs text-gray-400 mt-2">Of all users</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">% Who Share Invite Code</h3>
@@ -221,6 +220,28 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Top 3 Schools Closest to 20 Users */}
+        {data.top3ClosestTo20 && data.top3ClosestTo20.length > 0 && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-blue-100">
+            <h3 className="text-lg font-bold mb-4 text-gray-800">Top 3 Schools Closest to 20 Users</h3>
+            <p className="text-sm text-gray-500 mb-4">Schools under 20 users, ranked by count</p>
+            <div className="space-y-3">
+              {data.top3ClosestTo20.map((school: { school: string; count: number; rank: number }, idx: number) => (
+                <div key={school.school} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-blue-600">#{school.rank}</span>
+                    <span className="text-sm font-medium text-gray-900">{school.school}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">{school.count} users</span>
+                    <span className="text-xs text-gray-400">({20 - school.count} to go)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Charts & Sources */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -237,6 +258,8 @@ export default function AdminPage() {
                     <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} />
                     <Tooltip
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      formatter={(value: any) => [`Added: ${value} users`, 'Daily Signups']}
+                      labelFormatter={(label) => `Date: ${label}`}
                     />
                     <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   </LineChart>
@@ -251,22 +274,40 @@ export default function AdminPage() {
 
           {/* Acquisition Sources */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold mb-6 text-gray-800">Acquisition Sources</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-800">Acquisition Sources</h3>
+              {data.sourceList.length > 10 && (
+                <button
+                  onClick={() => {
+                    const newExpanded = new Set(expandedTables)
+                    if (newExpanded.has('sources')) {
+                      newExpanded.delete('sources')
+                    } else {
+                      newExpanded.add('sources')
+                    }
+                    setExpandedTables(newExpanded)
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                >
+                  {expandedTables.has('sources') ? 'Show Less' : `Show All (${data.sourceList.length})`}
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="pb-3 text-sm font-semibold text-gray-500">Source</th>
-                    <th className="pb-3 text-sm font-semibold text-gray-500 text-right">Signups</th>
-                    <th className="pb-3 text-sm font-semibold text-gray-500 text-right">%</th>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">Signups</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">%</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {data.sourceList.map((item: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="py-3 text-sm font-medium text-gray-900">{item.source}</td>
-                      <td className="py-3 text-sm text-gray-600 text-right">{item.count}</td>
-                      <td className="py-3 text-sm text-gray-400 text-right">{item.percentage}%</td>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {(expandedTables.has('sources') ? data.sourceList : data.sourceList.slice(0, 10)).map((item: any, idx: number) => (
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.source}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 text-right font-medium">{item.count.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 text-right">{item.percentage}%</td>
                     </tr>
                   ))}
                   {data.sourceList.length === 0 && (
@@ -280,12 +321,82 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Users by School - Ranked Table */}
+        {data.schoolStats && data.schoolStats.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Users by School</h3>
+                  <p className="text-sm text-gray-500 mt-1">Total user count per school (from waitlist + profiles), ranked by count</p>
+                </div>
+                {data.schoolStats.length > 10 && (
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTables)
+                      if (newExpanded.has('schools')) {
+                        newExpanded.delete('schools')
+                      } else {
+                        newExpanded.add('schools')
+                      }
+                      setExpandedTables(newExpanded)
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                  >
+                    {expandedTables.has('schools') ? 'Show Less' : `Show All (${data.schoolStats.length})`}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Rank</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">School</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Users</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {(expandedTables.has('schools') ? data.schoolStats : data.schoolStats.slice(0, 10)).map((row: { rank: number; school: string; count: number }) => (
+                    <tr key={row.school} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-bold text-gray-900 text-center">#{row.rank}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.school}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 text-right font-medium">{row.count.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Time from 1st to 20th user by school (schools with 20+ only) */}
         {data.schoolTimeTo20 && data.schoolTimeTo20.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-800">Time to 20 Users by School</h3>
-              <p className="text-sm text-gray-500 mt-1">Hours from 1st to 20th waitlist signup (EST). Only schools that have reached 20+.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Time to 20 Users by School</h3>
+                  <p className="text-sm text-gray-500 mt-1">Hours from 1st to 20th waitlist signup (EST). Only schools that have reached 20+.</p>
+                </div>
+                {data.schoolTimeTo20.length > 10 && (
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTables)
+                      if (newExpanded.has('timeTo20')) {
+                        newExpanded.delete('timeTo20')
+                      } else {
+                        newExpanded.add('timeTo20')
+                      }
+                      setExpandedTables(newExpanded)
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                  >
+                    {expandedTables.has('timeTo20') ? 'Show Less' : `Show All (${data.schoolTimeTo20.length})`}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left whitespace-nowrap">
@@ -298,8 +409,8 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
-                  {data.schoolTimeTo20.map((row: { school: string; first_at: string; twentieth_at: string; hours_to_20: number }) => (
-                    <tr key={row.school} className="hover:bg-gray-50">
+                  {(expandedTables.has('timeTo20') ? data.schoolTimeTo20 : data.schoolTimeTo20.slice(0, 10)).map((row: { school: string; first_at: string; twentieth_at: string; hours_to_20: number }) => (
+                    <tr key={row.school} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.school}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {row.first_at ? new Date(row.first_at).toLocaleString('en-US', { timeZone: data?.timeZone || 'America/New_York' }) : '-'}
@@ -322,9 +433,27 @@ export default function AdminPage() {
         {data.campaignAnalytics && data.campaignAnalytics.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-100">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">Campaign Performance</h3>
-                <p className="text-sm text-gray-500 mt-1">AB Marketing Campaign Analytics</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Campaign Performance</h3>
+                  <p className="text-sm text-gray-500 mt-1">AB Marketing Campaign Analytics</p>
+                </div>
+                {data.campaignAnalytics.length > 10 && (
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTables)
+                      if (newExpanded.has('campaigns')) {
+                        newExpanded.delete('campaigns')
+                      } else {
+                        newExpanded.add('campaigns')
+                      }
+                      setExpandedTables(newExpanded)
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                  >
+                    {expandedTables.has('campaigns') ? 'Show Less' : `Show All (${data.campaignAnalytics.length})`}
+                  </button>
+                )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -339,8 +468,8 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
-                  {data.campaignAnalytics.map((campaign: any) => (
-                    <tr key={campaign.id} className="hover:bg-gray-50">
+                  {(expandedTables.has('campaigns') ? data.campaignAnalytics : data.campaignAnalytics.slice(0, 10)).map((campaign: any) => (
+                    <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">{campaign.campaign_name}</div>
                         <div className="text-xs text-gray-500">{campaign.campaign_code}</div>
@@ -379,20 +508,41 @@ export default function AdminPage() {
               <div>
                 <h3 className="text-lg font-bold text-gray-800">Recent Signups</h3>
                 {!schoolFilter && (
-                  <p className="text-xs text-gray-500 mt-1">Showing most recent signups (up to 10,000)</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Showing top {expandedTables.has('recentSignups') ? data.recentSignups.length : Math.min(100, data.recentSignups.length)} most recent signups
+                    {data.recentSignups.length > 100 && !expandedTables.has('recentSignups') && ` (of ${data.recentSignups.length} total)`}
+                  </p>
                 )}
               </div>
-              {schoolFilter && (
-                <span className="text-sm text-gray-600 font-medium">
-                  Showing {data.recentSignups.filter((user: any) => {
-                    const school = (user.school || '').toLowerCase();
-                    return school.includes(schoolFilter.toLowerCase());
-                  }).length} user{data.recentSignups.filter((user: any) => {
-                    const school = (user.school || '').toLowerCase();
-                    return school.includes(schoolFilter.toLowerCase());
-                  }).length !== 1 ? 's' : ''} from "{schoolFilter}"
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                {schoolFilter && (
+                  <span className="text-sm text-gray-600 font-medium">
+                    Showing {data.recentSignups.filter((user: any) => {
+                      const school = (user.school || '').toLowerCase();
+                      return school.includes(schoolFilter.toLowerCase());
+                    }).length} user{data.recentSignups.filter((user: any) => {
+                      const school = (user.school || '').toLowerCase();
+                      return school.includes(schoolFilter.toLowerCase());
+                    }).length !== 1 ? 's' : ''} from "{schoolFilter}"
+                  </span>
+                )}
+                {data.recentSignups.length > 100 && (
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTables)
+                      if (newExpanded.has('recentSignups')) {
+                        newExpanded.delete('recentSignups')
+                      } else {
+                        newExpanded.add('recentSignups')
+                      }
+                      setExpandedTables(newExpanded)
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                  >
+                    {expandedTables.has('recentSignups') ? 'Show Less (Top 100)' : `Show All (${data.recentSignups.length})`}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex-1">
@@ -431,14 +581,16 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {data.recentSignups
+                {(expandedTables.has('recentSignups') ? data.recentSignups : data.recentSignups.slice(0, 100))
                   .filter((user: any) => {
                     if (!schoolFilter) return true;
-                    const school = (user.school || '').toLowerCase();
-                    return school.includes(schoolFilter.toLowerCase());
+                    const school = (user.school || '').toLowerCase().trim();
+                    const filter = schoolFilter.toLowerCase().trim();
+                    // More precise matching: exact match or school starts with filter
+                    return school === filter || school.startsWith(filter) || school.includes(` ${filter}`);
                   })
                   .map((user: any) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.name || '-'}</td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.email}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -492,11 +644,12 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))}
-                {data.recentSignups.filter((user: any) => {
-                  if (!schoolFilter) return false;
-                  const school = (user.school || '').toLowerCase();
-                  return school.includes(schoolFilter.toLowerCase());
-                }).length === 0 && schoolFilter && (
+                {(expandedTables.has('recentSignups') ? data.recentSignups : data.recentSignups.slice(0, 100))
+                  .filter((user: any) => {
+                    if (!schoolFilter) return false;
+                    const school = (user.school || '').toLowerCase();
+                    return school.includes(schoolFilter.toLowerCase());
+                  }).length === 0 && schoolFilter && (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
                       No users found for "{schoolFilter}"
@@ -512,12 +665,30 @@ export default function AdminPage() {
         {data.betaTesters && data.betaTesters.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
             <div className="p-6 border-b border-purple-100 bg-purple-50">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🧪</span>
-                <div>
-                  <h3 className="text-lg font-bold text-purple-900">Beta Testers</h3>
-                  <p className="text-sm text-purple-600">Users interested in early access & giving feedback</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🧪</span>
+                  <div>
+                    <h3 className="text-lg font-bold text-purple-900">Beta Testers</h3>
+                    <p className="text-sm text-purple-600">Users interested in early access & giving feedback</p>
+                  </div>
                 </div>
+                {data.betaTesters.length > 10 && (
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedTables)
+                      if (newExpanded.has('betaTesters')) {
+                        newExpanded.delete('betaTesters')
+                      } else {
+                        newExpanded.add('betaTesters')
+                      }
+                      setExpandedTables(newExpanded)
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
+                  >
+                    {expandedTables.has('betaTesters') ? 'Show Less' : `Show All (${data.betaTesters.length})`}
+                  </button>
+                )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -532,8 +703,8 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
-                  {data.betaTesters.map((user: any) => (
-                    <tr key={user.id} className="hover:bg-purple-50">
+                  {(expandedTables.has('betaTesters') ? data.betaTesters : data.betaTesters.slice(0, 10)).map((user: any) => (
+                    <tr key={user.id} className="hover:bg-purple-50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{user.school || '-'}</td>

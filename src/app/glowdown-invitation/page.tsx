@@ -259,6 +259,7 @@ export default function GlowdownInvitationPage() {
                   </div>
                   
                   <div className="text-center">
+                    <p className="text-amber-400/50 text-xs mb-1">Jan 30th, 2026</p>
                     <p className="text-amber-400/60 text-sm font-medium">122 Whitney Avenue</p>
                     <p className="text-amber-400/40 text-xs">10:00PM</p>
                   </div>
@@ -293,6 +294,9 @@ export default function GlowdownInvitationPage() {
               <span className="absolute bottom-4 left-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
               <span className="absolute bottom-4 right-4 text-amber-400/50 text-lg" aria-hidden>✦</span>
 
+              <p className="text-white/80 text-base md:text-lg font-ui mb-2">
+                Jan 30th, 2026
+              </p>
               <h2 className="font-brand text-2xl md:text-3xl font-bold text-white mb-2" style={{ letterSpacing: '-0.02em' }}>
                 122 Whitney Avenue
               </h2>

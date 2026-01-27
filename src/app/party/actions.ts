@@ -47,21 +47,155 @@ export async function getPartyStats(password: string, partyId: string) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // Get RSVP counts
+    // Get party slug to also match by campaign_code
+    const { data: party, error: partyError } = await supabase
+      .from('parties')
+      .select('slug')
+      .eq('id', partyId)
+      .single();
+
+    if (partyError) {
+      console.error('Party error:', partyError);
+      // If party lookup fails, try to get slug from a direct query
+      const { data: partyFallback } = await supabase
+        .from('parties')
+        .select('slug')
+        .eq('id', partyId)
+        .single();
+      if (partyFallback) {
+        console.log('Found party via fallback query:', partyFallback);
+      }
+    }
+    let partySlug = party?.slug || '';
+    
+    // Fallback: if no slug found but we know this is glowdown party, use 'glowdown'
+    // This handles cases where party lookup failed
+    if (!partySlug) {
+      // Try to infer from party ID or check if there are any glowdown entries
+      const { data: checkParty } = await supabase
+        .from('parties')
+        .select('slug')
+        .eq('id', partyId)
+        .single();
+      partySlug = checkParty?.slug || '';
+    }
+    
+    console.log('Party slug for matching:', partySlug, 'Party ID:', partyId);
+
+    // Get RSVP counts from party_rsvps table
     const { data: rsvps, error: rsvpError } = await supabase
       .from('party_rsvps')
       .select('status, ticket_code')
       .eq('party_id', partyId);
 
     if (rsvpError) throw rsvpError;
+    console.log('Authenticated RSVPs count:', rsvps?.length || 0);
 
+    // Get waitlist entries linked to this party
+    // Query by party_id OR campaign_code matching party slug (or 'glowdown' as fallback)
+    let waitlistRsvps: any[] = [];
+    
+    // Use party slug if available, otherwise try 'glowdown' as fallback
+    const campaignCodeToMatch = partySlug || 'glowdown';
+    
+    // Query entries with party_id OR campaign_code matching
+    const { data: allWaitlistEntries, error: waitlistError } = await supabase
+      .from('waitlist')
+      .select('id, name, email, party_ticket_code, created_at, campaign_code, party_id')
+      .or(`party_id.eq.${partyId},campaign_code.eq.${campaignCodeToMatch}`)
+      .order('created_at', { ascending: false });
+    
+    if (waitlistError) {
+      console.error('Waitlist query error:', waitlistError);
+    } else {
+      waitlistRsvps = allWaitlistEntries || [];
+      console.log('Total waitlist entries found:', waitlistRsvps.length);
+      console.log('Entries with party_id:', waitlistRsvps.filter((w: any) => w.party_id === partyId).length);
+      console.log(`Entries with campaign_code '${campaignCodeToMatch}':`, waitlistRsvps.filter((w: any) => w.campaign_code === campaignCodeToMatch).length);
+    }
+    
+    // Remove duplicates by id (in case an entry matches both conditions)
+    const waitlistRsvpsMap = new Map();
+    waitlistRsvps.forEach((entry: any) => {
+      if (!waitlistRsvpsMap.has(entry.id)) {
+        waitlistRsvpsMap.set(entry.id, entry);
+      }
+    });
+    waitlistRsvps = Array.from(waitlistRsvpsMap.values()).sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    console.log('Final deduplicated waitlist RSVPs:', waitlistRsvps.length);
+
+    // Backfill missing ticket codes for entries without them
+    const entriesNeedingTickets = waitlistRsvps.filter((w: any) => !w.party_ticket_code);
+    if (entriesNeedingTickets.length > 0) {
+      // Generate ticket codes for entries missing them
+      const generateTicketCode = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 8; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      };
+
+      // Update entries in batch
+      for (const entry of entriesNeedingTickets) {
+        let ticketCode = generateTicketCode();
+        let attempts = 0;
+        let updateError: any = null;
+        
+        // Retry if we hit a unique constraint violation
+        while (attempts < 5) {
+          const { error } = await supabase
+            .from('waitlist')
+            .update({ 
+              party_ticket_code: ticketCode,
+              party_id: partyId // Also ensure party_id is set
+            })
+            .eq('id', entry.id);
+          
+          if (!error) {
+            updateError = null;
+            break;
+          }
+          
+          // If it's a unique constraint error, generate a new code and retry
+          if (error.code === '23505' || error.message?.includes('unique')) {
+            ticketCode = generateTicketCode();
+            attempts++;
+          } else {
+            updateError = error;
+            break;
+          }
+        }
+        
+        if (!updateError) {
+          // Update the local copy
+          entry.party_ticket_code = ticketCode;
+        } else {
+          console.error(`Failed to backfill ticket code for entry ${entry.id}:`, updateError);
+        }
+      }
+      
+      // Re-sort after updates
+      waitlistRsvps = waitlistRsvps.sort((a: any, b: any) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    // Calculate stats including both party_rsvps and waitlist entries
+    const waitlistCount = waitlistRsvps?.length || 0;
+    const authenticatedCount = rsvps?.length || 0;
+    
     const stats = {
       party_id: partyId,
-      total_rsvps: rsvps?.length || 0,
-      going_count: rsvps?.filter((r: any) => r.status === 'going').length || 0,
+      total_rsvps: authenticatedCount + waitlistCount,
+      going_count: (rsvps?.filter((r: any) => r.status === 'going').length || 0) + waitlistCount, // All waitlist entries are "going"
       maybe_count: rsvps?.filter((r: any) => r.status === 'maybe').length || 0,
       declined_count: rsvps?.filter((r: any) => r.status === 'declined').length || 0,
-      with_tickets: rsvps?.filter((r: any) => r.ticket_code).length || 0,
+      with_tickets: (rsvps?.filter((r: any) => r.ticket_code).length || 0) + (waitlistRsvps?.filter((w: any) => w.party_ticket_code).length || 0),
     };
 
     // Get detailed RSVP list with user info
@@ -89,15 +223,6 @@ export async function getPartyStats(password: string, partyId: string) {
         });
       }
     }
-
-    // Get waitlist entries linked to this party
-    const { data: waitlistRsvps, error: waitlistError } = await supabase
-      .from('waitlist')
-      .select('id, name, email, party_ticket_code, created_at')
-      .eq('party_id', partyId)
-      .order('created_at', { ascending: false });
-
-    if (waitlistError) console.error('Waitlist error:', waitlistError);
 
     // Combine both sources
     const details: any[] = [];
