@@ -146,7 +146,6 @@ interface ProfileExtras {
     high_school?: string;
     company?: string;
     job_description?: string;
-    class_year?: number;
 }
 
 interface InterestCluster {
@@ -378,7 +377,6 @@ export default function NetworkProfilePage() {
     const [editCollege, setEditCollege] = useState('');
     const [editClassYear, setEditClassYear] = useState('');
     const [editHighSchool, setEditHighSchool] = useState('');
-    const [editClassYear, setEditClassYear] = useState('');
     
     // Edit Work Modal
     const [showWorkModal, setShowWorkModal] = useState(false);
@@ -3124,7 +3122,7 @@ export default function NetworkProfilePage() {
                                     </p>
                                     
                                     {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
-                                        const isUniversityNetwork = index === 0 && profileExtras.college;
+                                        const isUniversityNetwork = !!(index === 0 && profileExtras.college);
                                         const networkValue = isUniversityNetwork ? profileExtras.college : editNetworks[index];
                                         const isUnverifiedUniversity = index > 0 && networkValue && isUniversityName(networkValue) && !verifiedUniversityIndexes.has(index);
                                         const isVerifiedUniversity = index > 0 && verifiedUniversityIndexes.has(index);
