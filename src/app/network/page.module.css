@@ -480,7 +480,7 @@
 }
 
 .embeddedListItem:hover {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .embeddedListAvatar {
@@ -1148,5 +1148,27 @@
    The SVG <image> elements are created by D3 inside .graphContainer.
    ============================================================================ */
 :global(html.theme-light) .graphContainer image {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* ============================================================================
+   WEEKLY DROP AVATAR COUNTER-INVERSION
+   ============================================================================
+   Counter-invert avatar images in the Weekly Drop panel so they display
+   correctly in light mode.
+   ============================================================================ */
+.weeklyDropAvatar {
+    filter: none;
+}
+
+:global(html.theme-light) .weeklyDropAvatar {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* Counter-invert all avatars in the suggestions panel */
+:global(html.theme-light) .suggestionsPanel img,
+:global(html.theme-light) .expandedContent img,
+:global(html.theme-light) .cardAvatar,
+:global(html.theme-light) .embeddedListAvatar img {
     filter: invert(1) hue-rotate(180deg);
 }

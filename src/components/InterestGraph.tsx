@@ -89,9 +89,14 @@ const GraphController: React.FC<{
         if (!graph || graph.order === 0) return;
         
         // setSetting is the proper method in Sigma v2/v3
-        sigma.setSetting('renderLabels', showLabels);
-        // Also force refresh to apply change immediately
-        sigma.refresh();
+        try {
+            sigma.setSetting('renderLabels', showLabels);
+            // Also force refresh to apply change immediately
+            sigma.refresh();
+        } catch (e) {
+            // Ignore errors during refresh (node program may not be ready yet)
+            console.warn('Sigma refresh warning:', e);
+        }
     }, [showLabels, sigma]);
     
     // Memoize ForceAtlas2 settings to prevent hook recreation

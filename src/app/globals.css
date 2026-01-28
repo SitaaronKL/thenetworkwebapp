@@ -415,16 +415,16 @@
    -------------
    This app uses a simple invert-based theme system:
    
-   1. DARK MODE (default):
-      - No filter applied to <html>
-      - No special class on <html>
-      - All pages render with their native dark styling (black bg, white text)
-   
-   2. LIGHT MODE (inverted):
+   1. LIGHT MODE (default for new users):
       - CSS filter `invert(1) hue-rotate(180deg)` applied to <html>
       - Class `theme-light` added to <html>
       - The filter inverts ALL colors: black→white, white→black
       - The hue-rotate(180deg) corrects color distortion from inversion
+   
+   2. DARK MODE:
+      - No filter applied to <html>
+      - No special class on <html>
+      - All pages render with their native dark styling (black bg, white text)
    
    IMPORTANT RULES:
    ----------------

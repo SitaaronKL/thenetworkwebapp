@@ -489,8 +489,8 @@ export default function OnboardingPage() {
     const handleAddNetwork = () => {
         if (!newNetworkName.trim()) return;
         
-        // Maximum 5 networks total
-        if (networks.length >= 5) return;
+        // Maximum 8 networks total
+        if (networks.length >= 8) return;
         
         const newNetwork: Network = {
             id: Date.now().toString(),
@@ -652,8 +652,8 @@ export default function OnboardingPage() {
                         
                         <button 
                             onClick={handleEmailSubmit} 
-                            className={styles.primaryButton}
-                            disabled={isVerifyingEmail}
+                            className={`${styles.primaryButton} ${!eduEmail.trim() ? styles.disabled : ''}`}
+                            disabled={isVerifyingEmail || !eduEmail.trim()}
                         >
                             {isVerifyingEmail ? (
                                 <>
@@ -661,7 +661,7 @@ export default function OnboardingPage() {
                                     Verifying...
                                 </>
                             ) : (
-                                eduEmail ? 'Verify Email' : 'Continue'
+                                'Continue'
                             )}
                         </button>
                         
@@ -691,14 +691,18 @@ export default function OnboardingPage() {
                             type="text"
                             value={eduEmailCode}
                             onChange={(e) => setEduEmailCode(e.target.value.replace(/\D/g, ''))}
-                            placeholder="Enter 6-digit code"
+                            placeholder="Enter"
                             maxLength={6}
                             className={styles.codeInput}
                         />
                         
                         {error && <p className={styles.error}>{error}</p>}
                         
-                        <button onClick={handleEmailVerify} className={styles.primaryButton}>
+                        <button 
+                            onClick={handleEmailVerify} 
+                            className={`${styles.primaryButton} ${eduEmailCode.length !== 6 ? styles.disabled : ''}`}
+                            disabled={eduEmailCode.length !== 6}
+                        >
                             Verify
                         </button>
                         
@@ -778,9 +782,9 @@ export default function OnboardingPage() {
                         <p className={styles.subtitle}>
                             {networks.length < 3 
                                 ? `Add at least ${3 - networks.length} more ${3 - networks.length === 1 ? 'community' : 'communities'} you're part of`
-                                : networks.length < 5
-                                ? `You can add up to ${5 - networks.length} more ${5 - networks.length === 1 ? 'network' : 'networks'} (${networks.length}/5)`
-                                : 'You have reached the maximum of 5 networks'}
+                                : networks.length < 8
+                                ? `You can add up to ${8 - networks.length} more ${8 - networks.length === 1 ? 'network' : 'networks'} (${networks.length}/8)`
+                                : 'You have reached the maximum of 8 networks'}
                         </p>
                         
                         {/* Show university as a locked row if exists */}
@@ -808,8 +812,8 @@ export default function OnboardingPage() {
                             </div>
                         ))}
                         
-                        {/* Show empty input rows for remaining slots (up to 5 total) */}
-                        {networks.length < 5 && (
+                        {/* Show empty input rows for remaining slots (up to 8 total) */}
+                        {networks.length < 8 && (
                             <div className={styles.networkInput}>
                                 <select
                                     value={newNetworkType}
@@ -835,7 +839,7 @@ export default function OnboardingPage() {
                                 <button 
                                     onClick={handleAddNetwork} 
                                     className={styles.addButton}
-                                    disabled={!newNetworkName.trim() || networks.length >= 5}
+                                    disabled={!newNetworkName.trim() || networks.length >= 8}
                                 >
                                     Add
                                 </button>

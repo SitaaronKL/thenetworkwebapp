@@ -41,8 +41,17 @@
     background: #000;
     padding: 16px 32px;
     padding-top: 20px;
+    /* Add left padding to prevent overlap with hamburger menu (96px button + 14px offset + 10px gap) */
+    padding-left: 120px;
     margin-top: 0;
     flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .headerSection {
+        /* Smaller padding on mobile (64px button + 10px offset + 10px gap) */
+        padding-left: 84px;
+    }
 }
 
 .headerContent {
@@ -64,6 +73,7 @@
 /* Counter-invert profile images in light mode */
 :global(html.theme-light) .profileImageLarge,
 :global(html.theme-light) .clusterAvatar,
+:global(html.theme-light) .clusterAvatarSmall,
 :global(html.theme-light) .friendScrollAvatar,
 :global(html.theme-light) .friendAvatar {
     filter: invert(1) hue-rotate(180deg);
@@ -264,9 +274,9 @@
     overflow: hidden;
 }
 
-/* Myspace: pull left column further left (less left padding) so it aligns better */
+/* Myspace: same grid as About, center content spans middle + right columns */
 .mainContentMyspace {
-    padding-left: 10px;
+    /* Keep same padding as About tab for consistent left column alignment */
 }
 
 @media (max-width: 1100px) {
@@ -334,6 +344,7 @@
     overflow: visible;
     padding-right: 8px;
     gap: 8px;
+    grid-column: 1; /* Explicitly position in first column */
 }
 
 /* Network Score Card */
@@ -496,26 +507,35 @@
     min-height: 0;
 }
 
-/* Myspace center: reuse centerColumn for identical container position; inner wrapper for gap + flex */
+/* Myspace center: wider column that spans center + right areas */
+.myspaceCenterColumn {
+    display: flex;
+    flex-direction: column;
+    padding-right: 8px;
+    height: 100%;
+    min-height: 0;
+    grid-column: 2 / 4; /* Span center and right columns */
+}
+
 .myspaceCenterInner {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 /* Container around post input, subtitle, and feed — grey background to match About card */
 .myspaceFeedCard {
     background: #0d0d0d;
     border-radius: 12px;
-    padding: 16px;
+    padding: 12px 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .wallCard {
@@ -612,9 +632,9 @@
 
 .wallUpdate {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
-    padding: 12px 0;
+    padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -637,12 +657,14 @@
 }
 
 .wallUpdateMeta {
-    margin-top: 6px;
+    display: inline;
     font-size: 12px;
     color: rgba(255, 255, 255, 0.4);
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    margin-left: 8px;
+}
+
+.wallUpdateMeta .wallCommentLink {
+    margin-left: 8px;
 }
 
 .wallCommentLink {
@@ -935,19 +957,13 @@
     padding-right: 8px;
     overflow-y: auto;
     height: 100%;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .rightColumn::-webkit-scrollbar {
-    width: 6px;
-}
-
-.rightColumn::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.rightColumn::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    display: none;
 }
 
 .clusterCard {
@@ -958,12 +974,29 @@
     margin-bottom: 12px;
 }
 
+/* Minimized state for cards with 0 connections */
+.clusterCardMinimized {
+    padding: 10px 12px;
+}
+
+.clusterCardMinimized .clusterTitle {
+    margin-bottom: 0;
+}
+
+.clusterHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
 .clusterTitle {
     font-size: 13px;
     font-weight: 700;
     color: #fff;
     margin: 0 0 8px 0;
     line-height: 1.3;
+    flex: 1;
 }
 
 .clusterCount {
@@ -971,6 +1004,78 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* Inline See All button next to title */
+.seeAllButtonInline {
+    padding: 2px 8px;
+    background: transparent;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.seeAllButtonInline:hover {
+    color: #fff;
+}
+
+/* Horizontal avatars row */
+.clusterAvatarsHorizontal {
+    display: flex;
+    gap: 12px;
+    overflow: hidden;
+}
+
+/* Expanded state - wrap to show all */
+.clusterAvatarsExpanded {
+    flex-wrap: wrap;
+}
+
+/* Compact avatar with name */
+.avatarWithNameCompact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Smaller avatars for compact view */
+.clusterAvatarSmall {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.clusterAvatarPlaceholderSmall {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1877f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.avatarNameSmall {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    max-width: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Legacy styles kept for backwards compatibility */
 .clusterAvatars {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

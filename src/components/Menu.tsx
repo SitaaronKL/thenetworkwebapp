@@ -9,9 +9,9 @@
  * 
  * THEME SYSTEM:
  * -------------
- * - Dark Mode (default): No filter, no class. Pages show their native dark styling.
- * - Light Mode: Applies `invert(1) hue-rotate(180deg)` filter to <html>.
+ * - Light Mode (default for new users): Applies `invert(1) hue-rotate(180deg)` filter to <html>.
  *               Also adds `theme-light` class to <html> for CSS targeting.
+ * - Dark Mode: No filter, no class. Pages show their native dark styling.
  * 
  * The filter inverts ALL colors globally, creating light mode automatically.
  * No component needs special light mode styles - the inversion handles everything.
@@ -37,8 +37,8 @@ const menuItems = [
 export default function Menu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  // isLightMode: false = dark mode (default), true = light mode (inverted)
-  const [isLightMode, setIsLightMode] = useState(false);
+  // isLightMode: false = dark mode, true = light mode (inverted, default for new users)
+  const [isLightMode, setIsLightMode] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -53,9 +53,9 @@ export default function Menu() {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     
-    // Load saved theme preference (default to dark mode)
+    // Load saved theme preference (default to light mode for new users)
     const saved = localStorage.getItem('theme_mode');
-    setIsLightMode(saved === 'light');
+    setIsLightMode(saved !== 'dark');
     
     return () => window.removeEventListener('resize', handleResize);
   }, []);

@@ -43,7 +43,7 @@ const getAvatarUrl = (path?: string | null) => {
 };
 
 // Embedded Panel Components
-function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => void; onRequestAccepted?: () => void }) {
+function FriendRequestsPanel({ onClose, onRequestAccepted, onCountChange }: { onClose: () => void; onRequestAccepted?: () => void; onCountChange?: () => void }) {
   const router = useRouter();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,6 +127,7 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
     setRequests(prev => prev.filter(r => r.id !== requestId));
     setProcessingIds(prev => { const next = new Set(prev); next.delete(requestId); return next; });
     onRequestAccepted?.();
+    onCountChange?.();
   };
 
   const handleDecline = async (requestId: number) => {
@@ -135,6 +136,7 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
     await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', requestId);
     setRequests(prev => prev.filter(r => r.id !== requestId));
     setProcessingIds(prev => { const next = new Set(prev); next.delete(requestId); return next; });
+    onCountChange?.();
   };
 
   return (
@@ -197,13 +199,10 @@ function FriendRequestsPanel({ onClose, onRequestAccepted }: { onClose: () => vo
   );
 }
 
-function SearchUsersPanel({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
+function SearchUsersPanel({ onClose, onSelectPerson }: { onClose: () => void; onSelectPerson?: (person: NetworkPerson) => void }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
-  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
 
   const performSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) { setResults([]); return; }
@@ -214,78 +213,14 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
 
     const searchPattern = `%${searchQuery.trim()}%`;
 
-    // Try or() query first
-    const { data: orResults, error: orError } = await supabase
+    const { data: searchResults } = await supabase
       .from('profiles')
       .select('id, full_name, avatar_url')
       .neq('id', user.id)
       .ilike('full_name', searchPattern)
       .limit(10);
 
-    let searchResults = [];
-    if (orError) {
-      // Fallback to simple name search
-      const { data: nameResults } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .neq('id', user.id)
-        .ilike('full_name', searchPattern)
-        .limit(10);
-      searchResults = nameResults || [];
-    } else {
-      searchResults = orResults || [];
-    }
-
-    // Check connection status for each result
-    if (searchResults.length > 0) {
-      const resultIds = searchResults.map(r => r.id);
-      
-      // Check user_connections table - get all connections where current user is involved
-      const { data: connections } = await supabase
-        .from('user_connections')
-        .select('sender_id, receiver_id, status')
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-
-      // Also check friend_requests table
-      const { data: friendRequests } = await supabase
-        .from('friend_requests')
-        .select('sender_id, receiver_id, status')
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-
-      const connectedSet = new Set<string>();
-      const sentSet = new Set<string>();
-
-      // Process connections - only for users in search results
-      (connections || []).forEach((conn: any) => {
-        const otherId = conn.sender_id === user.id ? conn.receiver_id : conn.sender_id;
-        // Only add if this user is in our search results
-        if (resultIds.includes(otherId)) {
-          if (conn.status === 'accepted') {
-            connectedSet.add(otherId);
-          } else if (conn.status === 'pending' && conn.sender_id === user.id) {
-            sentSet.add(otherId);
-          }
-        }
-      });
-
-      // Process friend requests - only for users in search results
-      (friendRequests || []).forEach((req: any) => {
-        const otherId = req.sender_id === user.id ? req.receiver_id : req.sender_id;
-        // Only add if this user is in our search results
-        if (resultIds.includes(otherId)) {
-          if (req.status === 'accepted') {
-            connectedSet.add(otherId);
-          } else if (req.status === 'pending' && req.sender_id === user.id) {
-            sentSet.add(otherId);
-          }
-        }
-      });
-
-      setConnectedUsers(connectedSet);
-      setSentRequests(sentSet);
-    }
-
-    setResults(searchResults);
+    setResults(searchResults || []);
     setLoading(false);
   };
 
@@ -294,13 +229,18 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(timeout);
   }, [query]);
 
-  const sendRequest = async (targetId: string) => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from('friend_requests').insert({ sender_id: user.id, receiver_id: targetId, status: 'pending' });
-    setSentRequests(prev => new Set(prev).add(targetId));
+  const handleSelectPerson = (profile: any) => {
+    if (onSelectPerson) {
+      const person: NetworkPerson = {
+        id: profile.id,
+        name: profile.full_name?.split(' ')[0] || 'User',
+        imageUrl: profile.avatar_url ? getAvatarUrl(profile.avatar_url) : undefined,
+        x: 0,
+        y: 0,
+        connections: [],
+      };
+      onSelectPerson(person);
+    }
   };
 
   return (
@@ -325,7 +265,15 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
           <div className={styles.embeddedEmptyState}>No users found</div>
         ) : (
           results.map(profile => (
-            <div key={profile.id} className={styles.embeddedListItem}>
+            <div 
+              key={profile.id} 
+              className={styles.embeddedListItem}
+              onClick={() => handleSelectPerson(profile)}
+              style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && handleSelectPerson(profile)}
+            >
               <div className={styles.embeddedListAvatar}>
                 {profile.avatar_url ? (
                   <img
@@ -340,32 +288,6 @@ function SearchUsersPanel({ onClose }: { onClose: () => void }) {
               <div className={styles.embeddedListInfo}>
                 <div className={styles.embeddedListName}>{profile.full_name}</div>
               </div>
-              <button
-                className={styles.embeddedListAction}
-                onClick={async () => {
-                  const supabase = createClient();
-                  const { data } = await supabase.rpc('get_profile_slug', { p_user_id: profile.id });
-                  if (data) router.push(`/network-profile/${data}`);
-                }}
-              >
-                View Profile
-              </button>
-              {connectedUsers.has(profile.id) ? (
-                <button
-                  className={`${styles.embeddedListAction} ${styles.connected}`}
-                  disabled
-                >
-                  Connected
-                </button>
-              ) : (
-                <button
-                  className={styles.embeddedListAction}
-                  onClick={() => sendRequest(profile.id)}
-                  disabled={sentRequests.has(profile.id)}
-                >
-                  {sentRequests.has(profile.id) ? 'Sent' : 'Add'}
-                </button>
-              )}
             </div>
           ))
         )}
@@ -399,6 +321,7 @@ function WeeklyDropPanel({ onClose, mondayDrop, showCloseButton = true, onConnec
             <img
               src={candidate.avatar}
               alt={candidate.name}
+              className={styles.weeklyDropAvatar}
               style={{
                 width: '80px',
                 height: '80px',
@@ -2049,10 +1972,16 @@ export default function Home() {
           {(expandedPanel || shouldShowDefaultSuggestions || (mondayDrop?.status === 'shown' && mondayDrop?.candidate)) && (
             <div className={styles.expandedContent}>
               {expandedPanel === 'friendRequests' && (
-                <FriendRequestsPanel onClose={() => setExpandedPanel(null)} onRequestAccepted={loadNetworkData} />
+                <FriendRequestsPanel onClose={() => setExpandedPanel(null)} onRequestAccepted={loadNetworkData} onCountChange={checkPendingFriendRequests} />
               )}
               {expandedPanel === 'searchUsers' && (
-                <SearchUsersPanel onClose={() => setExpandedPanel(null)} />
+                <SearchUsersPanel 
+                  onClose={() => setExpandedPanel(null)} 
+                  onSelectPerson={(person) => {
+                    setSelectedPerson(person);
+                    setExpandedPanel('profile');
+                  }}
+                />
               )}
               {expandedPanel === 'inviteFriends' && (
                 <InviteFriendsPanel onClose={() => setExpandedPanel(null)} />

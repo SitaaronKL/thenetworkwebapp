@@ -8,6 +8,7 @@ import Menu from '@/components/Menu';
 import InviteModal from '@/components/InviteModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import { VerificationService } from '@/services/verification';
 import styles from '../page.module.css';
 
 // Dynamically import InterestGraph to avoid SSR issues with Sigma.js
@@ -141,6 +142,7 @@ interface ProfileExtras {
     network_handle?: string;
     networks?: string[];
     college?: string;
+    class_year?: number;
     high_school?: string;
     company?: string;
     job_description?: string;
@@ -179,6 +181,7 @@ interface MyspaceUpdate {
     other_user_id?: string | null;
     other_user_name?: string | null;
     through?: string | null;
+    comment_count?: number;
 }
 
 // Field labels for profile_change: "Kristen changed [field] to [value]"
@@ -335,6 +338,7 @@ export default function NetworkProfilePage() {
     const [connectionsCount, setConnectionsCount] = useState(0);
     const [networkDistribution, setNetworkDistribution] = useState<NetworkDistribution[]>([]);
     const [hoveredNetwork, setHoveredNetwork] = useState<string | null>(null);
+    const [expandedNetworkCards, setExpandedNetworkCards] = useState<Set<string>>(new Set());
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     
     // Edit Basic Info Modal
@@ -356,11 +360,23 @@ export default function NetworkProfilePage() {
     
     // Edit Networks Modal
     const [showNetworksModal, setShowNetworksModal] = useState(false);
-    const [editNetworks, setEditNetworks] = useState<string[]>(['', '', '', '']);
+    const [editNetworks, setEditNetworks] = useState<string[]>(['', '', '', '', '', '', '', '']);
+    
+    // University verification state for adding new university networks
+    const [verifyingUniversityIndex, setVerifyingUniversityIndex] = useState<number | null>(null);
+    const [universityEmailInput, setUniversityEmailInput] = useState('');
+    const [universityVerificationCode, setUniversityVerificationCode] = useState('');
+    const [universityVerificationStep, setUniversityVerificationStep] = useState<'email' | 'code'>('email');
+    const [universityVerificationError, setUniversityVerificationError] = useState('');
+    const [isVerifyingUniversity, setIsVerifyingUniversity] = useState(false);
+    const [pendingUniversityName, setPendingUniversityName] = useState('');
+    const [verifiedUniversityIndexes, setVerifiedUniversityIndexes] = useState<Set<number>>(new Set());
+    const [networksSaveError, setNetworksSaveError] = useState('');
     
     // Edit Education Modal
     const [showEducationModal, setShowEducationModal] = useState(false);
     const [editCollege, setEditCollege] = useState('');
+    const [editClassYear, setEditClassYear] = useState('');
     const [editHighSchool, setEditHighSchool] = useState('');
     const [editClassYear, setEditClassYear] = useState('');
     
@@ -379,6 +395,7 @@ export default function NetworkProfilePage() {
     const [isPosting, setIsPosting] = useState(false);
     const [expandedCommentUpdateId, setExpandedCommentUpdateId] = useState<string | null>(null);
     const [commentsByUpdate, setCommentsByUpdate] = useState<Record<string, { user_name: string; content: string; created_at: string }[]>>({});
+    const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
     const [commentDraft, setCommentDraft] = useState('');
     const [postingCommentFor, setPostingCommentFor] = useState<string | null>(null);
     
@@ -474,7 +491,7 @@ export default function NetworkProfilePage() {
             // 2. Fetch profile extras (always set to fetched value or {} so we never show stale data)
             const { data: extras } = await supabase
                 .from('user_profile_extras')
-                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, high_school, company, job_description, class_year')
+                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, company, job_description')
                 .eq('user_id', targetUserId)
                 .maybeSingle();
             
@@ -494,6 +511,7 @@ export default function NetworkProfilePage() {
                 const nets = (e.networks || []);
                 setEditNetworks([nets[0] || '', nets[1] || '', nets[2] || '', nets[3] || '']);
                 setEditCollege(e.college || '');
+                setEditClassYear(e.class_year?.toString() || '');
                 setEditHighSchool(e.high_school || '');
                 setEditClassYear(e.class_year?.toString() || '');
                 setEditCompany(e.company || '');
@@ -770,7 +788,25 @@ export default function NetworkProfilePage() {
         }
         // Only apply fetched data if we're still viewing this profile (avoid overwriting after nav)
         if (profileUserIdRef.current === profileUserId) {
-            setMyspaceUpdates((data || []) as MyspaceUpdate[]);
+            const updates = (data || []) as MyspaceUpdate[];
+            setMyspaceUpdates(updates);
+            
+            // Fetch comment counts for all updates
+            if (updates.length > 0) {
+                const updateIds = updates.map(u => u.id);
+                const { data: countData } = await supabase
+                    .from('myspace_update_comments')
+                    .select('update_id')
+                    .in('update_id', updateIds);
+                
+                if (countData) {
+                    const counts: Record<string, number> = {};
+                    countData.forEach((c: { update_id: string }) => {
+                        counts[c.update_id] = (counts[c.update_id] || 0) + 1;
+                    });
+                    setCommentCounts(counts);
+                }
+            }
         }
     }, [user, profileUserId]);
 
@@ -802,13 +838,19 @@ export default function NetworkProfilePage() {
             console.error('Error loading comments:', error);
             return;
         }
+        const comments = (data || []).map((r: { user_name: string; content: string; created_at: string }) => ({
+            user_name: r.user_name,
+            content: r.content,
+            created_at: r.created_at,
+        }));
         setCommentsByUpdate(prev => ({
             ...prev,
-            [updateId]: (data || []).map((r: { user_name: string; content: string; created_at: string }) => ({
-                user_name: r.user_name,
-                content: r.content,
-                created_at: r.created_at,
-            })),
+            [updateId]: comments,
+        }));
+        // Update comment count
+        setCommentCounts(prev => ({
+            ...prev,
+            [updateId]: comments.length,
         }));
     };
 
@@ -845,6 +887,10 @@ export default function NetworkProfilePage() {
     useEffect(() => {
         if (activeTab === 'myspace' && user && profileUserId) {
             loadMyspaceUpdates();
+        } else {
+            // Reset expanded comments when leaving Myspace tab
+            setExpandedCommentUpdateId(null);
+            setCommentDraft('');
         }
     }, [activeTab, user, profileUserId, loadMyspaceUpdates]);
 
@@ -869,7 +915,7 @@ export default function NetworkProfilePage() {
         setShowEditModal(true);
     };
 
-    // Save basic info
+    // Save basic info (age is read-only and not updated)
     const saveBasicInfo = async () => {
         if (!user) return;
         
@@ -877,12 +923,12 @@ export default function NetworkProfilePage() {
         const supabase = createClient();
         
         try {
+            // Note: age is not included as it's set during onboarding and cannot be changed
             const { error } = await supabase
                 .from('user_profile_extras')
                 .upsert({
                     user_id: user.id,
                     gender: editGender || null,
-                    age: editAge ? parseInt(editAge) : null,
                     hometown: editHometown || null,
                     looking_for: editLookingFor,
                     updated_at: new Date().toISOString(),
@@ -891,11 +937,10 @@ export default function NetworkProfilePage() {
             if (error) {
                 console.error('Error saving basic info:', error);
             } else {
-                // Update local state
+                // Update local state (age remains unchanged)
                 setProfileExtras(prev => ({
                     ...prev,
                     gender: editGender || undefined,
-                    age: editAge ? parseInt(editAge) : undefined,
                     hometown: editHometown || undefined,
                     looking_for: editLookingFor,
                 }));
@@ -925,7 +970,7 @@ export default function NetworkProfilePage() {
         if (data) router.push(`/network-profile/${data}`);
     };
 
-    // Save contact info
+    // Save contact info (phone is read-only and not updated)
     const saveContactInfo = async () => {
         if (!user) return;
         
@@ -940,7 +985,6 @@ export default function NetworkProfilePage() {
                 const fullHandle = `${normalizedHandle}.thenetwork`;
                 
                 // Check if this handle is already taken by another user
-                // We need to check all handles and normalize them for comparison
                 const { data: allHandles, error: checkError } = await supabase
                     .from('user_profile_extras')
                     .select('user_id, network_handle')
@@ -973,13 +1017,12 @@ export default function NetworkProfilePage() {
                 }
             }
             
-            // Save the contact info
+            // Save the contact info (note: contact_phone is set during onboarding and cannot be changed)
             const { error } = await supabase
                 .from('user_profile_extras')
                 .upsert({
                     user_id: user.id,
                     contact_email: editEmail || null,
-                    contact_phone: editPhone || null,
                     linkedin_url: editLinkedIn || null,
                     instagram_url: editInstagram || null,
                     network_handle: editNetworkHandle ? `${editNetworkHandle.replace('@', '').replace('.thenetwork', '')}.thenetwork` : null,
@@ -990,11 +1033,10 @@ export default function NetworkProfilePage() {
                 console.error('Error saving contact info:', error);
                 setHandleError('Error saving changes. Please try again.');
             } else {
-                // Update local state
+                // Update local state (phone remains unchanged)
                 setProfileExtras(prev => ({
                     ...prev,
                     contact_email: editEmail || undefined,
-                    contact_phone: editPhone || undefined,
                     linkedin_url: editLinkedIn || undefined,
                     instagram_url: editInstagram || undefined,
                     network_handle: editNetworkHandle || undefined,
@@ -1013,12 +1055,41 @@ export default function NetworkProfilePage() {
     // Open networks modal
     const openNetworksModal = () => {
         const existingNetworks = profileExtras.networks || [];
-        setEditNetworks([
-            existingNetworks[0] || '',
-            existingNetworks[1] || '',
-            existingNetworks[2] || '',
-            existingNetworks[3] || ''
-        ]);
+        // If college is set (first network is university), skip it and use remaining for editable slots
+        if (profileExtras.college) {
+            // First network is university (read-only), remaining are editable
+            const editableNetworks = existingNetworks.slice(1);
+            setEditNetworks([
+                '', // Slot 0 is read-only (shows college from profileExtras)
+                editableNetworks[0] || '',
+                editableNetworks[1] || '',
+                editableNetworks[2] || '',
+                editableNetworks[3] || '',
+                editableNetworks[4] || '',
+                editableNetworks[5] || '',
+                editableNetworks[6] || ''
+            ]);
+        } else {
+            setEditNetworks([
+                existingNetworks[0] || '',
+                existingNetworks[1] || '',
+                existingNetworks[2] || '',
+                existingNetworks[3] || '',
+                existingNetworks[4] || '',
+                existingNetworks[5] || '',
+                existingNetworks[6] || '',
+                existingNetworks[7] || ''
+            ]);
+        }
+        // Reset university verification state
+        setVerifyingUniversityIndex(null);
+        setUniversityEmailInput('');
+        setUniversityVerificationCode('');
+        setUniversityVerificationStep('email');
+        setUniversityVerificationError('');
+        setPendingUniversityName('');
+        setVerifiedUniversityIndexes(new Set());
+        setNetworksSaveError('');
         setShowNetworksModal(true);
     };
 
@@ -1031,16 +1102,45 @@ export default function NetworkProfilePage() {
         });
     };
 
-    // Save networks
+    // Save networks (university/college is preserved as first network, cannot be changed)
     const saveNetworks = async () => {
         if (!user) return;
+        
+        setNetworksSaveError('');
+        
+        // Check for unverified universities before saving
+        const unverifiedUniversities: { index: number; name: string }[] = [];
+        for (let i = 1; i < editNetworks.length; i++) {
+            const networkName = editNetworks[i].trim();
+            if (networkName && isUniversityName(networkName) && !verifiedUniversityIndexes.has(i)) {
+                unverifiedUniversities.push({ index: i, name: networkName });
+            }
+        }
+        
+        if (unverifiedUniversities.length > 0) {
+            // Trigger verification for the first unverified university
+            const first = unverifiedUniversities[0];
+            setPendingUniversityName(first.name);
+            setVerifyingUniversityIndex(first.index);
+            setUniversityVerificationStep('email');
+            setUniversityEmailInput('');
+            setUniversityVerificationCode('');
+            setUniversityVerificationError('');
+            setNetworksSaveError(`"${first.name}" looks like a university. Please verify your .edu email to add it.`);
+            return;
+        }
         
         setIsSaving(true);
         const supabase = createClient();
         
         try {
-            // Filter out empty strings
-            const networksToSave = editNetworks.filter(n => n.trim() !== '');
+            // Filter out empty strings from editable networks (indexes 1-7)
+            const editableNetworks = editNetworks.slice(1).filter(n => n.trim() !== '');
+            
+            // Build final networks array: university first (if exists), then editable networks
+            const networksToSave = profileExtras.college 
+                ? [profileExtras.college, ...editableNetworks]
+                : editableNetworks;
             
             const { error } = await supabase
                 .from('user_profile_extras')
@@ -1066,16 +1166,174 @@ export default function NetworkProfilePage() {
             setIsSaving(false);
         }
     };
+    
+    // Check if a network name looks like a university
+    const isUniversityName = (name: string): boolean => {
+        const lowerName = name.toLowerCase().trim();
+        
+        // Keywords that indicate a university
+        const universityKeywords = [
+            'university', 'college', 'institute of technology', 'polytechnic',
+            'school of', 'academy', 'institut', ' u ', 'univ ', 'univ.', ' tech',
+            'state u', 'caltech', 'mit ', 'ucla', 'ucsd', 'ucsc', 'ucsb', 'uci', 'ucr', 'ucb',
+            'nyu', 'usc', 'unc', 'umich', 'upenn', 'uva', 'ut ', 'uf ', 'uw ', 'osu', 'psu'
+        ];
+        
+        // Common standalone university names (without "University" in the name)
+        const knownUniversities = [
+            'harvard', 'yale', 'princeton', 'stanford', 'columbia', 'brown', 'dartmouth', 'cornell',
+            'berkeley', 'caltech', 'mit', 'duke', 'northwestern', 'vanderbilt', 'rice', 'notre dame',
+            'georgetown', 'emory', 'carnegie mellon', 'johns hopkins', 'tulane', 'tufts', 'brandeis',
+            'boston college', 'wake forest', 'lehigh', 'villanova', 'usc', 'ucla', 'nyu', 'upenn',
+            'umich', 'unc', 'uva', 'purdue', 'rutgers', 'penn state', 'ohio state', 'michigan state',
+            'texas a&m', 'georgia tech', 'virginia tech', 'rpi', 'drexel', 'northeastern',
+            'syracuse', 'pitt', 'temple', 'fordham', 'depaul', 'loyola', 'marquette', 'smu', 'tcu',
+            'baylor', 'byu', 'creighton', 'gonzaga', 'santa clara', 'pepperdine', 'chapman',
+            'clemson', 'auburn', 'lsu', 'ole miss', 'tennessee', 'kentucky', 'florida state',
+            'miami', 'ucf', 'usf', 'fiu', 'fau', 'uf', 'uga', 'sc', 'nc state', 'vt',
+            'iowa', 'iowa state', 'nebraska', 'kansas', 'oklahoma', 'texas tech', 'ttu',
+            'colorado', 'utah', 'arizona', 'asu', 'unlv', 'hawaii', 'oregon', 'washington',
+            'wsu', 'osu', 'uoregon', 'cal poly', 'sdsu', 'sjsu', 'csuf', 'csun', 'csulb',
+            'suny', 'cuny', 'uconn', 'umass', 'uri', 'unh', 'uvm', 'maine',
+            'oxford', 'cambridge', 'imperial', 'lse', 'ucl', 'kings', 'edinburgh', 'st andrews',
+            'mcgill', 'toronto', 'ubc', 'waterloo', 'queens', 'western', 'mcmaster',
+            'iit', 'iim', 'bits', 'nit', 'vit', 'manipal', 'srm', 'amity',
+            'tsinghua', 'peking', 'fudan', 'sjtu', 'zju', 'nus', 'ntu', 'hku', 'cuhk'
+        ];
+        
+        // Check for keywords
+        for (const keyword of universityKeywords) {
+            if (lowerName.includes(keyword)) return true;
+        }
+        
+        // Check for known university names
+        for (const uni of knownUniversities) {
+            if (lowerName.includes(uni) || lowerName === uni) return true;
+        }
+        
+        return false;
+    };
+    
+    // Handle network input change - just update the value, verification happens on save
+    const handleNetworkChange = (index: number, value: string) => {
+        updateNetwork(index, value);
+        // Clear any previous save error when user makes changes
+        setNetworksSaveError('');
+    };
+    
+    // Send university verification email
+    const sendUniversityVerificationEmail = async () => {
+        if (!user || !universityEmailInput.trim()) return;
+        
+        if (!universityEmailInput.endsWith('.edu')) {
+            setUniversityVerificationError('Please enter a valid .edu email address');
+            return;
+        }
+        
+        setIsVerifyingUniversity(true);
+        setUniversityVerificationError('');
+        
+        try {
+            const result = await VerificationService.sendSchoolEmailVerification(
+                universityEmailInput.toLowerCase(),
+                user.id
+            );
+            
+            if (result.success) {
+                setUniversityVerificationStep('code');
+                setUniversityVerificationError('');
+            } else {
+                setUniversityVerificationError(result.error || 'Failed to send verification code');
+            }
+        } catch (error: any) {
+            setUniversityVerificationError(error?.message || 'Failed to send verification code');
+        } finally {
+            setIsVerifyingUniversity(false);
+        }
+    };
+    
+    // Verify university email code
+    const verifyUniversityCode = async () => {
+        if (!user || !universityVerificationCode || universityVerificationCode.length !== 6) {
+            setUniversityVerificationError('Please enter the 6-digit verification code');
+            return;
+        }
+        
+        setIsVerifyingUniversity(true);
+        setUniversityVerificationError('');
+        
+        try {
+            const result = await VerificationService.validateSchoolEmailCode(
+                universityEmailInput.toLowerCase(),
+                universityVerificationCode,
+                user.id
+            );
+            
+            if (result.valid) {
+                // Parse university name from the verified email
+                const supabase = createClient();
+                const domain = universityEmailInput.split('@')[1]?.toLowerCase();
+                
+                const currentVerifyingIndex = verifyingUniversityIndex;
+                
+                if (domain) {
+                    const { data } = await supabase.functions.invoke('parse-university-name', {
+                        body: { email_domain: domain },
+                    });
+                    
+                    if (data?.university_name && currentVerifyingIndex !== null) {
+                        // Update the network with the verified university name
+                        updateNetwork(currentVerifyingIndex, data.university_name);
+                        // Mark this index as verified
+                        setVerifiedUniversityIndexes(prev => new Set([...prev, currentVerifyingIndex]));
+                    }
+                } else if (currentVerifyingIndex !== null) {
+                    // Even without parsing, mark as verified since email was verified
+                    setVerifiedUniversityIndexes(prev => new Set([...prev, currentVerifyingIndex]));
+                }
+                
+                // Reset verification state
+                setVerifyingUniversityIndex(null);
+                setUniversityEmailInput('');
+                setUniversityVerificationCode('');
+                setUniversityVerificationStep('email');
+                setUniversityVerificationError('');
+                setPendingUniversityName('');
+                setNetworksSaveError('');
+            } else {
+                setUniversityVerificationError(result.error || 'Invalid verification code');
+            }
+        } catch (error: any) {
+            setUniversityVerificationError(error?.message || 'Failed to verify code');
+        } finally {
+            setIsVerifyingUniversity(false);
+        }
+    };
+    
+    // Cancel university verification
+    const cancelUniversityVerification = () => {
+        // Clear the network input that triggered verification
+        if (verifyingUniversityIndex !== null) {
+            updateNetwork(verifyingUniversityIndex, '');
+        }
+        setVerifyingUniversityIndex(null);
+        setUniversityEmailInput('');
+        setUniversityVerificationCode('');
+        setUniversityVerificationStep('email');
+        setUniversityVerificationError('');
+        setPendingUniversityName('');
+    };
 
     // Open education modal
     const openEducationModal = () => {
         setEditCollege(profileExtras.college || '');
+        setEditClassYear(profileExtras.class_year?.toString() || '');
         setEditHighSchool(profileExtras.high_school || '');
         setEditClassYear(profileExtras.class_year?.toString() || '');
         setShowEducationModal(true);
     };
 
-    // Save education
+    // Save education (college is read-only and not updated - set from .edu email during onboarding)
     const saveEducation = async () => {
         if (!user) return;
         
@@ -1084,6 +1342,7 @@ export default function NetworkProfilePage() {
         
         try {
             // Validate class year if provided
+            // Note: college is not included as it's set during onboarding from .edu email verification
             let classYearValue: number | null = null;
             if (editClassYear && editClassYear.trim()) {
                 const year = parseInt(editClassYear.trim());
@@ -1099,9 +1358,8 @@ export default function NetworkProfilePage() {
                 .from('user_profile_extras')
                 .upsert({
                     user_id: user.id,
-                    college: editCollege || null,
-                    high_school: editHighSchool || null,
                     class_year: classYearValue,
+                    high_school: editHighSchool || null,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id' });
             
@@ -1110,9 +1368,8 @@ export default function NetworkProfilePage() {
             } else {
                 setProfileExtras(prev => ({
                     ...prev,
-                    college: editCollege || undefined,
-                    high_school: editHighSchool || undefined,
                     class_year: classYearValue || undefined,
+                    high_school: editHighSchool || undefined,
                 }));
                 setShowEducationModal(false);
             }
@@ -1429,7 +1686,7 @@ export default function NetworkProfilePage() {
                         
                         <div className={styles.networkTags}>
                             {networkTagsList.map((tag, i) => (
-                                <span key={tag} className={styles.networkTag}>
+                                <span key={`${tag}-${i}`} className={styles.networkTag}>
                                     {tag}{i < networkTagsList.length - 1 && <span className={styles.networkTagSeparator}>,</span>}
                                 </span>
                             ))}
@@ -1865,12 +2122,9 @@ export default function NetworkProfilePage() {
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>College:</span>
                                 <span className={styles.infoValue}>
-                                    {profileExtras.college || 'Not set'}
-                                    {profileExtras.college && profileExtras.class_year && (
-                                        <span style={{ marginLeft: '8px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                                            '{String(profileExtras.class_year).slice(-2)}
-                                        </span>
-                                    )}
+                                    {profileExtras.college 
+                                        ? `${profileExtras.college}${profileExtras.class_year ? ` '${String(profileExtras.class_year).slice(-2)}` : ''}`
+                                        : 'Not set'}
                                 </span>
                             </div>
                             <div className={styles.infoRow}>
@@ -1930,55 +2184,64 @@ export default function NetworkProfilePage() {
                             (profileExtras.networks || []).map((network, index) => {
                                 const networkData = networkDistribution.find(nd => nd.network === network);
                                 const friends = networkData?.friends || [];
+                                const networkKey = `${network}-${index}`;
+                                const isExpanded = expandedNetworkCards.has(networkKey);
+                                const displayedFriends = isExpanded ? friends : friends.slice(0, 5);
+                                const hasMore = friends.length > 5;
+                                
                                 return (
-                                    <div key={network || index} className={styles.clusterCard}>
-                                        <h3 className={styles.clusterTitle}>
-                                            Friends from<br />
-                                            {network || `Network ${index + 1}`} <span className={styles.clusterCount}>({friends.length})</span>
-                                        </h3>
+                                    <div key={networkKey} className={`${styles.clusterCard} ${friends.length === 0 ? styles.clusterCardMinimized : ''}`}>
+                                        <div className={styles.clusterHeader}>
+                                            <h3 className={styles.clusterTitle}>
+                                                Friends from {network || `Network ${index + 1}`} <span className={styles.clusterCount}>({friends.length})</span>
+                                            </h3>
+                                            {hasMore && (
+                                                <button 
+                                                    className={styles.seeAllButtonInline}
+                                                    onClick={() => {
+                                                        setExpandedNetworkCards(prev => {
+                                                            const next = new Set(prev);
+                                                            if (next.has(networkKey)) {
+                                                                next.delete(networkKey);
+                                                            } else {
+                                                                next.add(networkKey);
+                                                            }
+                                                            return next;
+                                                        });
+                                                    }}
+                                                >
+                                                    {isExpanded ? 'Show Less' : 'See All'}
+                                                </button>
+                                            )}
+                                        </div>
                                         
-                                        {friends.length > 0 ? (
-                                            <>
-                                                <div className={styles.clusterAvatars}>
-                                                    {friends.slice(0, 6).map((friend) => (
-                                                        <div
-                                                            key={friend.id}
-                                                            className={styles.avatarWithName}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            onClick={() => goToProfile(friend.id)}
-                                                            onKeyDown={(e) => e.key === 'Enter' && goToProfile(friend.id)}
-                                                            style={{ cursor: 'pointer' }}
-                                                        >
-                                                            {friend.avatar_url ? (
-                                                                <img
-                                                                    src={getAvatarUrl(friend.avatar_url)}
-                                                                    alt={friend.name}
-                                                                    className={`${styles.clusterAvatar} invert-media`}
-                                                                    referrerPolicy="no-referrer"
-                                                                />
-                                                            ) : (
-                                                                <div className={styles.clusterAvatarPlaceholder}>
-                                                                    {friend.name.charAt(0).toUpperCase()}
-                                                                </div>
-                                                            )}
-                                                            <span className={styles.avatarName}>{friend.name}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                
-                                                {friends.length > 6 && (
-                                                    <button 
-                                                        className={styles.seeAllButton}
-                                                        onClick={() => setSelectedNetworkCluster(networkData || null)}
+                                        {friends.length > 0 && (
+                                            <div className={`${styles.clusterAvatarsHorizontal} ${isExpanded ? styles.clusterAvatarsExpanded : ''}`}>
+                                                {displayedFriends.map((friend) => (
+                                                    <div
+                                                        key={friend.id}
+                                                        className={styles.avatarWithNameCompact}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => goToProfile(friend.id)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && goToProfile(friend.id)}
+                                                        style={{ cursor: 'pointer' }}
                                                     >
-                                                        See All
-                                                    </button>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div className={styles.emptyNetworkCard}>
-                                                <p>No connections yet</p>
+                                                        {friend.avatar_url ? (
+                                                            <img
+                                                                src={getAvatarUrl(friend.avatar_url)}
+                                                                alt={friend.name}
+                                                                className={`${styles.clusterAvatarSmall} invert-media`}
+                                                                referrerPolicy="no-referrer"
+                                                            />
+                                                        ) : (
+                                                            <div className={styles.clusterAvatarPlaceholderSmall}>
+                                                                {friend.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <span className={styles.avatarNameSmall}>{friend.name}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
@@ -1989,10 +2252,10 @@ export default function NetworkProfilePage() {
                 </>
                 )}
 
-                {/* Myspace: same 3-column layout as About — center uses centerColumn for identical positioning, right = empty */}
+                {/* Myspace: uses wider column that spans center + right areas */}
                 {activeTab === 'myspace' && (
                 <>
-                <div className={styles.centerColumn}>
+                <div className={styles.myspaceCenterColumn}>
                     <div className={styles.myspaceCenterInner}>
                     <div className={styles.myspaceFeedCard}>
                     {isOwnProfile && (
@@ -2086,12 +2349,12 @@ export default function NetworkProfilePage() {
                                                 {!['post','status','profile_change','connection'].includes(u.type) && (
                                                     <><span className={styles.wallUpdateActor}>{u.actor_name || 'Someone'}</span> {u.content || ''}</>
                                                 )}
-                                                <div className={styles.wallUpdateMeta}>
+                                                <span className={styles.wallUpdateMeta}>
                                                     {new Date(u.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                                                     <button type="button" className={styles.wallCommentLink} onClick={() => toggleCommentThread(u.id)}>
-                                                        Comment
+                                                        {commentCounts[u.id] ? `${commentCounts[u.id]} Comment${commentCounts[u.id] !== 1 ? 's' : ''}` : 'Comment'}
                                                     </button>
-                                                </div>
+                                                </span>
                                                 {expandedCommentUpdateId === u.id && (
                                                     <div className={styles.wallCommentThread}>
                                                         {(commentsByUpdate[u.id] || []).map((c, i) => (
@@ -2523,8 +2786,8 @@ export default function NetworkProfilePage() {
             {showEditModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
                     <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>Edit Basic Info</h3>
+                        <div className={styles.modalHeader} style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            <h3 className={styles.modalTitle} style={{ color: '#fff' }}>Edit Basic Info</h3>
                             <button 
                                 className={styles.modalCloseButton}
                                 onClick={() => setShowEditModal(false)}
@@ -2552,18 +2815,18 @@ export default function NetworkProfilePage() {
                                 </select>
                             </div>
 
-                            {/* Age */}
+                            {/* Age - Read-only, set during onboarding */}
                             <div className={styles.formGroup}>
                                 <label className={styles.formLabel}>Age</label>
                                 <input 
                                     type="number"
                                     className={styles.formInput}
                                     value={editAge}
-                                    onChange={(e) => setEditAge(e.target.value)}
-                                    placeholder="Enter your age"
-                                    min="13"
-                                    max="120"
+                                    placeholder="Set during onboarding"
+                                    disabled
+                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
                                 />
+                                <p className={styles.formHint}>Age cannot be changed after onboarding</p>
                             </div>
 
                             {/* Hometown */}
@@ -2616,8 +2879,8 @@ export default function NetworkProfilePage() {
                     setHandleError(''); // Clear error when closing modal
                 }}>
                     <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>Edit Contact Info</h3>
+                        <div className={styles.modalHeader} style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            <h3 className={styles.modalTitle} style={{ color: '#fff' }}>Edit Contact Info</h3>
                             <button 
                                 className={styles.modalCloseButton}
                                 onClick={() => setShowContactModal(false)}
@@ -2640,16 +2903,18 @@ export default function NetworkProfilePage() {
                                 />
                             </div>
 
-                            {/* Phone */}
+                            {/* Phone - Read-only, set during onboarding */}
                             <div className={styles.formGroup}>
                                 <label className={styles.formLabel}>Phone Number</label>
                                 <input 
                                     type="tel"
                                     className={styles.formInput}
                                     value={editPhone}
-                                    onChange={(e) => setEditPhone(e.target.value)}
-                                    placeholder="+1 (555) 123-4567"
+                                    placeholder="Set during onboarding"
+                                    disabled
+                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
                                 />
+                                <p className={styles.formHint}>Phone cannot be changed after onboarding</p>
                             </div>
 
                             {/* LinkedIn */}
@@ -2728,13 +2993,15 @@ export default function NetworkProfilePage() {
 
             {/* Edit Networks Modal */}
             {showNetworksModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowNetworksModal(false)}>
-                    <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>Edit Networks</h3>
+                <div className={styles.modalOverlay} onClick={() => !verifyingUniversityIndex && setShowNetworksModal(false)}>
+                    <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+                        <div className={styles.modalHeader} style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            <h3 className={styles.modalTitle} style={{ color: '#fff' }}>
+                                {verifyingUniversityIndex !== null ? 'Verify University Email' : 'Edit Networks'}
+                            </h3>
                             <button 
                                 className={styles.modalCloseButton}
-                                onClick={() => setShowNetworksModal(false)}
+                                onClick={() => verifyingUniversityIndex !== null ? cancelUniversityVerification() : setShowNetworksModal(false)}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M18 6L6 18M6 6l12 12"/>
@@ -2742,31 +3009,183 @@ export default function NetworkProfilePage() {
                             </button>
                         </div>
                         <div className={styles.editModalBody}>
-                            <p className={styles.formHint} style={{ marginBottom: 16 }}>
-                                Add up to 4 networks (schools, companies, communities, locations)
-                            </p>
-                            
-                            {[0, 1, 2, 3].map((index) => (
-                                <div key={index} className={styles.formGroup}>
-                                    <label className={styles.formLabel}>Network {index + 1}</label>
-                                    <input 
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={editNetworks[index]}
-                                        onChange={(e) => updateNetwork(index, e.target.value)}
-                                        placeholder={index === 0 ? "e.g. Harvard University" : index === 1 ? "e.g. Google" : index === 2 ? "e.g. Silicon Valley" : "e.g. New York, NY"}
-                                    />
-                                </div>
-                            ))}
+                            {/* University Verification Flow */}
+                            {verifyingUniversityIndex !== null ? (
+                                <>
+                                    {universityVerificationStep === 'email' ? (
+                                        <>
+                                            <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: 16, fontSize: 14 }}>
+                                                To add <strong>"{pendingUniversityName}"</strong> as a network, please verify your .edu email for this university.
+                                            </p>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.formLabel}>University Email</label>
+                                                <input 
+                                                    type="email"
+                                                    className={styles.formInput}
+                                                    value={universityEmailInput}
+                                                    onChange={(e) => setUniversityEmailInput(e.target.value)}
+                                                    placeholder="you@university.edu"
+                                                />
+                                            </div>
+                                            {universityVerificationError && (
+                                                <p style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 16 }}>{universityVerificationError}</p>
+                                            )}
+                                            <button 
+                                                className={styles.saveButton}
+                                                onClick={sendUniversityVerificationEmail}
+                                                disabled={isVerifyingUniversity || !universityEmailInput.trim()}
+                                                style={{ marginBottom: 12, opacity: !universityEmailInput.trim() ? 0.6 : 1 }}
+                                            >
+                                                {isVerifyingUniversity ? 'Sending...' : 'Send Verification Code'}
+                                            </button>
+                                            <button 
+                                                onClick={cancelUniversityVerification}
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: 12, 
+                                                    background: 'transparent', 
+                                                    border: '1px solid rgba(255,255,255,0.2)', 
+                                                    borderRadius: 10, 
+                                                    color: 'rgba(255,255,255,0.6)', 
+                                                    cursor: 'pointer',
+                                                    fontSize: 14
+                                                }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: 16, fontSize: 14 }}>
+                                                Enter the 6-digit code sent to <strong>{universityEmailInput}</strong>
+                                            </p>
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.formLabel}>Verification Code</label>
+                                                <input 
+                                                    type="text"
+                                                    className={styles.formInput}
+                                                    value={universityVerificationCode}
+                                                    onChange={(e) => setUniversityVerificationCode(e.target.value.replace(/\D/g, ''))}
+                                                    placeholder="Enter 6-digit code"
+                                                    maxLength={6}
+                                                    style={{ textAlign: 'center', letterSpacing: 4, fontSize: 20 }}
+                                                />
+                                            </div>
+                                            {universityVerificationError && (
+                                                <p style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 16 }}>{universityVerificationError}</p>
+                                            )}
+                                            <button 
+                                                className={styles.saveButton}
+                                                onClick={verifyUniversityCode}
+                                                disabled={isVerifyingUniversity || universityVerificationCode.length !== 6}
+                                                style={{ marginBottom: 12, opacity: universityVerificationCode.length !== 6 ? 0.6 : 1 }}
+                                            >
+                                                {isVerifyingUniversity ? 'Verifying...' : 'Verify'}
+                                            </button>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <button 
+                                                    onClick={() => { setUniversityVerificationStep('email'); setUniversityVerificationCode(''); setUniversityVerificationError(''); }}
+                                                    style={{ 
+                                                        flex: 1, 
+                                                        padding: 12, 
+                                                        background: 'transparent', 
+                                                        border: '1px solid rgba(255,255,255,0.2)', 
+                                                        borderRadius: 10, 
+                                                        color: 'rgba(255,255,255,0.6)', 
+                                                        cursor: 'pointer',
+                                                        fontSize: 14
+                                                    }}
+                                                >
+                                                    Back
+                                                </button>
+                                                <button 
+                                                    onClick={cancelUniversityVerification}
+                                                    style={{ 
+                                                        flex: 1, 
+                                                        padding: 12, 
+                                                        background: 'transparent', 
+                                                        border: '1px solid rgba(255,255,255,0.2)', 
+                                                        borderRadius: 10, 
+                                                        color: 'rgba(255,255,255,0.6)', 
+                                                        cursor: 'pointer',
+                                                        fontSize: 14
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <p className={styles.formHint} style={{ marginBottom: 16 }}>
+                                        Your first network is your verified university. You can add up to 7 additional networks. Adding another university requires .edu email verification.
+                                    </p>
+                                    
+                                    {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
+                                        const isUniversityNetwork = index === 0 && profileExtras.college;
+                                        const networkValue = isUniversityNetwork ? profileExtras.college : editNetworks[index];
+                                        const isUnverifiedUniversity = index > 0 && networkValue && isUniversityName(networkValue) && !verifiedUniversityIndexes.has(index);
+                                        const isVerifiedUniversity = index > 0 && verifiedUniversityIndexes.has(index);
+                                        
+                                        return (
+                                            <div key={index} className={styles.formGroup}>
+                                                <label className={styles.formLabel}>
+                                                    {index === 0 ? 'University (verified)' : `Network ${index + 1}`}
+                                                    {isVerifiedUniversity && <span style={{ color: '#4ade80', marginLeft: 8, fontSize: 12 }}>✓ Verified</span>}
+                                                </label>
+                                                <input 
+                                                    type="text"
+                                                    className={styles.formInput}
+                                                    value={networkValue || ''}
+                                                    onChange={(e) => !isUniversityNetwork && handleNetworkChange(index, e.target.value)}
+                                                    placeholder={
+                                                        index === 0 ? "Set via university email" : 
+                                                        index === 1 ? "e.g. Google" : 
+                                                        index === 2 ? "e.g. Silicon Valley" : 
+                                                        index === 3 ? "e.g. New York, NY" :
+                                                        index === 4 ? "e.g. Chess Club" :
+                                                        index === 5 ? "e.g. Tech Community" :
+                                                        index === 6 ? "e.g. Alumni Network" :
+                                                        "e.g. Professional Group"
+                                                    }
+                                                    disabled={isUniversityNetwork}
+                                                    style={{
+                                                        ...(isUniversityNetwork ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+                                                        ...(isUnverifiedUniversity ? { borderColor: '#f59e0b' } : {}),
+                                                        ...(isVerifiedUniversity ? { borderColor: '#4ade80' } : {})
+                                                    }}
+                                                />
+                                                {isUniversityNetwork && (
+                                                    <p className={styles.formHint}>Verified via .edu email</p>
+                                                )}
+                                                {isUnverifiedUniversity && (
+                                                    <p className={styles.formHint} style={{ color: '#f59e0b' }}>
+                                                        ⚠️ This looks like a university - verification required to save
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
 
-                            {/* Save Button */}
-                            <button 
-                                className={styles.saveButton}
-                                onClick={saveNetworks}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? 'Saving...' : 'Save Changes'}
-                            </button>
+                                    {/* Error message */}
+                                    {networksSaveError && (
+                                        <p style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>
+                                            {networksSaveError}
+                                        </p>
+                                    )}
+
+                                    {/* Save Button */}
+                                    <button 
+                                        className={styles.saveButton}
+                                        onClick={saveNetworks}
+                                        disabled={isSaving}
+                                    >
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -2776,8 +3195,8 @@ export default function NetworkProfilePage() {
             {showEducationModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowEducationModal(false)}>
                     <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>Edit Education</h3>
+                        <div className={styles.modalHeader} style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            <h3 className={styles.modalTitle} style={{ color: '#fff' }}>Edit Education</h3>
                             <button 
                                 className={styles.modalCloseButton}
                                 onClick={() => setShowEducationModal(false)}
@@ -2788,16 +3207,33 @@ export default function NetworkProfilePage() {
                             </button>
                         </div>
                         <div className={styles.editModalBody}>
-                            {/* College */}
+                            {/* College - Read-only if set during onboarding */}
                             <div className={styles.formGroup}>
-                                <label className={styles.formLabel}>College</label>
+                                <label className={styles.formLabel}>College / University</label>
                                 <input 
                                     type="text"
                                     className={styles.formInput}
                                     value={editCollege}
-                                    onChange={(e) => setEditCollege(e.target.value)}
-                                    placeholder="e.g. Harvard University"
+                                    placeholder="Set via university email verification"
+                                    disabled
+                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
                                 />
+                                <p className={styles.formHint}>University is set from your verified .edu email and cannot be changed</p>
+                            </div>
+
+                            {/* Class Year */}
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Class Year</label>
+                                <input 
+                                    type="number"
+                                    className={styles.formInput}
+                                    value={editClassYear}
+                                    onChange={(e) => setEditClassYear(e.target.value)}
+                                    placeholder="e.g. 2029"
+                                    min="2000"
+                                    max="2040"
+                                />
+                                <p className={styles.formHint}>Your expected graduation year (e.g. 2029 displays as &apos;29)</p>
                             </div>
 
                             {/* High School */}
@@ -2808,7 +3244,7 @@ export default function NetworkProfilePage() {
                                     className={styles.formInput}
                                     value={editHighSchool}
                                     onChange={(e) => setEditHighSchool(e.target.value)}
-                                    placeholder="e.g. Phillips Exeter Academy '02"
+                                    placeholder="e.g. Phillips Exeter Academy"
                                 />
                             </div>
 
@@ -2852,8 +3288,8 @@ export default function NetworkProfilePage() {
             {showWorkModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowWorkModal(false)}>
                     <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>Edit Work</h3>
+                        <div className={styles.modalHeader} style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            <h3 className={styles.modalTitle} style={{ color: '#fff' }}>Edit Work</h3>
                             <button 
                                 className={styles.modalCloseButton}
                                 onClick={() => setShowWorkModal(false)}
@@ -2905,8 +3341,8 @@ export default function NetworkProfilePage() {
             {showWorkingOnModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowWorkingOnModal(false)}>
                     <div className={styles.editModalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>Edit Your Quote</h3>
+                        <div className={styles.modalHeader} style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+                            <h3 className={styles.modalTitle} style={{ color: '#fff' }}>Edit Your Quote</h3>
                             <button 
                                 className={styles.modalCloseButton}
                                 onClick={() => setShowWorkingOnModal(false)}
