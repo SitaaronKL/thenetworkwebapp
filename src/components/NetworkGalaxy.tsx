@@ -598,9 +598,14 @@ export default React.memo(function NetworkGalaxy({
                         const g = enter.append('g').call(drag(simulation));
 
                         // Circle with different styles for discovery nodes
+                        // Use a distinct color when no image is available
                         g.append('circle')
                             .attr('r', (d: any) => d.r)
-                            .attr('fill', (d: any) => d.color)
+                            .attr('fill', (d: any) => {
+                                // If no image, use a gradient purple color for visibility
+                                if (!d.imgUrl) return '#6366f1';
+                                return d.color;
+                            })
                             .attr('stroke', (d: any) => {
                                 if (d.isDiscoveryNode) return '#fff'; // White for discovery (black in light mode via invert)
                                 if (d.isExpandedFriend) return '#000';
@@ -613,6 +618,19 @@ export default React.memo(function NetworkGalaxy({
                             })
                             .attr('stroke-dasharray', (d: any) => d.isDiscoveryNode ? '4,3' : 'none');
 
+                        // Add initials text (shown when image fails to load or is missing)
+                        g.append('text')
+                            .attr('class', 'node-initials')
+                            .attr('text-anchor', 'middle')
+                            .attr('dominant-baseline', 'central')
+                            .attr('y', 0)
+                            .style('font-family', 'Inter, system-ui, sans-serif')
+                            .style('font-size', (d: any) => `${d.r * 0.8}px`)
+                            .style('font-weight', '600')
+                            .style('fill', '#ffffff')
+                            .style('display', (d: any) => d.imgUrl ? 'none' : 'block')
+                            .text((d: any) => d.name?.[0]?.toUpperCase() || '?');
+
                         g.append('image')
                             .attr('x', (d: any) => -d.r)
                             .attr('y', (d: any) => -d.r)
@@ -621,7 +639,12 @@ export default React.memo(function NetworkGalaxy({
                             .attr('href', (d: any) => d.imgUrl || '')
                             .attr('preserveAspectRatio', 'xMidYMid slice')
                             .attr('clip-path', 'url(#nodeClipCircle)')
-                            .style('display', (d: any) => (d.imgUrl ? 'block' : 'none'));
+                            .style('display', (d: any) => (d.imgUrl ? 'block' : 'none'))
+                            .on('error', function(this: SVGImageElement) {
+                                // Hide broken image and show initials
+                                d3.select(this).style('display', 'none');
+                                d3.select(this.parentNode as Element).select('.node-initials').style('display', 'block');
+                            });
 
                         g.append('text')
                             .attr('text-anchor', 'middle')

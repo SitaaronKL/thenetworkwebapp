@@ -1476,11 +1476,18 @@ export default function Home() {
 
           // Use overlap (Network Proximity) for graph distance when available; else match.similarity
           const similarityForDistance = overlapMap.get(profile.id) ?? match.similarity;
+          const avatarUrl = getAvatarUrl(profile.avatar_url);
+          console.log('👤 [SUGGESTION] Profile avatar:', {
+            id: profile.id,
+            name: profile.full_name,
+            raw_avatar_url: profile.avatar_url,
+            resolved_avatar_url: avatarUrl
+          });
           return {
             id: profile.id,
             name: profile.full_name?.split(' ')[0] || 'User',
             reason,
-            avatar: getAvatarUrl(profile.avatar_url) || '/assets/onboarding/tn_logo_black.png',
+            avatar: avatarUrl || '/assets/onboarding/tn_logo_black.png',
             similarity: similarityForDistance
           };
         });
@@ -1997,13 +2004,13 @@ export default function Home() {
           className={`${styles.viewModeButton} ${viewMode === 'myNetwork' ? styles.active : ''}`}
           onClick={() => setViewMode('myNetwork')}
         >
-          My Social Proximity
+          Your Network
         </button>
         <button
           className={`${styles.viewModeButton} ${viewMode === 'discover' ? styles.active : ''}`}
           onClick={() => setViewMode('discover')}
         >
-          My Interest Proximity
+          Your Suggestions
         </button>
       </div>
 
@@ -2190,25 +2197,32 @@ export default function Home() {
                           }
                         }}
                       >
-                        <img
-                          src={suggestion.avatar}
-                          alt={suggestion.name}
-                          className={`${styles.cardAvatar} invert-media`}
-                        />
+                        <div className={`${styles.cardAvatar} invert-media`} style={{ position: 'relative', overflow: 'hidden' }}>
+                          <img
+                            src={suggestion.avatar}
+                            alt={suggestion.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            onError={(e) => {
+                              // Hide broken image and show initials fallback
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              const parent = (e.target as HTMLImageElement).parentElement;
+                              if (parent) {
+                                parent.style.display = 'flex';
+                                parent.style.alignItems = 'center';
+                                parent.style.justifyContent = 'center';
+                                parent.style.backgroundColor = '#6366f1';
+                                parent.style.color = '#fff';
+                                parent.style.fontWeight = '600';
+                                parent.style.fontSize = '16px';
+                                parent.innerText = suggestion.name?.[0]?.toUpperCase() || '?';
+                              }
+                            }}
+                          />
+                        </div>
                         <div className={styles.cardInfo}>
                           <div className={styles.cardName}>{suggestion.name}</div>
                           <div className={styles.cardReason}>{suggestion.reason}</div>
                         </div>
-                        <button
-                          type="button"
-                          className={styles.viewProfileButton}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openSuggestionProfile(suggestion);
-                          }}
-                        >
-                          View Profile
-                        </button>
                       </div>
                     ))}
                   </div>
