@@ -531,6 +531,9 @@ export default function Home() {
   // Discovery profiles state (floating circles - people in your networks but not connected)
   const [discoveryPeople, setDiscoveryPeople] = useState<NetworkPerson[]>([]);
 
+  // View mode toggle: 'myNetwork' shows full network, 'discover' shows only suggestions
+  const [viewMode, setViewMode] = useState<'myNetwork' | 'discover'>('myNetwork');
+
   // Convert suggestions to NetworkPerson format for the graph
   const suggestionPeople: NetworkPerson[] = React.useMemo(() => {
     return suggestions.map(s => ({
@@ -1068,19 +1071,18 @@ export default function Home() {
       setInteractedSuggestionIds(interactedIds);
       setConnectionCount(connectionCount);
 
-      // Show Weekly Drop if user has > 4 connections OR has interacted with 3+ suggestions
-      if (connectionCount > 4 || interactedIds.size >= 3 || debugForceEligible) {
-        console.log('🚀 Loading Weekly Drop Path... debug:', debugForceEligible);
+      // Check if Weekly Drop should be shown (for UI purposes)
+      // But we continue loading suggestions for the Interest Proximity view
+      const shouldShowWeeklyDrop = connectionCount > 4 || interactedIds.size >= 3 || debugForceEligible;
+      if (shouldShowWeeklyDrop) {
+        console.log('🚀 Weekly Drop eligible... debug:', debugForceEligible);
         setIsEligibleForMondayDrop(true);
         setShouldShowMessage(false);
-        setSuggestions([]);
-        // Don't set setIsLoadingSuggestions(false) yet, loadMondayDrop will handle its own loading state
         loadMondayDrop(connectionCount);
-        setIsLoadingSuggestions(false);
-        return;
+        // Continue loading suggestions for Interest Proximity view (don't return early)
+      } else {
+        setIsEligibleForMondayDrop(false);
       }
-
-      setIsEligibleForMondayDrop(false);
 
       // 2. Get user's profile and DNA v2
       const { data: userProfile, error: profileError } = await supabase
@@ -1337,14 +1339,45 @@ export default function Home() {
           })
           : { data: null, error: { message: 'No DNA v2 available' } };
 
+      // If DNA matching fails or returns no results, fallback to random profiles not in network
+      let notInNetworkMatches: any[] = [];
+      
+      console.log('🔍 [SUGGESTIONS] DNA match results:', {
+        matchError: matchError?.message || matchError,
+        matchedProfilesCount: matchedProfiles?.length || 0
+      });
+      
       if (matchError || !matchedProfiles || matchedProfiles.length === 0) {
-        setSuggestions([]);
-        setIsLoadingSuggestions(false);
-        return;
+        console.log('🔄 [SUGGESTIONS] DNA matching failed or empty, using fallback profile query');
+        // Fallback: get random profiles not in the user's network
+        const excludeIds = Array.from(connectedUserIds);
+        excludeIds.push(user.id); // Also exclude self
+        
+        // Build query - if we have IDs to exclude, use filter; otherwise just get profiles
+        let fallbackQuery = supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .neq('id', user.id)
+          .limit(20);
+        
+        const { data: fallbackProfiles } = await fallbackQuery;
+        
+        console.log('🔄 [SUGGESTIONS] Fallback profiles found:', fallbackProfiles?.length || 0);
+        if (fallbackProfiles && fallbackProfiles.length > 0) {
+          // Filter out connected users manually and convert to match format
+          notInNetworkMatches = fallbackProfiles
+            .filter((p: any) => !connectedUserIds.has(p.id))
+            .slice(0, 10)
+            .map((p: any) => ({
+              id: p.id,
+              similarity: 0.5 // Default similarity for fallback matches
+            }));
+          console.log('🔄 [SUGGESTIONS] After filtering connected users:', notInNetworkMatches.length);
+        }
+      } else {
+        // 6. Filter out users already in network
+        notInNetworkMatches = matchedProfiles.filter((m: any) => !connectedUserIds.has(m.id));
       }
-
-      // 6. Filter out users already in network
-      const notInNetworkMatches = matchedProfiles.filter((m: any) => !connectedUserIds.has(m.id));
 
       if (notInNetworkMatches.length === 0) {
         setSuggestions([]);
@@ -1378,11 +1411,9 @@ export default function Home() {
       );
 
       // 8. Format suggestions with compelling reasons (only from not-in-network matches)
-      // Only fetch remaining slots (3 minus interactions already made)
-      const remainingSuggestionCount = connectionCount < 3
-        ? Math.max(0, 3 - connectionCount)
-        : Math.max(0, 3 - interactedIds.size);
-      const topNotInNetworkMatches = notInNetworkMatches.slice(0, remainingSuggestionCount);
+      // Always fetch up to 6 candidates to ensure we have 3 suggestions for Interest Proximity view
+      // (Some may fail reason generation, so we fetch more than 3)
+      const topNotInNetworkMatches = notInNetworkMatches.slice(0, 6);
       const formattedSuggestionsPromises = topNotInNetworkMatches
         .map(async (match: any) => {
           const profile = fullProfiles.find((p: any) => p.id === match.id);
@@ -1406,40 +1437,41 @@ export default function Home() {
             if (cached && cached.description) {
               reason = cached.description;
             } else {
-              // No cache found, call edge function to generate and store
-              const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
-                'generate-suggestion-reason',
-                {
-                  body: {
-                    userAId: user.id,
-                    userBId: profile.id,
-                    userProfile: {
-                      interests: [],
-                      bio: ''
-                    },
-                    candidateProfile: {
-                      interests: [],
-                      bio: ''
-                    },
-                    similarity: match.similarity || 0.6
+              // No cache found, try edge function to generate and store
+              try {
+                const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
+                  'generate-suggestion-reason',
+                  {
+                    body: {
+                      userAId: user.id,
+                      userBId: profile.id,
+                      userProfile: {
+                        interests: [],
+                        bio: ''
+                      },
+                      candidateProfile: {
+                        interests: [],
+                        bio: ''
+                      },
+                      similarity: match.similarity || 0.6
+                    }
                   }
+                );
+
+                if (!reasonError && reasonData?.reason) {
+                  reason = reasonData.reason;
+                } else {
+                  // Use fallback reason if edge function fails
+                  reason = 'You might have shared interests!';
                 }
-              );
-
-              if (reasonError) {
-                return null; // Don't show suggestion if we can't generate reason
-              }
-
-              if (reasonData?.reason) {
-                reason = reasonData.reason;
-              } else if (reasonData?.error) {
-                return null; // Don't show suggestion if error
-              } else {
-                return null; // Don't show suggestion if no reason
+              } catch {
+                // Use fallback reason if edge function call fails
+                reason = 'You might have shared interests!';
               }
             }
           } catch (error) {
-            return null; // Don't show suggestion on error
+            // Use fallback reason on any error
+            reason = 'Recommended for you';
           }
 
           // Use overlap (Network Proximity) for graph distance when available; else match.similarity
@@ -1453,25 +1485,42 @@ export default function Home() {
           };
         });
 
-      // Calculate how many suggestions we should show (3 minus how many they've interacted with)
+      // Always load up to 3 suggestions for the Interest Proximity view
+      // Filter out nulls and interacted ones, but always keep at least some for the graph
+      const allSuggestions = (await Promise.all(formattedSuggestionsPromises))
+        .filter((s: any) => s !== null);
+
+      // For the pill panel UI, we apply the interaction filter
       const remainingSuggestionSlots = connectionCount < 3
         ? Math.max(0, 3 - connectionCount)
         : Math.max(0, 3 - interactedIds.size);
 
-      const formattedSuggestions = (await Promise.all(formattedSuggestionsPromises))
-        .filter((s: any) => s !== null)
-        .filter((s: any) => !interactedIds.has(s.id)) // Filter out already interacted suggestions
-        .slice(0, remainingSuggestionSlots); // Only show remaining slots (3 minus interactions)
+      const uiSuggestions = allSuggestions
+        .filter((s: any) => !interactedIds.has(s.id))
+        .slice(0, remainingSuggestionSlots);
 
-      // If all suggestions have been interacted with, show message
-      if (formattedSuggestions.length === 0) {
+      // For the graph (Interest Proximity), we show all suggestions (up to 3) regardless of interactions
+      // This ensures the Interest Proximity view always has people to show
+      const graphSuggestions = allSuggestions.slice(0, 3);
+
+      // Use graphSuggestions for state so Interest Proximity view always has data
+      // The UI will handle filtering for the pill panel separately
+      console.log('📊 [SUGGESTIONS] Final results:', {
+        allSuggestionsCount: allSuggestions.length,
+        graphSuggestionsCount: graphSuggestions.length,
+        uiSuggestionsCount: uiSuggestions.length,
+        graphSuggestions: graphSuggestions.map((s: any) => ({ id: s.id, name: s.name }))
+      });
+      
+      if (graphSuggestions.length === 0) {
         setShouldShowMessage(connectionCount >= 3);
         setSuggestions([]);
       } else {
-        setShouldShowMessage(false);
-        setSuggestions(formattedSuggestions);
+        setShouldShowMessage(uiSuggestions.length === 0 && connectionCount >= 3);
+        setSuggestions(graphSuggestions);
       }
     } catch (error) {
+      console.error('❌ [SUGGESTIONS] Error loading suggestions:', error);
       setSuggestions([]);
     } finally {
       setIsLoadingSuggestions(false);
@@ -1893,7 +1942,10 @@ export default function Home() {
       {/* Network Graph Background */}
       <div className={styles.graphContainer}>
         <NetworkGalaxy
-          people={people}
+          people={viewMode === 'discover' 
+            ? people.filter(p => p.id === user.id) // Only current user in discover mode
+            : people
+          }
           currentUserId={user.id}
           onPersonClick={(person) => {
             // Open profile modal for the clicked person
@@ -1902,8 +1954,8 @@ export default function Home() {
               setExpandedPanel('profile');
             }
           }}
-          expandedFriendId={expandedFriendId}
-          onFriendExpand={(friendId) => {
+          expandedFriendId={viewMode === 'discover' ? null : expandedFriendId}
+          onFriendExpand={viewMode === 'discover' ? undefined : (friendId) => {
             if (friendId) {
               const person = people.find(p => p.id === friendId);
 
@@ -1928,12 +1980,31 @@ export default function Home() {
               setMutualConnectionIds(new Set());
             }
           }}
-          friendOfFriendData={friendOfFriendData}
-          mutualConnectionIds={mutualConnectionIds}
-          isLoadingFriendNetwork={isLoadingFriendNetwork}
-          discoveryPeople={discoveryPeople}
-          suggestionPeople={suggestionPeople}
+          friendOfFriendData={viewMode === 'discover' ? [] : friendOfFriendData}
+          mutualConnectionIds={viewMode === 'discover' ? new Set() : mutualConnectionIds}
+          isLoadingFriendNetwork={viewMode === 'discover' ? false : isLoadingFriendNetwork}
+          discoveryPeople={viewMode === 'discover' ? [] : discoveryPeople}
+          suggestionPeople={viewMode === 'discover' 
+            ? suggestionPeople.slice(0, 3) // Only 3 suggestions in Interest Proximity mode
+            : [] // No suggestions in Social Proximity mode
+          }
         />
+      </div>
+
+      {/* View Mode Toggle */}
+      <div className={styles.viewModeToggle}>
+        <button
+          className={`${styles.viewModeButton} ${viewMode === 'myNetwork' ? styles.active : ''}`}
+          onClick={() => setViewMode('myNetwork')}
+        >
+          My Social Proximity
+        </button>
+        <button
+          className={`${styles.viewModeButton} ${viewMode === 'discover' ? styles.active : ''}`}
+          onClick={() => setViewMode('discover')}
+        >
+          My Interest Proximity
+        </button>
       </div>
 
       {/* Mobile button to open suggestions */}
