@@ -1364,15 +1364,22 @@ export default function Home() {
         
         console.log('🔄 [SUGGESTIONS] Fallback profiles found:', fallbackProfiles?.length || 0);
         if (fallbackProfiles && fallbackProfiles.length > 0) {
-          // Filter out connected users manually and convert to match format
-          notInNetworkMatches = fallbackProfiles
-            .filter((p: any) => !connectedUserIds.has(p.id))
+          // Filter out connected users and shuffle randomly so each user gets different suggestions
+          const filteredProfiles = fallbackProfiles.filter((p: any) => !connectedUserIds.has(p.id));
+          
+          // Fisher-Yates shuffle for randomization
+          for (let i = filteredProfiles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [filteredProfiles[i], filteredProfiles[j]] = [filteredProfiles[j], filteredProfiles[i]];
+          }
+          
+          notInNetworkMatches = filteredProfiles
             .slice(0, 10)
             .map((p: any) => ({
               id: p.id,
-              similarity: 0.5 // Default similarity for fallback matches
+              similarity: 0.4 + Math.random() * 0.3 // Random similarity between 0.4-0.7 for variety
             }));
-          console.log('🔄 [SUGGESTIONS] After filtering connected users:', notInNetworkMatches.length);
+          console.log('🔄 [SUGGESTIONS] After filtering and shuffling:', notInNetworkMatches.length);
         }
       } else {
         // 6. Filter out users already in network

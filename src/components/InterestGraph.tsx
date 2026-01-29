@@ -41,7 +41,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, Component, ErrorInfo, ReactNode } from 'react';
 import { SigmaContainer, useLoadGraph, useSigma, useRegisterEvents } from '@react-sigma/core';
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
@@ -49,6 +49,39 @@ import { NodeCircleProgram } from 'sigma/rendering';
 // NOTE: This import brings in Sigma's default styles, which include a white background.
 // We override this with explicit background colors on our container elements.
 import '@react-sigma/core/lib/style.css';
+
+// Error boundary to catch WebGL/Sigma rendering errors
+interface ErrorBoundaryProps {
+    children: ReactNode;
+    fallback: ReactNode;
+}
+
+interface ErrorBoundaryState {
+    hasError: boolean;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    constructor(props: ErrorBoundaryProps) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        console.warn('InterestGraph WebGL error caught:', error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback;
+        }
+
+        return this.props.children;
+    }
+}
 
 interface InterestGraphProps {
     interests: string[];
@@ -466,20 +499,54 @@ export default function InterestGraph({
                 }}
             >
                 {isContainerReady ? (
-                    <SigmaContainer
-                        style={{ height: '100%', width: '100%', background: '#000000' }}
-                        settings={settings}
+                    <ErrorBoundary 
+                        fallback={
+                            <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                height: '100%', 
+                                color: '#fff',
+                                padding: '20px',
+                                textAlign: 'center'
+                            }}>
+                                <p style={{ marginBottom: '16px', fontSize: '16px' }}>Your interests:</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+                                    {interests.map((interest, i) => (
+                                        <span 
+                                            key={i} 
+                                            style={{ 
+                                                padding: '8px 16px', 
+                                                background: '#6366f1', 
+                                                borderRadius: '20px',
+                                                fontSize: '14px',
+                                                cursor: onInterestClick ? 'pointer' : 'default'
+                                            }}
+                                            onClick={() => onInterestClick?.(interest)}
+                                        >
+                                            {interest}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        }
                     >
-                        <GraphController
-                            interests={interests}
-                            userFullName={userFullName}
-                            onGraphLoaded={onGraphLoaded}
-                            setIsReady={setIsReady}
-                            showLabels={showLabels}
-                            onInterestClick={onInterestClick}
-                            isMobile={isMobileRef.current}
-                        />
-                    </SigmaContainer>
+                        <SigmaContainer
+                            style={{ height: '100%', width: '100%', background: '#000000' }}
+                            settings={settings}
+                        >
+                            <GraphController
+                                interests={interests}
+                                userFullName={userFullName}
+                                onGraphLoaded={onGraphLoaded}
+                                setIsReady={setIsReady}
+                                showLabels={showLabels}
+                                onInterestClick={onInterestClick}
+                                isMobile={isMobileRef.current}
+                            />
+                        </SigmaContainer>
+                    </ErrorBoundary>
                 ) : null}
             </div>
         </div>
