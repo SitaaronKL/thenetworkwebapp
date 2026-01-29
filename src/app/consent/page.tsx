@@ -97,7 +97,7 @@ function ConsentContent() {
                 {/* YouTube Account Note */}
                 <div className={styles.infoBox} style={{ marginBottom: '16px', borderLeft: 'none' }}>
                     <p className={styles.infoText} style={{ fontSize: '18px', fontWeight: '700', textAlign: 'center', color: '#3b82f6' }}>
-                        Sign up with your most active YouTube account
+                        Sign up with your most active YouTube account and don&apos;t forget to tick that checkbox!
                     </p>
                 </div>
 

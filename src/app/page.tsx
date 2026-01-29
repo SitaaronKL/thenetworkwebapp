@@ -632,7 +632,7 @@ function LandingPageContent() {
               <div className="mt-6 max-w-md mx-auto animate-fade-in-up">
                 <div className={`px-4 py-3 rounded-xl border ${theme === 'dark' ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'}`}>
                   <p className={`text-sm font-medium ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
-                    YouTube access is required for the best experience. Please join the waitlist and grant YouTube permissions to continue.
+                    Oops! Looks like you forgot to tick the YouTube permissions checkbox during sign-in. Please try again and make sure to grant access!
                   </p>
                 </div>
               </div>
