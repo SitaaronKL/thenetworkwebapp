@@ -144,6 +144,7 @@ interface ProfileExtras {
     college?: string;
     class_year?: number;
     high_school?: string;
+    high_school_class_year?: number;
     company?: string;
     job_description?: string;
 }
@@ -377,6 +378,7 @@ export default function NetworkProfilePage() {
     const [editCollege, setEditCollege] = useState('');
     const [editClassYear, setEditClassYear] = useState('');
     const [editHighSchool, setEditHighSchool] = useState('');
+    const [editHighSchoolClassYear, setEditHighSchoolClassYear] = useState('');
     
     // Edit Work Modal
     const [showWorkModal, setShowWorkModal] = useState(false);
@@ -489,7 +491,7 @@ export default function NetworkProfilePage() {
             // 2. Fetch profile extras (always set to fetched value or {} so we never show stale data)
             const { data: extras } = await supabase
                 .from('user_profile_extras')
-                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, company, job_description')
+                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, high_school_class_year, company, job_description')
                 .eq('user_id', targetUserId)
                 .maybeSingle();
             
@@ -511,7 +513,7 @@ export default function NetworkProfilePage() {
                 setEditCollege(e.college || '');
                 setEditClassYear(e.class_year?.toString() || '');
                 setEditHighSchool(e.high_school || '');
-                setEditClassYear(e.class_year?.toString() || '');
+                setEditHighSchoolClassYear(e.high_school_class_year?.toString() || '');
                 setEditCompany(e.company || '');
                 setEditJobDescription(e.job_description || '');
             }
@@ -1380,7 +1382,7 @@ export default function NetworkProfilePage() {
         setEditCollege(profileExtras.college || '');
         setEditClassYear(profileExtras.class_year?.toString() || '');
         setEditHighSchool(profileExtras.high_school || '');
-        setEditClassYear(profileExtras.class_year?.toString() || '');
+        setEditHighSchoolClassYear(profileExtras.high_school_class_year?.toString() || '');
         setShowEducationModal(true);
     };
 
@@ -1392,17 +1394,29 @@ export default function NetworkProfilePage() {
         const supabase = createClient();
         
         try {
-            // Validate class year if provided
+            // Validate college class year if provided
             // Note: college is not included as it's set during onboarding from .edu email verification
             let classYearValue: number | null = null;
             if (editClassYear && editClassYear.trim()) {
                 const year = parseInt(editClassYear.trim());
                 if (isNaN(year) || year < 1900 || year > 2100) {
-                    alert('Please enter a valid 4-digit year (e.g., 2026)');
+                    alert('Please enter a valid 4-digit college graduation year (e.g., 2026)');
                     setIsSaving(false);
                     return;
                 }
                 classYearValue = year;
+            }
+            
+            // Validate high school class year if provided
+            let highSchoolClassYearValue: number | null = null;
+            if (editHighSchoolClassYear && editHighSchoolClassYear.trim()) {
+                const year = parseInt(editHighSchoolClassYear.trim());
+                if (isNaN(year) || year < 1900 || year > 2100) {
+                    alert('Please enter a valid 4-digit high school graduation year (e.g., 2022)');
+                    setIsSaving(false);
+                    return;
+                }
+                highSchoolClassYearValue = year;
             }
             
             const { error } = await supabase
@@ -1411,6 +1425,7 @@ export default function NetworkProfilePage() {
                     user_id: user.id,
                     class_year: classYearValue,
                     high_school: editHighSchool || null,
+                    high_school_class_year: highSchoolClassYearValue,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id' });
             
@@ -1421,6 +1436,7 @@ export default function NetworkProfilePage() {
                     ...prev,
                     class_year: classYearValue || undefined,
                     high_school: editHighSchool || undefined,
+                    high_school_class_year: highSchoolClassYearValue || undefined,
                 }));
                 setShowEducationModal(false);
             }
@@ -2180,7 +2196,11 @@ export default function NetworkProfilePage() {
                             </div>
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>High School:</span>
-                                <span className={styles.infoValue}>{profileExtras.high_school || 'Not set'}</span>
+                                <span className={styles.infoValue}>
+                                    {profileExtras.high_school 
+                                        ? `${profileExtras.high_school}${profileExtras.high_school_class_year ? ` '${String(profileExtras.high_school_class_year).slice(-2)}` : ''}`
+                                        : 'Not set'}
+                                </span>
                             </div>
                         </div>
 
@@ -2357,7 +2377,24 @@ export default function NetworkProfilePage() {
                     </p>
                     <div className={styles.wallFeed}>
                         {(() => {
-                            const byDate = myspaceUpdates.reduce<Record<string, MyspaceUpdate[]>>((acc, u) => {
+                            // Deduplicate connection updates: if a connection involves the current user,
+                            // only show the one where they are the actor (their name first)
+                            const seenConnectionPairs = new Set<string>();
+                            const filteredUpdates = myspaceUpdates.filter(u => {
+                                if (u.type !== 'connection') return true;
+                                
+                                // Create a normalized key for this connection pair
+                                const ids = [u.actor_id, u.other_user_id].filter(Boolean).sort();
+                                const pairKey = ids.join('-');
+                                
+                                // If we've seen this connection pair, skip it
+                                if (seenConnectionPairs.has(pairKey)) return false;
+                                seenConnectionPairs.add(pairKey);
+                                
+                                return true;
+                            });
+                            
+                            const byDate = filteredUpdates.reduce<Record<string, MyspaceUpdate[]>>((acc, u) => {
                                 const d = new Date(u.created_at);
                                 const key = d.toDateString() === new Date().toDateString() ? 'Today' : d.toDateString() === new Date(Date.now() - 864e5).toDateString() ? 'Yesterday' : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
                                 (acc[key] = acc[key] || []).push(u);
@@ -2370,7 +2407,7 @@ export default function NetworkProfilePage() {
                                 if (ai >= 0) return -1; if (bi >= 0) return 1;
                                 return 0;
                             });
-                            if (myspaceUpdates.length === 0) {
+                            if (filteredUpdates.length === 0) {
                                 return (
                                     <p className={styles.wallEmpty}>
                                         {isOwnProfile
@@ -2387,12 +2424,7 @@ export default function NetworkProfilePage() {
                                     const label = PROFILE_FIELD_LABELS[field] || field;
                                     return `changed ${label} to ${newVal || '(empty)'}`;
                                 }
-                                if (u.type === 'connection') {
-                                    const nameA = u.actor_name || 'Someone';
-                                    const nameB = u.other_user_name || 'Someone';
-                                    const thru = u.through;
-                                    return thru ? `${nameA} and ${nameB} connected through ${thru}` : `${nameA} and ${nameB} connected`;
-                                }
+                                // Connection text is now rendered separately with links
                                 return u.content || '';
                             };
                             const renderUpdateIcon = (u: MyspaceUpdate) => {
@@ -2414,9 +2446,94 @@ export default function NetworkProfilePage() {
                                                 {u.type === 'profile_change' && (
                                                     <><span className={styles.wallUpdateActor}>{u.actor_name || 'Someone'}</span> {renderUpdateText(u)}</>
                                                 )}
-                                                {u.type === 'connection' && (
-                                                    <>{renderUpdateText(u)}</>
-                                                )}
+                                                {u.type === 'connection' && (() => {
+                                                    // Determine names: put current user first if involved
+                                                    const isActorMe = u.actor_id === user?.id;
+                                                    const isOtherMe = u.other_user_id === user?.id;
+                                                    let nameFirst: string;
+                                                    let nameSecond: string;
+                                                    let linkId: string | null = null;
+                                                    
+                                                    if (isActorMe) {
+                                                        nameFirst = 'You';
+                                                        nameSecond = u.other_user_name || 'Someone';
+                                                        linkId = u.other_user_id || null;
+                                                    } else if (isOtherMe) {
+                                                        nameFirst = 'You';
+                                                        nameSecond = u.actor_name || 'Someone';
+                                                        linkId = u.actor_id || null;
+                                                    } else {
+                                                        nameFirst = u.actor_name || 'Someone';
+                                                        nameSecond = u.other_user_name || 'Someone';
+                                                        // Both are other people, link both names
+                                                    }
+                                                    
+                                                    const thru = u.through;
+                                                    
+                                                    // Helper to render name as link
+                                                    const renderNameLink = async (name: string, userId: string | null) => {
+                                                        if (!userId) return name;
+                                                        return name;
+                                                    };
+                                                    
+                                                    return (
+                                                        <>
+                                                            {isActorMe || isOtherMe ? (
+                                                                // Current user is involved
+                                                                <>
+                                                                    <span className={styles.wallUpdateActor}>{nameFirst}</span>
+                                                                    {' and '}
+                                                                    <span 
+                                                                        className={styles.wallUpdateActorLink}
+                                                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                                                        onClick={async () => {
+                                                                            if (linkId) {
+                                                                                const supabase = createClient();
+                                                                                const { data } = await supabase.rpc('get_profile_slug', { p_user_id: linkId });
+                                                                                if (data) router.push(`/network-profile/${data}`);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {nameSecond}
+                                                                    </span>
+                                                                    {thru ? ` connected through ${thru}` : ' connected'}
+                                                                </>
+                                                            ) : (
+                                                                // Neither is current user - link both names
+                                                                <>
+                                                                    <span 
+                                                                        className={styles.wallUpdateActorLink}
+                                                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                                                        onClick={async () => {
+                                                                            if (u.actor_id) {
+                                                                                const supabase = createClient();
+                                                                                const { data } = await supabase.rpc('get_profile_slug', { p_user_id: u.actor_id });
+                                                                                if (data) router.push(`/network-profile/${data}`);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {nameFirst}
+                                                                    </span>
+                                                                    {' and '}
+                                                                    <span 
+                                                                        className={styles.wallUpdateActorLink}
+                                                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                                                        onClick={async () => {
+                                                                            if (u.other_user_id) {
+                                                                                const supabase = createClient();
+                                                                                const { data } = await supabase.rpc('get_profile_slug', { p_user_id: u.other_user_id });
+                                                                                if (data) router.push(`/network-profile/${data}`);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {nameSecond}
+                                                                    </span>
+                                                                    {thru ? ` connected through ${thru}` : ' connected'}
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                                 {!['post','status','profile_change','connection'].includes(u.type) && (
                                                     <><span className={styles.wallUpdateActor}>{u.actor_name || 'Someone'}</span> {u.content || ''}</>
                                                 )}
@@ -3319,27 +3436,19 @@ export default function NetworkProfilePage() {
                                 />
                             </div>
 
-                            {/* Class Year */}
+                            {/* High School Class Year */}
                             <div className={styles.formGroup}>
-                                <label className={styles.formLabel}>Class Year</label>
+                                <label className={styles.formLabel}>High School Class Year</label>
                                 <input 
                                     type="number"
                                     className={styles.formInput}
-                                    value={editClassYear}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        // Only allow 4-digit years
-                                        if (value === '' || (value.length <= 4 && /^\d+$/.test(value))) {
-                                            setEditClassYear(value);
-                                        }
-                                    }}
-                                    placeholder="2026"
-                                    min="1900"
-                                    max="2100"
+                                    value={editHighSchoolClassYear}
+                                    onChange={(e) => setEditHighSchoolClassYear(e.target.value)}
+                                    placeholder="e.g. 2022"
+                                    min="1990"
+                                    max="2040"
                                 />
-                                <p className={styles.formHint} style={{ marginTop: '4px', fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>
-                                    Enter your graduation year (4 digits, e.g., 2026)
-                                </p>
+                                <p className={styles.formHint}>Your high school graduation year</p>
                             </div>
 
                             {/* Save Button */}

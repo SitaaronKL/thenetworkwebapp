@@ -154,7 +154,18 @@ function FriendRequestsPanel({ onClose, onRequestAccepted, onCountChange }: { on
           <div className={styles.embeddedEmptyState}>No pending friend requests</div>
         ) : (
           requests.map(req => (
-            <div key={req.id} className={styles.embeddedListItem}>
+            <div 
+              key={req.id} 
+              className={styles.embeddedListItem}
+              style={{ cursor: 'pointer' }}
+              onClick={async (e) => {
+                // Only navigate if clicking on the item itself, not the buttons
+                if ((e.target as HTMLElement).closest('button')) return;
+                const supabase = createClient();
+                const { data } = await supabase.rpc('get_profile_slug', { p_user_id: req.sender_id });
+                if (data) router.push(`/network-profile/${data}`);
+              }}
+            >
               <div className={styles.embeddedListAvatar}>
                 {req.sender_profile?.avatar_url ? (
                   <img src={getAvatarUrl(req.sender_profile.avatar_url)} alt="" />
@@ -162,30 +173,26 @@ function FriendRequestsPanel({ onClose, onRequestAccepted, onCountChange }: { on
                   req.sender_profile?.full_name?.[0] || '?'
                 )}
               </div>
-              <div className={styles.embeddedListInfo}>
+              <div className={styles.embeddedListInfo} style={{ flex: 1 }}>
                 <div className={styles.embeddedListName}>{req.sender_profile?.full_name || 'Unknown'}</div>
               </div>
-              <button
-                className={styles.embeddedListAction}
-                onClick={async () => {
-                  const supabase = createClient();
-                  const { data } = await supabase.rpc('get_profile_slug', { p_user_id: req.sender_id });
-                  if (data) router.push(`/network-profile/${data}`);
-                }}
-              >
-                View Profile
-              </button>
               <div className={styles.embeddedListActions}>
                 <button
                   className={`${styles.embeddedListAction} ${styles.accept}`}
-                  onClick={() => handleAccept(req.id, req.sender_id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAccept(req.id, req.sender_id);
+                  }}
                   disabled={processingIds.has(req.id)}
                 >
                   Accept
                 </button>
                 <button
                   className={`${styles.embeddedListAction} ${styles.decline}`}
-                  onClick={() => handleDecline(req.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDecline(req.id);
+                  }}
                   disabled={processingIds.has(req.id)}
                 >
                   Decline
@@ -730,7 +737,19 @@ export default function Home() {
 
         if (frError || !friendRequests || friendRequests.length === 0) {
           console.log('🔵 [LOAD_NETWORK] No connections found, setting to just current user');
-          setPeople([createCurrentUserNode(user.id, 'You', '#000000')]); // Black for dark mode, becomes white via global invert
+          // Fetch current user's profile to get their name and avatar
+          const { data: currentProfile } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('id', user.id)
+            .single();
+          
+          setPeople([createCurrentUserNode(
+            user.id, 
+            currentProfile?.full_name?.split(' ')[0] || 'You', 
+            '#000000', // Black for dark mode, becomes white via global invert
+            getAvatarUrl(currentProfile?.avatar_url)
+          )]);
           setIsLoadingNetwork(false);
           return;
         }
@@ -744,7 +763,25 @@ export default function Home() {
       await processConnections(supabase, connections, user.id);
     } catch (e) {
       console.error('🔵 [LOAD_NETWORK] Error loading network data:', e);
-      setPeople([createCurrentUserNode(user.id, 'You', '#000000')]); // Black for dark mode, becomes white via global invert
+      // Try to fetch current user's profile for avatar even on error
+      try {
+        const supabaseRetry = createClient();
+        const { data: currentProfile } = await supabaseRetry
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('id', user.id)
+          .single();
+        
+        setPeople([createCurrentUserNode(
+          user.id, 
+          currentProfile?.full_name?.split(' ')[0] || 'You', 
+          '#000000', // Black for dark mode, becomes white via global invert
+          getAvatarUrl(currentProfile?.avatar_url)
+        )]);
+      } catch {
+        // Final fallback without avatar
+        setPeople([createCurrentUserNode(user.id, 'You', '#000000')]);
+      }
       setIsLoadingNetwork(false);
     }
   }, [user]);
