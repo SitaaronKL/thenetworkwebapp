@@ -184,7 +184,7 @@ export default React.memo(function NetworkGalaxy({
                 id: p.id,
                 name: p.name,
                 r,
-                color: p.starColor || '#8E5BFF',
+                color: p.starColor || '#000000', // Black for dark mode, becomes white via global invert
                 imgUrl: p.imageUrl,
                 x,
                 y,
@@ -222,7 +222,7 @@ export default React.memo(function NetworkGalaxy({
                     id: dp.id,
                     name: dp.name,
                     r: 30, // Slightly smaller than regular nodes
-                    color: dp.starColor || '#6366f1', // Indigo for discovery nodes
+                    color: dp.starColor || '#000000', // Black for dark mode, becomes white via global invert
                     imgUrl: dp.imageUrl,
                     x: Math.cos(angle) * distance,
                     y: Math.sin(angle) * distance,
@@ -258,7 +258,7 @@ export default React.memo(function NetworkGalaxy({
                     id: sp.id,
                     name: sp.name,
                     r: 32, // Similar size to regular nodes
-                    color: sp.starColor || '#8E5BFF',
+                    color: sp.starColor || '#000000', // Black for dark mode, becomes white via global invert
                     imgUrl: sp.imageUrl,
                     x: Math.cos(angle) * distance,
                     y: Math.sin(angle) * distance,
@@ -302,7 +302,7 @@ export default React.memo(function NetworkGalaxy({
                     id: fof.id,
                     name: fof.name,
                     r: 28, // Smaller radius for branch nodes
-                    color: fof.starColor || '#8E5BFF',
+                    color: fof.starColor || '#000000', // Black for dark mode, becomes white via global invert
                     imgUrl: fof.imageUrl,
                     x: friendX + Math.cos(angle) * radius,
                     y: friendY + Math.sin(angle) * radius,
@@ -602,7 +602,7 @@ export default React.memo(function NetworkGalaxy({
                             .attr('r', (d: any) => d.r)
                             .attr('fill', (d: any) => d.color)
                             .attr('stroke', (d: any) => {
-                                if (d.isDiscoveryNode) return '#6366f1'; // Indigo for discovery
+                                if (d.isDiscoveryNode) return '#fff'; // White for discovery (black in light mode via invert)
                                 if (d.isExpandedFriend) return '#000';
                                 return '#fff';
                             })
@@ -645,7 +645,7 @@ export default React.memo(function NetworkGalaxy({
                             .attr('r', (d: any) => d.r)
                             .attr('fill', (d: any) => d.color)
                             .attr('stroke', (d: any) => {
-                                if (d.isDiscoveryNode) return '#6366f1';
+                                if (d.isDiscoveryNode) return '#fff'; // White for discovery (black in light mode via invert)
                                 if (d.isExpandedFriend) return '#000';
                                 return '#fff';
                             })

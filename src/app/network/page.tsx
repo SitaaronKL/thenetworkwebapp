@@ -530,7 +530,7 @@ export default function Home() {
       id: s.id,
       name: s.name,
       imageUrl: s.avatar,
-      starColor: '#8E5BFF',
+      starColor: undefined, // Will use default black/white color
       x: 0, // Will be positioned by NetworkGalaxy
       y: 0,
       connections: [], // No visible connections
@@ -552,7 +552,7 @@ export default function Home() {
       id: suggestion.id,
       name: suggestion.name,
       imageUrl: suggestion.avatar,
-      starColor: '#8E5BFF',
+      starColor: undefined, // Will use default black/white color
       x: 0,
       y: 0,
       connections: []
@@ -597,7 +597,7 @@ export default function Home() {
     loadedPeople.push(createCurrentUserNode(
       userId,
       currentProfile?.full_name?.split(' ')[0] || 'You',
-      '#8E5BFF',
+      '#000000', // Black for dark mode, becomes white via global invert
       getAvatarUrl(currentProfile?.avatar_url)
     ));
 
@@ -650,7 +650,7 @@ export default function Home() {
         loadedPeople.push({
           id: profile.id,
           name: profile.full_name?.split(' ')[0] || 'Friend',
-          starColor: '#8E5BFF',
+          starColor: '#000000', // Black for dark mode, becomes white via global invert
           x,
           y,
           compatibilityPercentage,
@@ -730,7 +730,7 @@ export default function Home() {
 
         if (frError || !friendRequests || friendRequests.length === 0) {
           console.log('🔵 [LOAD_NETWORK] No connections found, setting to just current user');
-          setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
+          setPeople([createCurrentUserNode(user.id, 'You', '#000000')]); // Black for dark mode, becomes white via global invert
           setIsLoadingNetwork(false);
           return;
         }
@@ -744,7 +744,7 @@ export default function Home() {
       await processConnections(supabase, connections, user.id);
     } catch (e) {
       console.error('🔵 [LOAD_NETWORK] Error loading network data:', e);
-      setPeople([createCurrentUserNode(user.id, 'You', '#8E5BFF')]);
+      setPeople([createCurrentUserNode(user.id, 'You', '#000000')]); // Black for dark mode, becomes white via global invert
       setIsLoadingNetwork(false);
     }
   }, [user]);
@@ -895,7 +895,7 @@ export default function Home() {
         return {
           id: profile.id,
           name: profile.full_name?.split(' ')[0] || 'User',
-          starColor: '#8E5BFF',
+          starColor: '#000000', // Black for dark mode, becomes white via global invert
           x,
           y,
           connections: [friendId], // Connected to the friend
@@ -947,7 +947,7 @@ export default function Home() {
         id: profile.id,
         name: profile.full_name?.split(' ')[0] || 'User',
         imageUrl: profile.avatar_url,
-        starColor: '#6366f1', // Indigo for discovery nodes
+        starColor: '#000000', // Black for dark mode, becomes white via global invert
         x: 0, // Will be positioned by NetworkGalaxy based on proximity
         y: 0,
         connections: [], // No connections (no lines!)
