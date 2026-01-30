@@ -6,6 +6,9 @@ export interface EmailData {
     eventTime?: string;
 }
 
+const SUPABASE_URL = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+const LOGO_BASE = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/mcmaster` : '/mcmaster';
+
 export const renderHtmlBody = (data: EmailData) => {
     const { name, ticketCode, partyTitle, venueAddress, eventTime } = data;
     return `
@@ -112,10 +115,10 @@ export const renderHtmlBody = (data: EmailData) => {
    <p style="opacity: 0.7;">You're officially on the list.</p>
 
    <div style="margin-top: 40px; text-align: center;">
-     <img src="https://thenetwork.life/mcmaster/pike.svg" alt="Pike" style="display: block; margin: 0 auto; width: 160px; height: auto; border: 0;">
+     <img src="${LOGO_BASE}/pike.png" alt="Pike" style="display: block; margin: 0 auto; width: 160px; height: auto; border: 0;">
      <div style="height: 25px; line-height: 25px;">&nbsp;</div>
      <a href="https://www.thenetwork.life/mcmaster" target="_blank" style="text-decoration: none; display: inline-block;">
-       <img src="https://thenetwork.life/mcmaster/TheNetwork.svg" alt="The Network" style="display: block; margin: 0 auto; width: 500px; height: auto; border: 0; filter: brightness(0) invert(1);">
+       <img src="${LOGO_BASE}/TheNetwork.png" alt="The Network" style="display: block; margin: 0 auto; width: 500px; height: auto; border: 0; filter: brightness(0) invert(1);">
      </a>
    </div>
  </div>

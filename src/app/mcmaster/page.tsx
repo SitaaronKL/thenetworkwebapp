@@ -100,15 +100,15 @@ export default function McMasterGlowdownPage() {
           <h2 className="font-brand text-xl md:text-2xl font-bold tracking-tight text-white mb-8" style={{ letterSpacing: '-0.02em' }}>
             ready?**
           </h2>
-          <p className="text-white/30 text-xs mb-6 font-ui">
-            Meet the people behind TNW. Click the logo.
-          </p>
           <Link
             href="/invite/4NA8JW"
             className="inline-block px-10 py-5 rounded-full text-lg font-semibold bg-white text-black hover:bg-gray-100 transition-colors duration-200"
           >
             let&apos;s fkn go
           </Link>
+          <p className="text-white/30 text-xs mt-6 mb-6 font-ui">
+            Meet the people behind TNW. Click the logo.
+          </p>
           <a href="https://www.instagram.com/join.thenetwork/" target="_blank" rel="noopener noreferrer">
             <img
               src={APP_ICON_SVG}
