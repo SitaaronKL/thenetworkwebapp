@@ -346,7 +346,7 @@ export default function GlowdownInvitationPage() {
                     />
                   </div>
                   <span className="text-[11px] text-white/50 text-left leading-tight group-hover:text-white/70 transition-colors">
-                    I want to try The Network and be matched with someone at GlowDown who shares my interests. At 12am, we’ll send you the name of another attendee. Find them, say hi, and see what happens. If you happen to meet your next best friend, no pressure, but that&apos;s kind of the point.
+                    I want to try The Network and be matched with someone at GlowDown who shares my interests.
                   </span>
                 </label>
 
