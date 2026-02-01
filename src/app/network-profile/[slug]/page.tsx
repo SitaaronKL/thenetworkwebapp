@@ -2253,27 +2253,15 @@ export default function NetworkProfilePage() {
                         </div>
                     ) : (
                             (() => {
-                                // Sort networks: TheNetwork first, New York second, then everything else
+                                // Sort networks by friend count descending (highest first)
                                 const networks = [...(profileExtras.networks || [])];
-                                const sortedNetworks = networks.sort((a, b) => {
-                                    const aLower = a?.toLowerCase() || '';
-                                    const bLower = b?.toLowerCase() || '';
-                                    
-                                    // TheNetwork always comes first
-                                    if (aLower === 'thenetwork') return -1;
-                                    if (bLower === 'thenetwork') return 1;
-                                    
-                                    // New York comes second
-                                    if (aLower === 'new york' || aLower === 'nyc') return -1;
-                                    if (bLower === 'new york' || bLower === 'nyc') return 1;
-                                    
-                                    // Everything else sorted alphabetically
-                                    return aLower.localeCompare(bLower);
-                                });
-                                
-                                return sortedNetworks.map((network, index) => {
+                                const withFriends = networks.map(network => {
                                     const networkData = networkDistribution.find(nd => nd.network === network);
-                                    const friends = networkData?.friends || [];
+                                    return { network, friends: networkData?.friends || [] };
+                                });
+                                const sorted = withFriends.sort((a, b) => b.friends.length - a.friends.length);
+
+                                return sorted.map(({ network, friends }, index) => {
                                     const networkKey = `${network}-${index}`;
                                     const isExpanded = expandedNetworkCards.has(networkKey);
                                     const displayedFriends = isExpanded ? friends : friends.slice(0, 5);
