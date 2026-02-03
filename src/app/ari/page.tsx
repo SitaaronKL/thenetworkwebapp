@@ -1,356 +1,414 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase';
+import React, { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
 import styles from './page.module.css';
+import { createClient } from '@/utils/supabase/client';
 
-// Web Speech API types (not in default TS lib)
-interface SpeechRecognitionResult {
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-interface SpeechRecognitionEvent extends Event {
-  readonly results: SpeechRecognitionResultList;
-}
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: Event) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
+const CORRECT_PASSWORD = 'ayen1234@';
+const AUTH_STORAGE_KEY = 'ari_chat_auth';
+
+interface Message {
+  id: string;
+  content: string;
+  isFromUser: boolean;
+  timestamp: Date;
 }
 
-const STORAGE_KEY = 'ari_flow';
-
-type Hearing = {
-  social_reality: string;
-  what_you_dont_want: string;
-  not_yet_clear: string;
-};
-
-type StoredState = {
-  step: number;
-  currentReality: string;
-  futureGoal: string;
-  hearing?: Hearing;
-};
-
-const defaultState: StoredState = {
-  step: 1,
-  currentReality: '',
-  futureGoal: '',
-};
-
-function loadState(): StoredState {
-  if (typeof window === 'undefined') return defaultState;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw) as StoredState;
-    return {
-      step: parsed.step ?? 1,
-      currentReality: parsed.currentReality ?? '',
-      futureGoal: parsed.futureGoal ?? '',
-      hearing: parsed.hearing,
-    };
-  } catch {
-    return defaultState;
-  }
+interface Thread {
+  id: string;
+  title: string;
+  last_message?: string;
+  last_message_at: string;
 }
 
-function saveState(s: StoredState) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {}
-}
+export default function AriChatPage() {
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
-// Placeholder strings for "Okay, out of these" (chat will replace later)
-const PLACEHOLDER_STRINGS = [
-  'More real-life hangouts with people who get me',
-  'A smaller circle I actually talk to regularly',
-  'Trying new things with people who share my interests',
-];
-
-export default function AriPage() {
-  const [state, setState] = useState<StoredState>(defaultState);
-  const [transcript, setTranscript] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Chat/Thread state
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingThreads, setIsFetchingThreads] = useState(false);
   const [error, setError] = useState('');
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const supabase = createClient();
+
+  // Check for existing auth on mount
+  useEffect(() => {
+    const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (storedAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+    setIsCheckingAuth(false);
+
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    getUserId();
+  }, []);
+
+  // Fetch threads when authenticated
+  const fetchThreads = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setIsFetchingThreads(true);
+    try {
+      const { data, error } = await supabase
+        .from('ari_threads')
+        .select('*')
+        .order('last_message_at', { ascending: false });
+
+      if (error) throw error;
+      setThreads(data || []);
+    } catch (err: any) {
+      console.error('Error fetching threads:', err);
+    } finally {
+      setIsFetchingThreads(false);
+    }
+  }, [isAuthenticated, supabase]);
 
   useEffect(() => {
-    setState(loadState());
-  }, []);
+    fetchThreads();
+  }, [fetchThreads]);
 
-  const persist = useCallback((next: Partial<StoredState>) => {
-    setState((prev) => {
-      const merged = { ...prev, ...next };
-      saveState(merged);
-      return merged;
-    });
-  }, []);
-
-  // Voice: Web Speech API
-  const supportsVoice = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-
-  const startListening = useCallback(() => {
-    if (!supportsVoice) return;
-    const Recognition = (window as unknown as { SpeechRecognition?: new () => SpeechRecognition; webkitSpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition
-      || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
-    if (!Recognition) return;
-
-    const rec = new Recognition();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = 'en-US';
-
-    rec.onresult = (event: SpeechRecognitionEvent) => {
-      let full = '';
-      for (let i = 0; i < event.results.length; i++) {
-        full += event.results[i][0].transcript;
+  // Fetch messages for active thread
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!activeThreadId) {
+        setMessages([]);
+        return;
       }
-      setTranscript(full);
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('ari_conversations')
+          .select('id, message, is_from_user, created_at')
+          .eq('thread_id', activeThreadId)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        setMessages(data.map(m => ({
+          id: m.id,
+          content: m.message,
+          isFromUser: m.is_from_user,
+          timestamp: new Date(m.created_at)
+        })));
+      } catch (err: any) {
+        setError('failed to load history');
+      } finally {
+        setIsLoading(false);
+      }
     };
-    rec.onerror = () => setIsListening(false);
-    rec.onend = () => setIsListening(false);
+    fetchMessages();
+  }, [activeThreadId, supabase]);
 
-    recognitionRef.current = rec;
-    rec.start();
-    setIsListening(true);
-    setError('');
-  }, [supportsVoice]);
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
+  // Focus input after loading completes
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      inputRef.current?.focus();
     }
-    setIsListening(false);
-    if (transcript.trim()) setCurrentText(transcript.trim());
-  }, [transcript]);
+  }, [isLoading, isAuthenticated]);
 
-  const currentText = state.step === 1 ? state.currentReality : state.futureGoal;
-  const setCurrentText = (text: string) => {
-    if (state.step === 1) persist({ currentReality: text });
-    else persist({ futureGoal: text });
-  };
-
-  const handleDoneQuestion1 = useCallback(() => {
-    const value = (transcript || currentText).trim();
-    if (!value) {
-      setError('Say or type something before continuing.');
-      return;
+  // Handle password submission
+  const handlePasswordSubmit = useCallback((e: FormEvent) => {
+    e.preventDefault();
+    if (password === CORRECT_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem(AUTH_STORAGE_KEY, 'true');
+      setAuthError('');
+      // Welcome message only if no active thread
+      if (!activeThreadId) {
+        setMessages([{
+          id: 'welcome',
+          content: "look who finally decided to show up! what's on your mind today?",
+          isFromUser: false,
+          timestamp: new Date()
+        }]);
+      }
+    } else {
+      setAuthError('wrong password... try again');
     }
-    persist({ currentReality: value, step: 2 });
-    setTranscript('');
-    setError('');
-  }, [transcript, currentText, persist]);
+  }, [password, activeThreadId]);
 
-  const handleDoneQuestion2 = useCallback(async () => {
-    const value = (transcript || currentText).trim();
-    if (!value) {
-      setError('Say or type something before continuing.');
-      return;
-    }
-    persist({ futureGoal: value });
-    setTranscript('');
-    setError('');
-    setIsSubmitting(true);
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    setIsAuthenticated(false);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setMessages([]);
+    setThreads([]);
+    setActiveThreadId(null);
+    setPassword('');
+  }, []);
+
+  // Send message to Ari
+  const sendMessage = useCallback(async (content: string) => {
+    if (!content.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: content.trim(),
+      isFromUser: true,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
     setError('');
 
     try {
-      const supabase = createClient();
-      const { data, error: fnError } = await supabase.functions.invoke('ari-social-reality', {
-        body: {
-          current_reality: state.currentReality,
-          future_goal: value,
+      // Build conversation history for context (limit to last 10 for tokens)
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.isFromUser ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
+      const response = await fetch('/api/ari-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({
+          message: content.trim(),
+          conversation_history: conversationHistory,
+          thread_id: activeThreadId
+        })
       });
 
-      if (fnError) {
-        setError('Something went wrong. Try again.');
-        setIsSubmitting(false);
-        return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'something went wrong');
       }
-      const hearing: Hearing = {
-        social_reality: data?.social_reality ?? 'Your current social reality.',
-        what_you_dont_want: data?.what_you_dont_want ?? 'What you don\'t want to be.',
-        not_yet_clear: data?.not_yet_clear ?? 'What\'s not yet clear.',
+
+      // If new thread was created, update ID and refresh thread list
+      if (!activeThreadId && data.thread_id) {
+        setActiveThreadId(data.thread_id);
+        fetchThreads();
+      }
+
+      const ariMessage: Message = {
+        id: `ari-${Date.now()}`,
+        content: data.response,
+        isFromUser: false,
+        timestamp: new Date()
       };
-      persist({ step: 3, hearing });
-    } catch {
-      setError('Something went wrong. Try again.');
+
+      setMessages(prev => [...prev, ariMessage]);
+      fetchThreads(); // Update thread previews
+    } catch (err: any) {
+      setError(err.message || 'oops something broke... try again?');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
-  }, [transcript, currentText, state.currentReality, persist]);
+  }, [messages, isLoading, activeThreadId, fetchThreads]);
 
-  const handleContinueAfterHearing = useCallback(() => {
-    persist({ step: 4 });
-  }, [persist]);
-
-  const handleReset = useCallback(() => {
-    const fresh = defaultState;
-    saveState(fresh);
-    setState(fresh);
-    setTranscript('');
-    setError('');
+  // Start a new chat
+  const startNewChat = useCallback(() => {
+    setActiveThreadId(null);
+    setMessages([{
+      id: 'welcome',
+      content: "starting fresh. what's the newest dream?",
+      isFromUser: false,
+      timestamp: new Date()
+    }]);
   }, []);
 
+  // Handle form submission
+  const handleSubmit = useCallback((e: FormEvent) => {
+    e.preventDefault();
+    sendMessage(inputValue);
+  }, [inputValue, sendMessage]);
+
+  // Handle Enter key (shift+enter for new line)
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(inputValue);
+    }
+  }, [inputValue, sendMessage]);
+
+  // Loading state
+  if (isCheckingAuth) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loadingScreen}>
+          <div className={styles.loadingDots}>
+            <span>.</span><span>.</span><span>.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Password gate
+  if (!isAuthenticated) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.authScreen}>
+          <div className={styles.authCard}>
+            <h1 className={styles.authTitle}>ari</h1>
+            <p className={styles.authSubtitle}>password required</p>
+            <form onSubmit={handlePasswordSubmit} className={styles.authForm}>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="enter password..."
+                className={styles.authInput}
+                autoFocus
+              />
+              <button type="submit" className={styles.authButton}>
+                enter
+              </button>
+            </form>
+            {authError && <p className={styles.authError}>{authError}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Chat interface
   return (
     <div className={styles.container}>
-      <nav className={styles.nav}>
-        <Link href="/" className={styles.backLink}>
-          ← Back
-        </Link>
-        {(state.step > 1 || state.currentReality || state.futureGoal) && (
-          <button type="button" onClick={handleReset} className={styles.resetLink}>
-            Start over
+      {/* Header */}
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <div className={styles.ariAvatar}>A</div>
+          <div className={styles.headerInfo}>
+            <h1 className={styles.ariName}>ari</h1>
+            <span className={styles.ariStatus}>online</span>
+          </div>
+        </div>
+        <button onClick={handleLogout} className={styles.logoutButton}>
+          logout
+        </button>
+      </header>
+
+      <div className={styles.mainLayout}>
+        {/* Sidebar */}
+        <aside className={styles.sidebar}>
+          <button className={styles.newChatButton} onClick={startNewChat}>
+            <PlusIcon /> new chat
           </button>
-        )}
-      </nav>
+          <div className={styles.threadList}>
+            {isFetchingThreads && <div className={styles.modelInfo}>loading chats...</div>}
+            {threads.map(thread => (
+              <button
+                key={thread.id}
+                className={`${styles.threadItem} ${activeThreadId === thread.id ? styles.activeThread : ''}`}
+                onClick={() => setActiveThreadId(thread.id)}
+              >
+                {thread.title || 'Untitled Chat'}
+              </button>
+            ))}
+          </div>
+        </aside>
 
-      <main className={styles.main}>
-        {/* Step 1: Current social reality */}
-        {state.step === 1 && (
-          <div className={styles.card}>
-            <p className={styles.greeting}>Hey I am Ari.</p>
-            <p className={styles.question}>What&apos;s your current social reality?</p>
-            <div className={styles.inputBlock}>
-              {supportsVoice && (
-                <button
-                  type="button"
-                  onClick={isListening ? stopListening : startListening}
-                  className={styles.micButton}
-                  aria-label={isListening ? 'Stop recording' : 'Voice input'}
+        {/* Chat Main Area */}
+        <main className={styles.chatMain}>
+          <div className={styles.messagesContainer}>
+            <div className={styles.messagesList}>
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`${styles.message} ${msg.isFromUser ? styles.userMessage : styles.ariMessage}`}
                 >
-                  {isListening ? (
-                    <span className={styles.micPulse}>●</span>
-                  ) : (
-                    <MicIcon />
+                  {!msg.isFromUser && (
+                    <span className={styles.messageSender}>ari</span>
                   )}
-                </button>
-              )}
-              <textarea
-                className={styles.textarea}
-                placeholder={supportsVoice ? 'Or type here…' : 'Type your answer…'}
-                value={transcript || currentText}
-                onChange={(e) => setCurrentText(e.target.value)}
-                rows={4}
-              />
-            </div>
-            {error && <p className={styles.error}>{error}</p>}
-            <button type="button" onClick={handleDoneQuestion1} className={styles.primaryButton}>
-              Done
-            </button>
-          </div>
-        )}
-
-        {/* Step 2: Where you want to be in 3–6 months */}
-        {state.step === 2 && (
-          <div className={styles.card}>
-            <p className={styles.greeting}>Got it.</p>
-            <p className={styles.question}>
-              In the next 3–6 months, where do you want to be in your social life?
-            </p>
-            <div className={styles.inputBlock}>
-              {supportsVoice && (
-                <button
-                  type="button"
-                  onClick={isListening ? stopListening : startListening}
-                  className={styles.micButton}
-                  aria-label={isListening ? 'Stop recording' : 'Voice input'}
-                >
-                  {isListening ? (
-                    <span className={styles.micPulse}>●</span>
-                  ) : (
-                    <MicIcon />
-                  )}
-                </button>
-              )}
-              <textarea
-                className={styles.textarea}
-                placeholder={supportsVoice ? 'Or type here…' : 'Type your answer…'}
-                value={transcript || currentText}
-                onChange={(e) => setCurrentText(e.target.value)}
-                rows={4}
-              />
-            </div>
-            {error && <p className={styles.error}>{error}</p>}
-            <button
-              type="button"
-              onClick={handleDoneQuestion2}
-              className={styles.primaryButton}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Thinking…' : 'Done'}
-            </button>
-          </div>
-        )}
-
-        {/* Step 3: Here's what I'm hearing */}
-        {state.step === 3 && state.hearing && (
-          <div className={styles.card}>
-            <h2 className={styles.hearingTitle}>Here&apos;s what I&apos;m hearing</h2>
-            <section className={styles.section}>
-              <h3 className={styles.sectionLabel}>This is your social reality</h3>
-              <p className={styles.sectionBody}>{state.hearing.social_reality}</p>
-            </section>
-            <section className={styles.section}>
-              <h3 className={styles.sectionLabel}>This is what you don&apos;t want to be</h3>
-              <p className={styles.sectionBody}>{state.hearing.what_you_dont_want}</p>
-            </section>
-            <section className={styles.section}>
-              <h3 className={styles.sectionLabel}>Not yet clear</h3>
-              <p className={styles.sectionBody}>{state.hearing.not_yet_clear}</p>
-            </section>
-            <button type="button" onClick={handleContinueAfterHearing} className={styles.primaryButton}>
-              Continue
-            </button>
-          </div>
-        )}
-
-        {/* Step 4: Okay, out of these (placeholders for chat) */}
-        {state.step === 4 && (
-          <div className={styles.card}>
-            <p className={styles.greeting}>Okay, out of these</p>
-            <ul className={styles.placeholderList}>
-              {PLACEHOLDER_STRINGS.map((s, i) => (
-                <li key={i} className={styles.placeholderItem}>
-                  {s}
-                </li>
+                  <div className={styles.messageBubble}>
+                    {msg.content}
+                  </div>
+                  <span className={styles.messageTime}>
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               ))}
-            </ul>
-            <p className={styles.placeholderNote}>(Chat interface will go here)</p>
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className={`${styles.message} ${styles.ariMessage}`}>
+                  <span className={styles.messageSender}>ari</span>
+                  <div className={styles.messageBubble}>
+                    <span className={styles.typingIndicator}>
+                      <span></span><span></span><span></span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-        )}
-      </main>
+
+          {/* Error display */}
+          {error && (
+            <div className={styles.errorBanner}>
+              {error}
+              <button onClick={() => setError('')} className={styles.errorDismiss}>×</button>
+            </div>
+          )}
+
+          {/* Input area */}
+          <footer className={styles.inputArea}>
+            <form onSubmit={handleSubmit} className={styles.inputForm}>
+              <textarea
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="type something..."
+                className={styles.input}
+                rows={1}
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                className={styles.sendButton}
+                disabled={!inputValue.trim() || isLoading}
+              >
+                <SendIcon />
+              </button>
+            </form>
+            <p className={styles.modelInfo}>powered by gpt-5</p>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }
 
-function MicIcon() {
+function SendIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="22" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 2L11 13" />
+      <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
   );
 }
