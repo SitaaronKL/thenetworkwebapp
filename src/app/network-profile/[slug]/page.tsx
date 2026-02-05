@@ -147,6 +147,8 @@ interface ProfileExtras {
     high_school_class_year?: number;
     company?: string;
     job_description?: string;
+    experiences?: Record<string, unknown>[];
+    certifications?: Record<string, unknown>[];
 }
 
 interface InterestCluster {
@@ -491,7 +493,7 @@ export default function NetworkProfilePage() {
             // 2. Fetch profile extras (always set to fetched value or {} so we never show stale data)
             const { data: extras } = await supabase
                 .from('user_profile_extras')
-                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, high_school_class_year, company, job_description')
+                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, high_school_class_year, company, job_description, experiences, certifications')
                 .eq('user_id', targetUserId)
                 .maybeSingle();
             
