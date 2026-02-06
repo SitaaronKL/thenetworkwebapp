@@ -491,12 +491,14 @@ export default function NetworkProfilePage() {
             setHierarchicalInterests((profile.hierarchical_interests as any[]) || []);
             
             // 2. Fetch profile extras (always set to fetched value or {} so we never show stale data)
-            const { data: extras } = await supabase
+            const { data: extras, error: extrasError } = await supabase
                 .from('user_profile_extras')
-                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, high_school_class_year, company, job_description, experiences, certifications')
+                .select('status_text, working_on, working_on_updated_at, gender, age, hometown, looking_for, contact_email, contact_phone, linkedin_url, instagram_url, network_handle, networks, college, class_year, high_school, high_school_class_year, company, job_description')
                 .eq('user_id', targetUserId)
                 .maybeSingle();
-            
+            if (extrasError) {
+                console.error('user_profile_extras fetch error:', extrasError.code, extrasError.message, extrasError.details);
+            }
             setProfileExtras((extras || {}) as ProfileExtras);
             if (targetUserId === user.id) {
                 const e: ProfileExtras = extras || {};
@@ -917,7 +919,7 @@ export default function NetworkProfilePage() {
         setShowEditModal(true);
     };
 
-    // Save basic info (age is read-only and not updated)
+    // Save basic info to user_profile_extras
     const saveBasicInfo = async () => {
         if (!user) return;
         
@@ -925,12 +927,17 @@ export default function NetworkProfilePage() {
         const supabase = createClient();
         
         try {
-            // Note: age is not included as it's set during onboarding and cannot be changed
+            const ageNum = editAge.trim() ? parseInt(editAge, 10) : null;
+            if (editAge.trim() && (isNaN(ageNum!) || ageNum! < 13 || ageNum! > 120)) {
+                setIsSaving(false);
+                return;
+            }
             const { error } = await supabase
                 .from('user_profile_extras')
                 .upsert({
                     user_id: user.id,
                     gender: editGender || null,
+                    age: ageNum,
                     hometown: editHometown || null,
                     looking_for: editLookingFor,
                     updated_at: new Date().toISOString(),
@@ -939,10 +946,10 @@ export default function NetworkProfilePage() {
             if (error) {
                 console.error('Error saving basic info:', error);
             } else {
-                // Update local state (age remains unchanged)
                 setProfileExtras(prev => ({
                     ...prev,
                     gender: editGender || undefined,
+                    age: ageNum ?? undefined,
                     hometown: editHometown || undefined,
                     looking_for: editLookingFor,
                 }));
@@ -972,7 +979,7 @@ export default function NetworkProfilePage() {
         if (data) router.push(`/network-profile/${data}`);
     };
 
-    // Save contact info (phone is read-only and not updated)
+    // Save contact info to user_profile_extras
     const saveContactInfo = async () => {
         if (!user) return;
         
@@ -1019,12 +1026,12 @@ export default function NetworkProfilePage() {
                 }
             }
             
-            // Save the contact info (note: contact_phone is set during onboarding and cannot be changed)
             const { error } = await supabase
                 .from('user_profile_extras')
                 .upsert({
                     user_id: user.id,
                     contact_email: editEmail || null,
+                    contact_phone: editPhone || null,
                     linkedin_url: editLinkedIn || null,
                     instagram_url: editInstagram || null,
                     network_handle: editNetworkHandle ? `${editNetworkHandle.replace('@', '').replace('.thenetwork', '')}.thenetwork` : null,
@@ -1035,10 +1042,10 @@ export default function NetworkProfilePage() {
                 console.error('Error saving contact info:', error);
                 setHandleError('Error saving changes. Please try again.');
             } else {
-                // Update local state (phone remains unchanged)
                 setProfileExtras(prev => ({
                     ...prev,
                     contact_email: editEmail || undefined,
+                    contact_phone: editPhone || undefined,
                     linkedin_url: editLinkedIn || undefined,
                     instagram_url: editInstagram || undefined,
                     network_handle: editNetworkHandle || undefined,
@@ -2993,18 +3000,19 @@ export default function NetworkProfilePage() {
                                 </select>
                             </div>
 
-                            {/* Age - Read-only, set during onboarding */}
+                            {/* Age */}
                             <div className={styles.formGroup}>
                                 <label className={styles.formLabel}>Age</label>
                                 <input 
                                     type="number"
                                     className={styles.formInput}
                                     value={editAge}
-                                    placeholder="Set during onboarding"
-                                    disabled
-                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                                    onChange={(e) => setEditAge(e.target.value)}
+                                    placeholder="e.g. 22"
+                                    min={13}
+                                    max={120}
                                 />
-                                <p className={styles.formHint}>Age cannot be changed after onboarding</p>
+                                <p className={styles.formHint}>Optional, 13–120</p>
                             </div>
 
                             {/* Hometown */}
@@ -3081,18 +3089,17 @@ export default function NetworkProfilePage() {
                                 />
                             </div>
 
-                            {/* Phone - Read-only, set during onboarding */}
+                            {/* Phone */}
                             <div className={styles.formGroup}>
                                 <label className={styles.formLabel}>Phone Number</label>
                                 <input 
                                     type="tel"
                                     className={styles.formInput}
                                     value={editPhone}
-                                    placeholder="Set during onboarding"
-                                    disabled
-                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                                    onChange={(e) => setEditPhone(e.target.value)}
+                                    placeholder="e.g. +1 234 567 8900"
                                 />
-                                <p className={styles.formHint}>Phone cannot be changed after onboarding</p>
+                                <p className={styles.formHint}>Optional; can also be set during onboarding</p>
                             </div>
 
                             {/* LinkedIn */}
