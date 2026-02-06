@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { message, conversation_history, thread_id } = body;
+        const { message, conversation_history, thread_id, mode } = body;
 
         if (!message || typeof message !== 'string') {
             return NextResponse.json(
@@ -12,6 +12,10 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
+
+        // Validate mode parameter - 'network' or 'suggestions' (default)
+        const validModes = ['network', 'suggestions'];
+        const chatMode = validModes.includes(mode) ? mode : 'suggestions';
 
         // Create Supabase client
         const supabase = await createClient();
@@ -21,7 +25,8 @@ export async function POST(request: NextRequest) {
             body: {
                 message,
                 conversation_history: conversation_history || [],
-                thread_id
+                thread_id,
+                mode: chatMode
             }
         });
 

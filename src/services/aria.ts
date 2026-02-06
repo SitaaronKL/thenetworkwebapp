@@ -30,7 +30,8 @@ const processConnections = (requests: any[], userId: string) => {
 
 export const AriaService = {
     // Send message to Aria Router (intelligent routing to agents)
-    sendMessage: async (message: string, history: any[] = []): Promise<AriaResponse | null> => {
+    // mode: 'network' for searching connected users, 'suggestions' for finding new connections
+    sendMessage: async (message: string, history: any[] = [], mode: 'network' | 'suggestions' = 'suggestions'): Promise<AriaResponse | null> => {
         const supabase = createClient();
 
         try {
@@ -40,11 +41,12 @@ export const AriaService = {
                 return null;
             }
 
-            const { data, error } = await supabase.functions.invoke('ari-router', {
-                body: { 
-                    message, 
+            const { data, error } = await supabase.functions.invoke('ari-chat', {
+                body: {
+                    message,
                     conversation_history: history,
-                    user_id: user.id
+                    user_id: user.id,
+                    mode: mode
                 },
             });
 
@@ -54,7 +56,7 @@ export const AriaService = {
 
             // Map people from ari-router response to candidates format
             let candidates: any[] = [];
-            
+
             // Handle people from PEOPLE_MATCHING or ACTIVITY_MULTI_AGENT
             if (data.people && Array.isArray(data.people)) {
                 candidates = data.people.map((p: any) => ({
@@ -66,7 +68,7 @@ export const AriaService = {
                     avatarUrl: undefined, // Will be hydrated below
                 })).filter((c: any) => c.matchScore > 0.1);
             }
-            
+
             // Also handle venues if they're in the response (for display)
             // Venues are separate from candidates - could be stored in metadata
 
