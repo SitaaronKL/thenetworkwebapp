@@ -1217,6 +1217,7 @@ export default function Home() {
                           body: {
                             userAId: user.id,
                             userBId: profile.id,
+                            otherPersonName: profile.full_name?.split(' ')[0] || 'them',
                             userProfile: {
                               interests: [],
                               bio: ''
@@ -1452,6 +1453,7 @@ export default function Home() {
                     body: {
                       userAId: user.id,
                       userBId: profile.id,
+                      otherPersonName: profile.full_name?.split(' ')[0] || 'them',
                       userProfile: {
                         interests: [],
                         bio: ''
@@ -1608,6 +1610,7 @@ export default function Home() {
                 body: {
                   userAId: user.id,
                   userBId: profile.id,
+                  otherPersonName: profile.full_name?.split(' ')[0] || 'them',
                   userProfile,
                   candidateProfile: { interests: [], bio: '' },
                   similarity: existingDrop.similarity_score || 0.8
@@ -1747,6 +1750,7 @@ export default function Home() {
           body: {
             userAId: user.id,
             userBId: profile.id,
+            otherPersonName: profile.full_name?.split(' ')[0] || 'them',
             userProfile,
             candidateProfile: { interests: profile.interests || [], bio: '' },
             similarity: selected.similarity

@@ -106,12 +106,64 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
     // Overlap score for discovery users
     const [overlapScore, setOverlapScore] = useState<number | null>(null);
     const [overlapLevel, setOverlapLevel] = useState<string | null>(null);
+    const [descriptionError, setDescriptionError] = useState(false);
+    const [descriptionRetryTrigger, setDescriptionRetryTrigger] = useState(0);
+
+    // Apply compatibility description from API/DB. New format: single paragraph. Legacy: structured fields we collapse into one paragraph.
+    const applyReasonToState = (
+        data: { title?: string; paragraph?: string; sharedInterestsPrompt?: string; sharedInterestsDetails?: string; suggestedActivity?: string | null; networkContext?: string | null; reason?: string } | string,
+        isConnected: boolean
+    ) => {
+        const defaultTitle = isConnected ? "Why you're connected" : "Why you should connect";
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                if (parsed.paragraph) {
+                    setConnectionTitle(parsed.title || defaultTitle);
+                    setCompatibilityDescription(parsed.paragraph);
+                    setSharedInterestsPrompt('');
+                    setSharedInterestsDetails('');
+                    setSuggestedActivity(null);
+                    setNetworkContext(null);
+                } else {
+                    setConnectionTitle(parsed.title || defaultTitle);
+                    const one = [parsed.sharedInterestsDetails, parsed.suggestedActivity, parsed.networkContext].filter(Boolean).join(' ');
+                    setCompatibilityDescription(one || parsed.sharedInterestsDetails || data);
+                    setSharedInterestsPrompt('');
+                    setSharedInterestsDetails('');
+                    setSuggestedActivity(null);
+                    setNetworkContext(null);
+                }
+            } catch {
+                setCompatibilityDescription(data);
+                setConnectionTitle(defaultTitle);
+                setSharedInterestsPrompt('');
+                setSharedInterestsDetails('');
+                setSuggestedActivity(null);
+                setNetworkContext(null);
+            }
+            return;
+        }
+        if (data.paragraph) {
+            setConnectionTitle(data.title || defaultTitle);
+            setCompatibilityDescription(data.paragraph);
+        } else {
+            setConnectionTitle(data.title || defaultTitle);
+            const one = [data.sharedInterestsDetails, data.suggestedActivity, data.networkContext].filter(Boolean).join(' ') || data.reason || data.sharedInterestsDetails || '';
+            setCompatibilityDescription(one);
+        }
+        setSharedInterestsPrompt('');
+        setSharedInterestsDetails('');
+        setSuggestedActivity(null);
+        setNetworkContext(null);
+    };
 
     useEffect(() => {
         if (!user || !person) return;
 
         const loadCompatibility = async () => {
             setIsLoading(true);
+            setDescriptionError(false);
             const supabase = createClient();
 
             try {
@@ -338,29 +390,16 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                 .maybeSingle();
 
                             if (cached && cached.description) {
-                                // Try to parse as JSON for new structured format
-                                try {
-                                    const parsed = JSON.parse(cached.description);
-                                    if (parsed.title) setConnectionTitle(parsed.title);
-                                    if (parsed.sharedInterestsPrompt) setSharedInterestsPrompt(parsed.sharedInterestsPrompt);
-                                    if (parsed.sharedInterestsDetails) setSharedInterestsDetails(parsed.sharedInterestsDetails);
-                                    if (parsed.suggestedActivity) setSuggestedActivity(parsed.suggestedActivity);
-                                    if (parsed.networkContext) setNetworkContext(parsed.networkContext);
-                                    // Fallback legacy field
-                                    setCompatibilityDescription(parsed.sharedInterestsDetails || cached.description);
-                                } catch {
-                                    // Legacy format: plain string
-                                    setCompatibilityDescription(cached.description);
-                                    setConnectionTitle(isAlreadyConnected ? "Why you're connected" : "Why you should connect");
-                                }
+                                applyReasonToState(cached.description, isAlreadyConnected);
                             } else {
-                                // Generate new description
+                                // No cache: call edge function to generate and persist to user_compatibility_descriptions
                                 const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
                                     'generate-suggestion-reason',
                                     {
                                         body: {
                                             userAId: user.id,
                                             userBId: person.id,
+                                            otherPersonName: person.full_name?.split(' ')[0] || person.name,
                                             isConnected: isAlreadyConnected,
                                             userProfile: {
                                                 interests: userInterests,
@@ -375,15 +414,14 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                     }
                                 );
 
-                                if (!reasonError && reasonData) {
-                                    // Handle new structured response
-                                    if (reasonData.title) setConnectionTitle(reasonData.title);
-                                    if (reasonData.sharedInterestsPrompt) setSharedInterestsPrompt(reasonData.sharedInterestsPrompt);
-                                    if (reasonData.sharedInterestsDetails) setSharedInterestsDetails(reasonData.sharedInterestsDetails);
-                                    if (reasonData.suggestedActivity) setSuggestedActivity(reasonData.suggestedActivity);
-                                    if (reasonData.networkContext) setNetworkContext(reasonData.networkContext);
-                                    // Legacy fallback
-                                    setCompatibilityDescription(reasonData.reason || reasonData.sharedInterestsDetails || '');
+                                if (!reasonError && reasonData && !reasonData.error) {
+                                    if (reasonData.cached && typeof reasonData.reason === 'string') {
+                                        applyReasonToState(reasonData.reason, isAlreadyConnected);
+                                    } else {
+                                        applyReasonToState(reasonData, isAlreadyConnected);
+                                    }
+                                } else {
+                                    setDescriptionError(true);
                                 }
                             }
                         }
@@ -525,29 +563,16 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     .maybeSingle();
 
                 if (cached && cached.description) {
-                    // Try to parse as JSON for new structured format
-                    try {
-                        const parsed = JSON.parse(cached.description);
-                        if (parsed.title) setConnectionTitle(parsed.title);
-                        if (parsed.sharedInterestsPrompt) setSharedInterestsPrompt(parsed.sharedInterestsPrompt);
-                        if (parsed.sharedInterestsDetails) setSharedInterestsDetails(parsed.sharedInterestsDetails);
-                        if (parsed.suggestedActivity) setSuggestedActivity(parsed.suggestedActivity);
-                        if (parsed.networkContext) setNetworkContext(parsed.networkContext);
-                        // Fallback legacy field
-                        setCompatibilityDescription(parsed.sharedInterestsDetails || cached.description);
-                    } catch {
-                        // Legacy format: plain string
-                        setCompatibilityDescription(cached.description);
-                        setConnectionTitle("Why you should connect");
-                    }
+                    applyReasonToState(cached.description, false);
                 } else {
-                    // Generate new description
+                    // No cache: call edge function to generate and persist to user_compatibility_descriptions
                     const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
                         'generate-suggestion-reason',
                         {
                             body: {
                                 userAId: user.id,
                                 userBId: person.id,
+                                otherPersonName: person.full_name?.split(' ')[0] || person.name,
                                 isConnected: false,
                                 userProfile: {
                                     interests: userInterests,
@@ -562,15 +587,14 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                         }
                     );
 
-                    if (!reasonError && reasonData) {
-                        // Handle new structured response
-                        if (reasonData.title) setConnectionTitle(reasonData.title);
-                        if (reasonData.sharedInterestsPrompt) setSharedInterestsPrompt(reasonData.sharedInterestsPrompt);
-                        if (reasonData.sharedInterestsDetails) setSharedInterestsDetails(reasonData.sharedInterestsDetails);
-                        if (reasonData.suggestedActivity) setSuggestedActivity(reasonData.suggestedActivity);
-                        if (reasonData.networkContext) setNetworkContext(reasonData.networkContext);
-                        // Legacy fallback
-                        setCompatibilityDescription(reasonData.reason || reasonData.sharedInterestsDetails || '');
+                    if (!reasonError && reasonData && !reasonData.error) {
+                        if (reasonData.cached && typeof reasonData.reason === 'string') {
+                            applyReasonToState(reasonData.reason, false);
+                        } else {
+                            applyReasonToState(reasonData, false);
+                        }
+                    } else {
+                        setDescriptionError(true);
                     }
                 }
             } catch (error) {
@@ -581,7 +605,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
         };
 
         loadCompatibility();
-    }, [user, person]);
+    }, [user, person, descriptionRetryTrigger]);
 
     const handleSendRequest = async () => {
         if (!person || isSending || requestStatus !== 'none') return;
@@ -874,35 +898,30 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
             {/* Why You're Connected / Why You'd Connect */}
             {isLoading ? (
                 <div className={styles.loading}>Loading...</div>
-            ) : (sharedInterestsDetails || compatibilityDescription) ? (
+            ) : compatibilityDescription ? (
                 <div className={styles.compatibilitySection}>
                     <div className={styles.compatibilityTitle}>
                         {connectionTitle || (isConnected ? "WHY YOU'RE CONNECTED" : "WHY YOU SHOULD CONNECT")}
                     </div>
-
-                    {/* Shared Interests Section */}
-                    {sharedInterestsPrompt && (
-                        <div className={styles.sectionHeader}>{sharedInterestsPrompt}</div>
-                    )}
                     <div className={styles.compatibilityDescription}>
-                        {sharedInterestsDetails || compatibilityDescription}
+                        {compatibilityDescription}
                     </div>
-
-                    {/* Suggested Activity Section */}
-                    {suggestedActivity && (
-                        <div className={styles.suggestedActivitySection}>
-                            <div className={styles.suggestedActivityTitle}>SUGGESTED ACTIVITY</div>
-                            <div className={styles.suggestedActivityText}>{suggestedActivity}</div>
-                        </div>
-                    )}
-
-                    {/* Network Context Section (only if applicable) */}
-                    {networkContext && (
-                        <div className={styles.networkContextSection}>
-                            <div className={styles.networkContextTitle}>NETWORK CONTEXT</div>
-                            <div className={styles.networkContextText}>{networkContext}</div>
-                        </div>
-                    )}
+                </div>
+            ) : descriptionError ? (
+                <div className={styles.compatibilitySection}>
+                    <div className={styles.compatibilityTitle}>
+                        {connectionTitle || (isConnected ? "WHY YOU'RE CONNECTED" : "WHY YOU SHOULD CONNECT")}
+                    </div>
+                    <div className={styles.compatibilityDescription}>
+                        Couldn&apos;t load description. The description is generated when you view a profile and saved for next time.
+                    </div>
+                    <button
+                        type="button"
+                        className={styles.retryButton}
+                        onClick={() => { setDescriptionError(false); setDescriptionRetryTrigger(t => t + 1); }}
+                    >
+                        Retry
+                    </button>
                 </div>
             ) : null}
 

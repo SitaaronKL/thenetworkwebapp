@@ -1,6 +1,7 @@
 export interface NetworkPerson {
     id: string;
     name: string;
+    full_name?: string; // When present (e.g. from profile fetch), use for display/first name
     imageUrl?: string;
     starColor?: string;
     x: number;
