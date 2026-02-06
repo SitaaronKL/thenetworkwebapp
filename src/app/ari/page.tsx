@@ -7,11 +7,25 @@ import { createClient } from '@/utils/supabase/client';
 const CORRECT_PASSWORD = 'ayen1234@';
 const AUTH_STORAGE_KEY = 'ari_chat_auth';
 
+interface Candidate {
+  user_id: string;
+  name: string;
+  score: number;
+  reason: string;
+  avatar_url?: string;
+  evidence?: {
+    match_type: string;
+    disclaimer?: string;
+    location?: string;
+  };
+}
+
 interface Message {
   id: string;
   content: string;
   isFromUser: boolean;
   timestamp: Date;
+  people?: Candidate[];
 }
 
 interface Thread {
@@ -37,6 +51,7 @@ export default function AriChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingThreads, setIsFetchingThreads] = useState(false);
   const [error, setError] = useState('');
+  const [chatMode, setChatMode] = useState<'network' | 'suggestions'>('suggestions');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -91,7 +106,7 @@ export default function AriChatPage() {
       try {
         const { data, error } = await supabase
           .from('ari_conversations')
-          .select('id, message, is_from_user, created_at')
+          .select('id, message, is_from_user, created_at, metadata')
           .eq('thread_id', activeThreadId)
           .order('created_at', { ascending: true });
 
@@ -101,7 +116,8 @@ export default function AriChatPage() {
           id: m.id,
           content: m.message,
           isFromUser: m.is_from_user,
-          timestamp: new Date(m.created_at)
+          timestamp: new Date(m.created_at),
+          people: m.metadata?.people
         })));
       } catch (err: any) {
         setError('failed to load history');
@@ -159,6 +175,7 @@ export default function AriChatPage() {
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
 
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       content: content.trim(),
@@ -186,7 +203,8 @@ export default function AriChatPage() {
         body: JSON.stringify({
           message: content.trim(),
           conversation_history: conversationHistory,
-          thread_id: activeThreadId
+          thread_id: activeThreadId,
+          mode: chatMode
         })
       });
 
@@ -206,7 +224,8 @@ export default function AriChatPage() {
         id: `ari-${Date.now()}`,
         content: data.response,
         isFromUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
+        people: data.people
       };
 
       setMessages(prev => [...prev, ariMessage]);
@@ -284,6 +303,27 @@ export default function AriChatPage() {
     );
   }
 
+  const handleClearMemories = async () => {
+    if (!confirm('This will wipe Ari\'s long-term memory of you (including the NYC cafe stuff). Sure?')) return;
+
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user');
+
+      await supabase.functions.invoke('clear-memories', {
+        body: { userId: user.id }
+      });
+
+      alert('Memories cleared! Starting fresh.');
+      window.location.reload();
+    } catch (e) {
+      alert('Failed to clear memories');
+      console.error(e);
+      setIsLoading(false);
+    }
+  };
+
   // Chat interface
   return (
     <div className={styles.container}>
@@ -296,9 +336,30 @@ export default function AriChatPage() {
             <span className={styles.ariStatus}>online</span>
           </div>
         </div>
-        <button onClick={handleLogout} className={styles.logoutButton}>
-          logout
-        </button>
+
+        <div className={styles.tabsContainer}>
+          <button
+            className={`${styles.tabButton} ${chatMode === 'suggestions' ? styles.activeTab : ''}`}
+            onClick={() => setChatMode('suggestions')}
+          >
+            suggestions
+          </button>
+          <button
+            className={`${styles.tabButton} ${chatMode === 'network' ? styles.activeTab : ''}`}
+            onClick={() => setChatMode('network')}
+          >
+            my network
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button onClick={handleClearMemories} className={styles.logoutButton} style={{ opacity: 0.6, fontSize: '0.8rem', padding: '6px 12px' }}>
+            reset memories
+          </button>
+          <button onClick={handleLogout} className={styles.logoutButton}>
+            logout
+          </button>
+        </div>
       </header>
 
       <div className={styles.mainLayout}>
@@ -336,6 +397,38 @@ export default function AriChatPage() {
                   <div className={styles.messageBubble}>
                     {msg.content}
                   </div>
+
+                  {msg.people && msg.people.length > 0 && (
+                    <div className={styles.candidatesList}>
+                      {msg.people.map((person) => (
+                        <div key={person.user_id} className={styles.candidateCard}>
+                          <div className={styles.candidateHeader}>
+                            <div
+                              className={styles.candidateAvatar}
+                              style={{
+                                backgroundImage: person.avatar_url ? `url(${person.avatar_url})` : 'none',
+                                backgroundColor: person.avatar_url ? 'transparent' : '#333'
+                              }}
+                            >
+                              {!person.avatar_url && person.name.charAt(0)}
+                            </div>
+                            <div className={styles.candidateInfo}>
+                              <h4 className={styles.candidateName}>{person.name}</h4>
+                              {person.evidence?.location && (
+                                <span className={styles.candidateLocation}>{person.evidence.location}</span>
+                              )}
+                            </div>
+                          </div>
+                          <p className={styles.candidateReason}>{person.reason}</p>
+                          {person.evidence?.disclaimer && (
+                            <span className={styles.candidateDisclaimer}>{person.evidence.disclaimer}</span>
+                          )}
+                          <button className={styles.connectButton}>connect</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <span className={styles.messageTime}>
                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
