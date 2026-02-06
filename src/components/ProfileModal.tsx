@@ -17,11 +17,11 @@ interface ProfileModalProps {
 // Parse vector from database (handles both string and array formats)
 function parseVector(vector: any): number[] | null {
     if (!vector) return null;
-    
+
     if (Array.isArray(vector)) {
         return vector.map(v => typeof v === 'number' ? v : parseFloat(v)).filter(v => !isNaN(v));
     }
-    
+
     if (typeof vector === 'string') {
         try {
             const parsed = JSON.parse(vector);
@@ -32,7 +32,7 @@ function parseVector(vector: any): number[] | null {
             return null;
         }
     }
-    
+
     return null;
 }
 
@@ -87,6 +87,12 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
     const { user } = useAuth();
     const router = useRouter();
     const [compatibilityDescription, setCompatibilityDescription] = useState<string>('');
+    // New structured response fields
+    const [connectionTitle, setConnectionTitle] = useState<string>('');
+    const [sharedInterestsPrompt, setSharedInterestsPrompt] = useState<string>('');
+    const [sharedInterestsDetails, setSharedInterestsDetails] = useState<string>('');
+    const [suggestedActivity, setSuggestedActivity] = useState<string | null>(null);
+    const [networkContext, setNetworkContext] = useState<string | null>(null);
     const [compatibilityPercentage, setCompatibilityPercentage] = useState<number | null>(null);
     const [sharedInterests, setSharedInterests] = useState<string[]>([]);
     const [sharedNetworks, setSharedNetworks] = useState<SharedNetwork[]>([]);
@@ -103,7 +109,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
 
     useEffect(() => {
         if (!user || !person) return;
-        
+
         const loadCompatibility = async () => {
             setIsLoading(true);
             const supabase = createClient();
@@ -144,7 +150,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                 else if (netLower.includes('company') || netLower.includes('inc') || netLower.includes('corp')) type = 'company';
                                 else if (netLower.includes('new york') || netLower.includes('nyc') || netLower.includes('city')) type = 'city';
                                 else if (netLower.includes('thenetwork') || netLower.includes('startup')) type = 'startup';
-                                
+
                                 networks.push({ name: net, type });
                             });
                         }
@@ -197,14 +203,14 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                 // Check if already connected
                 const connected = (existingConnections || []).some(conn =>
                     ((conn.sender_id === authUser.id && conn.receiver_id === person.id) ||
-                     (conn.receiver_id === authUser.id && conn.sender_id === person.id)) &&
+                        (conn.receiver_id === authUser.id && conn.sender_id === person.id)) &&
                     conn.status === 'accepted'
                 );
 
                 // Also check friend_requests for accepted status
                 const friendRequestAccepted = (existingRequests || []).some(req =>
                     ((req.sender_id === authUser.id && req.receiver_id === person.id) ||
-                     (req.receiver_id === authUser.id && req.sender_id === person.id)) &&
+                        (req.receiver_id === authUser.id && req.sender_id === person.id)) &&
                     req.status === 'accepted'
                 );
 
@@ -216,8 +222,8 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     setRequestStatus('accepted');
                 } else {
                     const foundRequest = (existingRequests || []).find(req =>
-                        ((req.sender_id === authUser.id && req.receiver_id === person.id) ||
-                         (req.receiver_id === authUser.id && req.sender_id === person.id))
+                    ((req.sender_id === authUser.id && req.receiver_id === person.id) ||
+                        (req.receiver_id === authUser.id && req.sender_id === person.id))
                     );
                     if (foundRequest) {
                         setRequestStatus(foundRequest.status === 'pending' ? 'pending' : 'accepted');
@@ -241,14 +247,14 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                         .select('id, full_name, avatar_url')
                         .eq('id', person.id)
                         .single();
-                    
+
                     // Get college, network_handle, and networks from user_profile_extras
                     const { data: otherExtras } = await supabase
                         .from('user_profile_extras')
                         .select('college, network_handle, networks')
                         .eq('user_id', person.id)
                         .maybeSingle();
-                    
+
                     if (otherProfile) {
                         setProfileData({
                             ...otherProfile,
@@ -258,16 +264,16 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                             interests: [],
                             location: null
                         });
-                        
+
                         // Calculate shared interests between users
                         // Note: interests column removed from profiles table
                         const otherInterests: string[] = [];
-                        
+
                         // Generate AI description for connected users too
                         if (currentUserProfile) {
                             const userInterests = (currentUserProfile.interests || []) as string[];
                             // Find common interests
-                            const shared = userInterests.filter(i => 
+                            const shared = userInterests.filter(i =>
                                 otherInterests.some(oi => oi.toLowerCase() === i.toLowerCase())
                             );
                             setSharedInterests(shared.length > 0 ? shared : otherInterests.slice(0, 5));
@@ -319,7 +325,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                             } catch (error) {
                                 console.error('Error calculating proximity for connected user:', error);
                             }
-                            
+
                             // Check for cached compatibility description
                             const userAId = user.id < person.id ? user.id : person.id;
                             const userBId = user.id < person.id ? person.id : user.id;
@@ -332,7 +338,21 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                 .maybeSingle();
 
                             if (cached && cached.description) {
-                                setCompatibilityDescription(cached.description);
+                                // Try to parse as JSON for new structured format
+                                try {
+                                    const parsed = JSON.parse(cached.description);
+                                    if (parsed.title) setConnectionTitle(parsed.title);
+                                    if (parsed.sharedInterestsPrompt) setSharedInterestsPrompt(parsed.sharedInterestsPrompt);
+                                    if (parsed.sharedInterestsDetails) setSharedInterestsDetails(parsed.sharedInterestsDetails);
+                                    if (parsed.suggestedActivity) setSuggestedActivity(parsed.suggestedActivity);
+                                    if (parsed.networkContext) setNetworkContext(parsed.networkContext);
+                                    // Fallback legacy field
+                                    setCompatibilityDescription(parsed.sharedInterestsDetails || cached.description);
+                                } catch {
+                                    // Legacy format: plain string
+                                    setCompatibilityDescription(cached.description);
+                                    setConnectionTitle(isAlreadyConnected ? "Why you're connected" : "Why you should connect");
+                                }
                             } else {
                                 // Generate new description
                                 const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
@@ -341,6 +361,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                         body: {
                                             userAId: user.id,
                                             userBId: person.id,
+                                            isConnected: isAlreadyConnected,
                                             userProfile: {
                                                 interests: userInterests,
                                                 bio: ''
@@ -354,8 +375,15 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                     }
                                 );
 
-                                if (!reasonError && reasonData?.reason) {
-                                    setCompatibilityDescription(reasonData.reason);
+                                if (!reasonError && reasonData) {
+                                    // Handle new structured response
+                                    if (reasonData.title) setConnectionTitle(reasonData.title);
+                                    if (reasonData.sharedInterestsPrompt) setSharedInterestsPrompt(reasonData.sharedInterestsPrompt);
+                                    if (reasonData.sharedInterestsDetails) setSharedInterestsDetails(reasonData.sharedInterestsDetails);
+                                    if (reasonData.suggestedActivity) setSuggestedActivity(reasonData.suggestedActivity);
+                                    if (reasonData.networkContext) setNetworkContext(reasonData.networkContext);
+                                    // Legacy fallback
+                                    setCompatibilityDescription(reasonData.reason || reasonData.sharedInterestsDetails || '');
                                 }
                             }
                         }
@@ -420,12 +448,12 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                         // Use the new proximity-based compatibility percentage
                         setCompatibilityPercentage(proximityData.compatibilityPercentage);
                         similarity = proximityData.overlap || 0;
-                        
+
                         // Store shared networks for display
                         if (proximityData.sharedNetworks && Array.isArray(proximityData.sharedNetworks)) {
                             setSharedNetworks(proximityData.sharedNetworks);
                         }
-                        
+
                         // Store mutual friends count
                         if (proximityData.mutualFriendsCount != null) {
                             setMutualFriendsCount(proximityData.mutualFriendsCount);
@@ -497,7 +525,21 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     .maybeSingle();
 
                 if (cached && cached.description) {
-                    setCompatibilityDescription(cached.description);
+                    // Try to parse as JSON for new structured format
+                    try {
+                        const parsed = JSON.parse(cached.description);
+                        if (parsed.title) setConnectionTitle(parsed.title);
+                        if (parsed.sharedInterestsPrompt) setSharedInterestsPrompt(parsed.sharedInterestsPrompt);
+                        if (parsed.sharedInterestsDetails) setSharedInterestsDetails(parsed.sharedInterestsDetails);
+                        if (parsed.suggestedActivity) setSuggestedActivity(parsed.suggestedActivity);
+                        if (parsed.networkContext) setNetworkContext(parsed.networkContext);
+                        // Fallback legacy field
+                        setCompatibilityDescription(parsed.sharedInterestsDetails || cached.description);
+                    } catch {
+                        // Legacy format: plain string
+                        setCompatibilityDescription(cached.description);
+                        setConnectionTitle("Why you should connect");
+                    }
                 } else {
                     // Generate new description
                     const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
@@ -506,6 +548,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                             body: {
                                 userAId: user.id,
                                 userBId: person.id,
+                                isConnected: false,
                                 userProfile: {
                                     interests: userInterests,
                                     bio: ''
@@ -519,8 +562,15 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                         }
                     );
 
-                    if (!reasonError && reasonData?.reason) {
-                        setCompatibilityDescription(reasonData.reason);
+                    if (!reasonError && reasonData) {
+                        // Handle new structured response
+                        if (reasonData.title) setConnectionTitle(reasonData.title);
+                        if (reasonData.sharedInterestsPrompt) setSharedInterestsPrompt(reasonData.sharedInterestsPrompt);
+                        if (reasonData.sharedInterestsDetails) setSharedInterestsDetails(reasonData.sharedInterestsDetails);
+                        if (reasonData.suggestedActivity) setSuggestedActivity(reasonData.suggestedActivity);
+                        if (reasonData.networkContext) setNetworkContext(reasonData.networkContext);
+                        // Legacy fallback
+                        setCompatibilityDescription(reasonData.reason || reasonData.sharedInterestsDetails || '');
                     }
                 }
             } catch (error) {
@@ -579,18 +629,18 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
     };
 
     const handleUnfriend = async () => {
-        console.log('🔴 [UNFRIEND] Starting unfriend process', { 
-            personId: person?.id, 
+        console.log('🔴 [UNFRIEND] Starting unfriend process', {
+            personId: person?.id,
             personName: person?.name,
             isUnfriending,
-            isConnected 
+            isConnected
         });
 
         if (!person || isUnfriending || !isConnected) {
-            console.log('🔴 [UNFRIEND] Early return - conditions not met', { 
-                hasPerson: !!person, 
-                isUnfriending, 
-                isConnected 
+            console.log('🔴 [UNFRIEND] Early return - conditions not met', {
+                hasPerson: !!person,
+                isUnfriending,
+                isConnected
             });
             return;
         }
@@ -605,9 +655,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                 return;
             }
 
-            console.log('🔴 [UNFRIEND] Deleting connections', { 
-                currentUserId: authUser.id, 
-                targetUserId: person.id 
+            console.log('🔴 [UNFRIEND] Deleting connections', {
+                currentUserId: authUser.id,
+                targetUserId: person.id
             });
 
             // Delete from user_connections table (both directions)
@@ -620,9 +670,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                 .eq('receiver_id', person.id)
                 .select();
 
-            console.log('🔴 [UNFRIEND] Delete 1 result:', { 
-                deleted: delete1Data, 
-                error: error1 
+            console.log('🔴 [UNFRIEND] Delete 1 result:', {
+                deleted: delete1Data,
+                error: error1
             });
 
             // Delete where current user is receiver
@@ -634,9 +684,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                 .eq('receiver_id', authUser.id)
                 .select();
 
-            console.log('🔴 [UNFRIEND] Delete 2 result:', { 
-                deleted: delete2Data, 
-                error: error2 
+            console.log('🔴 [UNFRIEND] Delete 2 result:', {
+                deleted: delete2Data,
+                error: error2
             });
 
             // Also delete from friend_requests table (both directions)
@@ -649,9 +699,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                 .eq('receiver_id', person.id)
                 .select();
 
-            console.log('🔴 [UNFRIEND] Delete 3 result:', { 
-                deleted: delete3Data, 
-                error: error3 
+            console.log('🔴 [UNFRIEND] Delete 3 result:', {
+                deleted: delete3Data,
+                error: error3
             });
 
             // Delete where current user is receiver
@@ -663,9 +713,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                 .eq('receiver_id', authUser.id)
                 .select();
 
-            console.log('🔴 [UNFRIEND] Delete 4 result:', { 
-                deleted: delete4Data, 
-                error: error4 
+            console.log('🔴 [UNFRIEND] Delete 4 result:', {
+                deleted: delete4Data,
+                error: error4
             });
 
             if (error1 || error2 || error3 || error4) {
@@ -674,7 +724,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
             }
 
             console.log('🔴 [UNFRIEND] All deletes successful. Updating local state and calling callback');
-            
+
             // Update local state
             setIsConnected(false);
             setRequestStatus('none');
@@ -764,8 +814,8 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     {profileData?.school && (
                         <span className={styles.detailItem}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                                <path d="M6 12v5c3 3 9 3 12 0v-5" />
                             </svg>
                             {profileData.school}
                         </span>
@@ -773,9 +823,9 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     {profileData?.networkHandle && (
                         <span className={styles.detailItem}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                             @{profileData.networkHandle}
                         </span>
@@ -783,8 +833,8 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     {profileData?.networks && profileData.networks.length > 0 && (
                         <span className={styles.detailItem}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                <circle cx="12" cy="10" r="3"/>
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
                             </svg>
                             {profileData.networks.join(', ')}
                         </span>
@@ -824,12 +874,35 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
             {/* Why You're Connected / Why You'd Connect */}
             {isLoading ? (
                 <div className={styles.loading}>Loading...</div>
-            ) : compatibilityDescription ? (
+            ) : (sharedInterestsDetails || compatibilityDescription) ? (
                 <div className={styles.compatibilitySection}>
                     <div className={styles.compatibilityTitle}>
-                        {sharedNetworks.length > 0 ? 'WHY YOU SHOULD CONNECT' : 'WHY YOU\'RE CONNECTED'}
+                        {connectionTitle || (isConnected ? "WHY YOU'RE CONNECTED" : "WHY YOU SHOULD CONNECT")}
                     </div>
-                    <div className={styles.compatibilityDescription}>{compatibilityDescription}</div>
+
+                    {/* Shared Interests Section */}
+                    {sharedInterestsPrompt && (
+                        <div className={styles.sectionHeader}>{sharedInterestsPrompt}</div>
+                    )}
+                    <div className={styles.compatibilityDescription}>
+                        {sharedInterestsDetails || compatibilityDescription}
+                    </div>
+
+                    {/* Suggested Activity Section */}
+                    {suggestedActivity && (
+                        <div className={styles.suggestedActivitySection}>
+                            <div className={styles.suggestedActivityTitle}>SUGGESTED ACTIVITY</div>
+                            <div className={styles.suggestedActivityText}>{suggestedActivity}</div>
+                        </div>
+                    )}
+
+                    {/* Network Context Section (only if applicable) */}
+                    {networkContext && (
+                        <div className={styles.networkContextSection}>
+                            <div className={styles.networkContextTitle}>NETWORK CONTEXT</div>
+                            <div className={styles.networkContextText}>{networkContext}</div>
+                        </div>
+                    )}
                 </div>
             ) : null}
 
