@@ -33,6 +33,7 @@ export const AriaService = {
     // mode: 'network' for searching connected users, 'suggestions' for finding new connections
     sendMessage: async (message: string, history: any[] = [], mode: 'network' | 'suggestions' = 'suggestions'): Promise<AriaResponse | null> => {
         const supabase = createClient();
+        const functionName = process.env.NEXT_PUBLIC_ARI_FUNCTION_NAME || 'ari-chat';
 
         try {
             // Get current user for user_id
@@ -41,7 +42,7 @@ export const AriaService = {
                 return null;
             }
 
-            const { data, error } = await supabase.functions.invoke('ari-chat', {
+            const { data, error } = await supabase.functions.invoke(functionName, {
                 body: {
                     message,
                     conversation_history: history,
@@ -57,7 +58,7 @@ export const AriaService = {
             // Map people from ari-router response to candidates format
             let candidates: any[] = [];
 
-            // Handle people from PEOPLE_MATCHING or ACTIVITY_MULTI_AGENT
+            // Handle people from ari-router-compatible responses.
             if (data.people && Array.isArray(data.people)) {
                 candidates = data.people.map((p: any) => ({
                     id: p.user_id,
@@ -66,6 +67,17 @@ export const AriaService = {
                     matchScore: p.score || 0,
                     matchReason: p.reason || '',
                     avatarUrl: undefined, // Will be hydrated below
+                })).filter((c: any) => c.matchScore > 0.1);
+            }
+            // Keep compatibility with ari-chat-style responses.
+            if (candidates.length === 0 && data.candidates && Array.isArray(data.candidates)) {
+                candidates = data.candidates.map((c: any) => ({
+                    id: c.id || c.user_id,
+                    name: c.name,
+                    username: '',
+                    matchScore: c.match_score || c.matchScore || c.score || 0,
+                    matchReason: c.reasoning || c.matchReason || c.reason || '',
+                    avatarUrl: c.avatarUrl || c.avatar_url,
                 })).filter((c: any) => c.matchScore > 0.1);
             }
 
@@ -101,9 +113,15 @@ export const AriaService = {
                 }
             }
 
+            const normalizedIntent = data.intent === 'PEOPLE_MATCHING'
+                ? 'social_connection'
+                : data.intent === 'NORMAL_CHAT'
+                    ? 'chat'
+                    : data.intent || 'chat';
+
             return {
                 response: data.response,
-                intent: data.intent || 'chat',
+                intent: normalizedIntent,
                 candidates: candidates,
             };
         } catch (e) {
