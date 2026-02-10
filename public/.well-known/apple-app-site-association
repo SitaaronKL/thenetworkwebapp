@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["29PW28T665.com.tadsa.thenetwork"],
+        "paths": [
+          "/profile/*",
+          "/invite/*"
+        ],
+        "components": [
+          {
+            "/": "/profile/*"
+          },
+          {
+            "/": "/invite/*"
+          }
+        ]
+      }
+    ]
+  }
+}
