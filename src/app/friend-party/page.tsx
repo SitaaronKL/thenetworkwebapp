@@ -14,6 +14,7 @@ const THE_NETWORK_SVG = '/mcmaster/TheNetwork.svg';
 const DJDAVIBABI_IMG = '/mcmaster/DJDAVIBABI.png';
 
 /* ─── Colour palette ─── */
+const BG_BLACK = '#000000';     // Pure black base for invite flow
 const ACCENT_PINK = '#ff2d75';
 const ACCENT_PURPLE = '#a855f7';
 const ACCENT_ORANGE = '#f97316';
@@ -277,6 +278,7 @@ function DiscoLightsCanvas({
 import { useAudioParty } from '../../hooks/useAudioParty';
 
 export default function FriendPartyPage() {
+  const router = useRouter();
   const {
     startParty,
     hasStarted,
@@ -335,7 +337,7 @@ export default function FriendPartyPage() {
   const flashOpacity = isMajorDrop ? Math.min(0.55, majorDropStrength * 0.6) : 0;
 
   return (
-    <div className="min-h-screen overflow-x-hidden text-white relative bg-black">
+    <div className="min-h-screen overflow-x-hidden text-white relative" style={{ backgroundColor: BG_BLACK }}>
       {/* Fonts */}
       <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Press+Start+2P&display=swap"
@@ -382,7 +384,8 @@ export default function FriendPartyPage() {
       {/* ─── ENTER OVERLAY ─── */}
       {!hasStarted && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-1000"
+          className="fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-1000"
+          style={{ backgroundColor: BG_BLACK }}
           onClick={startParty}
         >
           <div className="text-center cursor-pointer group">
@@ -519,7 +522,7 @@ export default function FriendPartyPage() {
                 animation: 'spin 4s linear infinite'
               }}
             />
-            <div className="relative p-[2px] rounded-full bg-black">
+            <div className="relative p-[2px] rounded-full" style={{ backgroundColor: BG_BLACK }}>
               <img
                 src={DJDAVIBABI_IMG}
                 alt="DJDAVIBABI"
@@ -562,7 +565,7 @@ export default function FriendPartyPage() {
                 }}
               />
 
-              <div className="rounded-[14px] bg-black p-8 text-center relative h-full flex flex-col items-center gap-6">
+              <div className="rounded-[14px] p-8 text-center relative h-full flex flex-col items-center gap-6" style={{ backgroundColor: '#0d0d0d' }}>
                 {/* Grain overlay */}
                 <div className="absolute inset-0 bg-white/5 opacity-20 pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }}></div>
 
@@ -623,7 +626,7 @@ export default function FriendPartyPage() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
 
             {/* Glass card */}
-            <div className="relative rounded-2xl bg-black/80 backdrop-blur-xl border border-white/10 p-1">
+            <div className="relative rounded-2xl backdrop-blur-xl border border-white/10 p-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}>
               <div className="rounded-xl bg-white/[0.03] p-6 md:p-8">
                 <div className="flex flex-col gap-6 text-center">
                   <p className="text-white/60 text-sm leading-relaxed" style={{ fontFamily: "'Outfit', sans-serif" }}>
@@ -631,7 +634,7 @@ export default function FriendPartyPage() {
                   </p>
 
                   <button
-                    onClick={() => window.location.href = '/friend-party/dashboard'}
+                    onClick={() => router.push('/friend-party/setup')}
                     type="button"
                     className="w-full py-4 rounded-lg font-bold text-sm uppercase tracking-[0.2em] transition-all duration-500 hover:tracking-[0.3em] hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] flex items-center justify-center gap-3 bg-white text-black hover:bg-white/90"
                     style={{ fontFamily: "'Outfit', sans-serif" }}
