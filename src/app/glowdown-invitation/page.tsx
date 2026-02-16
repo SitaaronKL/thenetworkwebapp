@@ -99,10 +99,9 @@ export default function GlowdownInvitationPage() {
   const [error, setError] = useState<string | null>(null);
   const [ticketCode, setTicketCode] = useState<string | null>(null);
 
-  // Validate form - all fields must be filled and checkbox checked
+  // Validate form - name, email, and checkbox required (obsession optional)
   const isFormValid = name.trim() !== '' && 
                       email.trim() !== '' && 
-                      obsession.trim() !== '' && 
                       interestedInBeta === true;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -325,10 +324,9 @@ export default function GlowdownInvitationPage() {
                 <div className="flex flex-col gap-1.5">
                   <input
                     type="text"
-                    placeholder="Your current obsession"
+                    placeholder="Your current obsession (optional)"
                     value={obsession}
                     onChange={(e) => setObsession(e.target.value)}
-                    required
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
                   />
                   <p className="text-[10px] text-white/40 text-left px-2 leading-relaxed">
