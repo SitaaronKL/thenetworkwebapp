@@ -3,7 +3,30 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import GlowdownBackground from "@/components/GlowdownBackground";
 
+function resolveMetadataBase() {
+  const rawUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL;
+
+  if (!rawUrl) {
+    return new URL("http://localhost:3000");
+  }
+
+  const normalized = rawUrl.startsWith("http://") || rawUrl.startsWith("https://")
+    ? rawUrl
+    : `https://${rawUrl}`;
+
+  try {
+    return new URL(normalized);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: resolveMetadataBase(),
   title: "TheNetwork",
   description: "The shortest path to the right people: a social network designed for real life.",
   icons: {

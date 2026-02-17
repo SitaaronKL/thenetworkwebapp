@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase';
 
-let QRCode: any = null;
-try {
-  QRCode = require('react-qr-code').default;
-} catch (e) { }
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
 
 const DISCO_SVG = '/mcmaster/disco.svg';
 const THE_NETWORK_SVG = '/mcmaster/TheNetwork.svg';
@@ -19,24 +17,45 @@ const ACCENT_PINK = '#ff2d75';
 const ACCENT_PURPLE = '#a855f7';
 const ACCENT_ORANGE = '#f97316';
 const ACCENT_CYAN = '#22d3ee';
+const TAU = Math.PI * 2;
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const fract = (value: number) => value - Math.floor(value);
+type ScenePhase = 'normal' | 'build' | 'drop' | 'afterglow';
 
 /* ─── Disco Light Canvas Background ─── */
 function DiscoLightsCanvas({
   isMajorDrop,
   majorDropStrength,
+  buildUpStrength,
+  scenePhase,
+  postDropStrength,
+  phaseVariant,
 }: {
   isMajorDrop: boolean;
   majorDropStrength: number;
+  buildUpStrength: number;
+  scenePhase: ScenePhase;
+  postDropStrength: number;
+  phaseVariant: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const majorDropRef = useRef(false);
   const majorDropStrengthRef = useRef(0);
+  const buildUpStrengthRef = useRef(0);
+  const scenePhaseRef = useRef<ScenePhase>('normal');
+  const postDropStrengthRef = useRef(0);
+  const phaseVariantRef = useRef(0);
 
   // Sync refs for animation loop
   useEffect(() => {
     majorDropRef.current = isMajorDrop;
     majorDropStrengthRef.current = majorDropStrength;
-  }, [isMajorDrop, majorDropStrength]);
+    buildUpStrengthRef.current = buildUpStrength;
+    scenePhaseRef.current = scenePhase;
+    postDropStrengthRef.current = postDropStrength;
+    phaseVariantRef.current = phaseVariant;
+  }, [isMajorDrop, majorDropStrength, buildUpStrength, scenePhase, postDropStrength, phaseVariant]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -132,14 +151,21 @@ function DiscoLightsCanvas({
 
         // Lights stay in a normal spin unless we are in a sustained major drop.
         const majorEnergy = majorDropRef.current ? majorDropStrengthRef.current : 0;
+        const buildEnergy = scenePhaseRef.current === 'build' ? buildUpStrengthRef.current : 0;
+        const afterglowEnergy = scenePhaseRef.current === 'afterglow' ? postDropStrengthRef.current : 0;
+        const variant = phaseVariantRef.current;
         let shakeX = 0;
         let shakeY = 0;
-        const intensityMult = 1 + majorEnergy * 2.3;
+        const intensityMult = 1 + majorEnergy * 2.3 + buildEnergy * 0.38 + afterglowEnergy * 0.42;
 
         if (majorEnergy > 0) {
           const dropShake = 10 + majorEnergy * 18;
           shakeX = (Math.random() - 0.5) * dropShake;
           shakeY = (Math.random() - 0.5) * dropShake;
+        } else if (afterglowEnergy > 0) {
+          const sway = 4 + afterglowEnergy * 11;
+          shakeX = Math.sin(t * (0.012 + variant * 0.0035)) * sway;
+          shakeY = Math.cos(t * (0.01 + variant * 0.0028)) * sway * 0.75;
         }
 
         // 2. Draw Glow Behind Ball
@@ -155,11 +181,11 @@ function DiscoLightsCanvas({
         // 3. Draw Beams
         for (const beam of beams) {
           // Default: normal DJ rotation. Major drop: aggressive sweep.
-          const speedMult = 1 + majorEnergy * 4.8;
+          const speedMult = 1 + majorEnergy * 4.8 + buildEnergy * 1.6 + afterglowEnergy * (1.2 + variant * 0.35);
 
           const a = beam.angle + t * beam.speed * speedMult;
 
-          const lengthMult = 1 + majorEnergy * 0.38;
+          const lengthMult = 1 + majorEnergy * 0.38 + buildEnergy * 0.24 + afterglowEnergy * 0.3;
 
           const currentLength = beam.length * (0.9 + 0.1 * Math.sin(t * 0.02 + beam.phase)) * lengthMult;
 
@@ -169,6 +195,14 @@ function DiscoLightsCanvas({
 
           if (majorEnergy > 0.12 && Math.random() > 0.82 - majorEnergy * 0.22) {
             [r, g, b] = [255, 255, 255]; // Flash white
+          } else if (afterglowEnergy > 0.22 && Math.random() > 0.95 - afterglowEnergy * 0.22) {
+            const rotated = [
+              [255, 145, 214],
+              [124, 197, 255],
+              [255, 184, 127],
+              [190, 151, 255],
+            ];
+            [r, g, b] = rotated[(variant + Math.floor(t / 40)) % rotated.length];
           }
 
           // Perpendicular vectors for width
@@ -211,12 +245,23 @@ function DiscoLightsCanvas({
       // 4. Draw floating particles
       for (const p of particles) {
         const majorEnergy = majorDropRef.current ? majorDropStrengthRef.current : 0;
+        const buildEnergy = scenePhaseRef.current === 'build' ? buildUpStrengthRef.current : 0;
+        const afterglowEnergy = scenePhaseRef.current === 'afterglow' ? postDropStrengthRef.current : 0;
+        const variant = phaseVariantRef.current;
 
         // Explode outward on MAJOR DROP
         if (majorEnergy > 0) {
           const dropKick = 0.02 + majorEnergy * 0.06;
           p.vx += (Math.random() - 0.5) * dropKick;
           p.vy += (Math.random() - 0.5) * dropKick;
+        } else if (afterglowEnergy > 0) {
+          // Post-drop orbiting drift: calmer than drop, but visibly different from normal.
+          const swirl = 0.0008 + afterglowEnergy * 0.003;
+          p.vx += Math.sin(p.pulse * (0.7 + variant * 0.14) + variant) * swirl;
+          p.vy += Math.cos(p.pulse * (0.9 + variant * 0.11) + variant) * swirl * 0.7;
+        } else if (buildEnergy > 0.18) {
+          // Build-up tension: subtle upward pull before a drop.
+          p.vy -= buildEnergy * 0.0018;
         }
 
         // Dampening back to normal speed
@@ -286,56 +331,162 @@ export default function FriendPartyPage() {
     isMajorDrop,
     majorDropStrength,
     beatStrength,
+    buildUpStrength,
     dropPulse,
+    scenePhase,
+    postDropStrength,
+    phaseVariant,
   } = useAudioParty();
 
-  const [ticketCode, setTicketCode] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [ticketCode] = useState<string | null>(null);
   const [signInLoading, setSignInLoading] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // ─── BEAT DROP EFFECTS ───
-  // When isBeatDrop is true, we pick a random effect
-  const [effectVariant, setEffectVariant] = useState(0);
-
-  // Update effect on each accepted drop pulse
-  useEffect(() => {
-    if (dropPulse > 0) {
-      setEffectVariant(Math.floor(Math.random() * 3));
-    }
-  }, [dropPulse]);
+  // Deterministic pseudo-random hashes from pulse+energy.
+  // This gives richer variation while staying stable per frame.
+  const pulseHashA = fract(Math.sin((dropPulse + 1) * 12.9898 + beatStrength * 8.13) * 43758.5453);
+  const pulseHashB = fract(Math.sin((dropPulse + 1) * 78.233 + dropStrength * 11.17) * 24634.6345);
+  const pulseHashC = fract(Math.sin((dropPulse + 1) * 39.425 + buildUpStrength * 14.2) * 96453.1234);
+  const effectVariant = (phaseVariant + Math.floor(pulseHashA * 3)) % 5;
+  const rotationGear = scenePhase === 'drop'
+    ? 1.8 + majorDropStrength * 1.3
+    : scenePhase === 'afterglow'
+      ? 0.5 + postDropStrength * (2 + phaseVariant * 0.24)
+      : scenePhase === 'build'
+        ? 0.6 + buildUpStrength * 1.2
+        : 0.8 + beatStrength * 0.7;
+  const phaseSlowdown = scenePhase === 'afterglow' ? 0.62 + (1 - postDropStrength) * 0.4 : 1;
 
   const getTransform = () => {
+    const transientEnergy = clamp(
+      beatStrength * 0.7 + dropStrength * 0.95 + buildUpStrength * 0.4 + (isMajorDrop ? majorDropStrength * 1.2 : 0),
+      0,
+      1.8
+    );
+    const phaseA = dropPulse * (0.28 + rotationGear * 0.42) + pulseHashA * TAU;
+    const phaseB = dropPulse * (0.22 + rotationGear * 0.34) + pulseHashB * TAU;
+    const lateral = Math.sin(phaseA) * (1 + transientEnergy * 5.5);
+    const vertical = Math.cos(phaseB) * (1 + transientEnergy * 4.4);
+    const tilt = Math.sin(phaseA * (1.1 + rotationGear * 0.28)) * (1.2 + transientEnergy * 4.2);
+    const skew = Math.cos(phaseB * 0.9) * transientEnergy * 1.8;
+
     if (isMajorDrop) {
-      const scaleBoost = 1.1 + majorDropStrength * 0.18;
-      const rotation = 3 + majorDropStrength * 6;
+      const scaleBoost = 1.1 + majorDropStrength * 0.18 + pulseHashC * 0.03;
+      const rotation = 3 + majorDropStrength * 6 + lateral * 0.5;
       const implodeScale = 1 - majorDropStrength * 0.1;
 
       // MAJOR DROP: High energy visuals
       switch (effectVariant) {
-        case 0: return `scale(${scaleBoost}) rotate(${rotation}deg)`;   // Big Pulse Right
-        case 1: return `scale(${scaleBoost}) rotate(${-rotation}deg)`;  // Big Pulse Left
-        case 2: return `scale(${Math.max(0.97, implodeScale)})`;        // Controlled compression
+        case 0: return `translateX(${lateral}px) translateY(${-2 - vertical}px) scale(${scaleBoost}) rotate(${rotation}deg) skewX(${skew}deg)`;
+        case 1: return `translateX(${-lateral}px) translateY(${vertical * 0.8}px) scale(${scaleBoost}) rotate(${-rotation}deg) skewY(${skew * 0.8}deg)`;
+        case 2: return `translateY(${vertical * 0.5}px) scale(${Math.max(0.97, implodeScale)}) rotate(${tilt}deg)`;
+        case 3: return `translateX(${lateral * 0.7}px) scale(${1.06 + majorDropStrength * 0.14}) rotate(${tilt * 1.2}deg)`;
+        case 4: return `translateY(${-2 + vertical * 0.7}px) scale(${1.08 + majorDropStrength * 0.12}) skewX(${skew * 1.1}deg)`;
         default: return `scale(${1.05 + majorDropStrength * 0.12})`;
       }
+    } else if (scenePhase === 'afterglow' && postDropStrength > 0) {
+      const afterTurnRate = (0.38 + postDropStrength * (2.2 + phaseVariant * 0.35)) * phaseSlowdown;
+      const afterPhase = dropPulse * afterTurnRate + (1 - postDropStrength) * TAU * (1.3 + phaseVariant * 0.2) + pulseHashB * TAU;
+      const settle = 1 + postDropStrength * (0.038 + phaseVariant * 0.008);
+      const driftX = Math.sin(afterPhase) * (1.2 + postDropStrength * 5.8);
+      const driftY = Math.cos(afterPhase * 0.82) * (0.8 + postDropStrength * 4.2);
+      const sway = Math.sin(afterPhase * (1 + phaseVariant * 0.06)) * (0.7 + postDropStrength * 3.8);
+
+      switch (phaseVariant % 4) {
+        case 0: return `translateX(${driftX}px) translateY(${-1 + driftY}px) scale(${settle}) rotate(${sway}deg)`;
+        case 1: return `translateX(${-driftX * 0.85}px) translateY(${driftY * 0.8}px) scale(${settle + 0.005}) skewX(${sway * 0.8}deg)`;
+        case 2: return `translateX(${driftX * 0.6}px) translateY(${-2 + driftY * 0.6}px) scale(${settle + 0.008}) rotate(${-sway * 0.7}deg)`;
+        default: return `translateX(${driftX * 0.45}px) translateY(${-1 + driftY * 0.9}px) scale(${settle}) skewY(${sway * 0.7}deg)`;
+      }
+    } else if (scenePhase === 'build') {
+      const tension = clamp(buildUpStrength, 0, 1);
+      const preDropPhase = dropPulse * 0.58 + pulseHashC * TAU;
+      const tighten = 1 - tension * 0.022;
+      const pullY = -1 - tension * 5 + Math.sin(preDropPhase) * (0.7 + tension * 1.1);
+      const twist = Math.sin(preDropPhase * 1.4) * (0.45 + tension * 1.8);
+      return `translateY(${pullY}px) scale(${tighten}) rotate(${twist}deg)`;
     } else if (dropStrength > 0) {
-      // Small/unsustained drops animate the globe only.
-      const smallBounce = 1.015 + dropStrength * 0.07;
-      const bounceY = -1.5 - dropStrength * 5;
-      return `translateY(${bounceY}px) scale(${smallBounce})`;
+      const smallBounce = 1.015 + dropStrength * 0.07 + pulseHashA * 0.01;
+      const bounceY = -1.5 - dropStrength * 5 - Math.abs(vertical) * 0.6;
+      return `translateX(${lateral * 0.35}px) translateY(${bounceY}px) scale(${smallBounce}) rotate(${tilt * 0.25}deg)`;
     } else if (beatStrength > 0) {
-      // Regular beat pulse = subtle globe motion only.
-      return `translateY(-1px) scale(${1.008 + beatStrength * 0.035})`;
+      return `translateX(${lateral * 0.2}px) translateY(${-1 + vertical * 0.15}px) scale(${1.008 + beatStrength * 0.035}) rotate(${tilt * 0.15}deg)`;
     }
-    // Idle state
-    return 'scale(1) rotate(0deg)';
+    return `translateX(${Math.sin(phaseA * 0.35) * 0.6}px) translateY(${Math.cos(phaseB * 0.35) * 0.5}px) scale(1) rotate(0deg)`;
   };
 
   const transformStyle = getTransform();
   const flashOpacity = isMajorDrop ? Math.min(0.55, majorDropStrength * 0.6) : 0;
+  const buildBias = scenePhase === 'build' ? buildUpStrength : 0;
+  const afterglowBias = scenePhase === 'afterglow' ? postDropStrength : 0;
+  const cardEnergyRaw =
+    beatStrength * 0.8 +
+    dropStrength * 0.9 +
+    buildBias * 0.65 +
+    afterglowBias * 0.7 +
+    (isMajorDrop ? majorDropStrength * 1.5 : 0);
+  const cardEnergy = clamp(cardEnergyRaw, 0, 1.8);
+  const cardPhaseA = dropPulse * (0.38 + rotationGear * 0.46) + pulseHashB * TAU;
+  const cardPhaseB = dropPulse * (0.24 + rotationGear * 0.34) + pulseHashC * TAU;
+  const cardScale = 1 + cardEnergy * 0.055 + (isMajorDrop ? 0.028 : 0);
+  const cardLift = -1 - cardEnergy * 7 + Math.sin(cardPhaseB) * cardEnergy * 1.8;
+  const cardTiltX = Math.sin(cardPhaseA + effectVariant * 0.8) * (1.1 + cardEnergy * 5.4);
+  const cardTiltY = Math.cos(cardPhaseB + effectVariant * 0.45) * (0.9 + cardEnergy * 4.9);
+  const cardShear = Math.sin(cardPhaseA * 0.5 + cardPhaseB * 0.7) * cardEnergy * 2.4;
+  const cardFloatX = Math.cos(cardPhaseB * 1.2 + effectVariant) * cardEnergy * 3;
+  const cardGlowOpacity = clamp(0.2 + cardEnergy * 0.52 + (isMajorDrop ? 0.14 : 0), 0.2, 0.94);
+  const cardHaloScale = 1 + cardEnergy * 0.11 + pulseHashA * 0.04;
+  const cardHaloSpinDuration = scenePhase === 'drop'
+    ? Math.max(1.9, 3.1 - majorDropStrength * 1.4)
+    : scenePhase === 'afterglow'
+      ? 3.4 + (1 - postDropStrength) * 5.8 + phaseVariant * 0.35
+      : Math.max(5.8, 12.5 - cardEnergy * 5.2);
+  const cardHaloPulseDuration = scenePhase === 'build'
+    ? Math.max(1.5, 2.8 - cardEnergy * 0.8)
+    : scenePhase === 'drop'
+      ? Math.max(1.1, 2.1 - majorDropStrength * 0.5)
+      : Math.max(2.1, 4.4 - cardEnergy * 1.5);
+  const cardPrismDuration = scenePhase === 'drop'
+    ? Math.max(2.2, 4.2 - majorDropStrength * 1.3)
+    : scenePhase === 'afterglow'
+      ? 2.8 + (1 - postDropStrength) * 6.6 + phaseVariant * 0.4
+      : Math.max(3.6, 9 - cardEnergy * 3.6);
+  const cardTransformMs = scenePhase === 'drop'
+    ? 92
+    : scenePhase === 'afterglow'
+      ? Math.round(150 + (1 - postDropStrength) * 240)
+      : scenePhase === 'build'
+        ? 125
+        : 145;
+  const ticketTransformMs = Math.max(90, Math.round(cardTransformMs * 0.82));
+  const cardPrismShiftX = Math.sin(cardPhaseA * 0.9 + pulseHashA * TAU) * (4 + cardEnergy * 9);
+  const cardPrismShiftY = Math.cos(cardPhaseB * 1.1 + pulseHashB * TAU) * (3 + cardEnergy * 8);
+  const cardPrismAngle = (dropPulse * 37 + pulseHashC * 360) % 360;
+  const cardPrismOpacity = clamp(
+    0.14 + cardEnergy * 0.33 + (isMajorDrop ? 0.09 : 0) + afterglowBias * 0.08,
+    0.14,
+    0.7
+  );
+  const cardPrismCenterX = clamp(50 + cardFloatX * 2.5, 20, 80);
+  const cardPrismCenterY = clamp(45 + cardTiltX * 2.2, 20, 80);
+  const cardOuterStyle = {
+    transform: `perspective(1300px) translate3d(${cardFloatX}px, ${cardLift}px, 0) rotateX(${cardTiltX}deg) rotateY(${cardTiltY}deg) skewX(${cardShear}deg) scale(${cardScale})`,
+    transition: `transform ${cardTransformMs}ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease, border-color 160ms ease`,
+    boxShadow: `0 22px ${50 + cardEnergy * 40}px -20px rgba(168,85,247,${0.25 + cardEnergy * 0.33}), 0 0 ${20 + cardEnergy * 46}px rgba(34,211,238,${0.12 + cardEnergy * 0.3})`,
+    borderColor: `rgba(255,255,255,${0.1 + cardEnergy * 0.16})`,
+    backgroundColor: `rgba(0, 0, 0, ${0.9 - Math.min(0.08, cardEnergy * 0.06)})`,
+    filter: `saturate(${1 + cardEnergy * 0.36}) contrast(${1 + cardEnergy * 0.22})`,
+    transformOrigin: '50% 42%',
+    willChange: 'transform, box-shadow, filter',
+  };
+  const cardInnerStyle = {
+    background: `
+      linear-gradient(160deg, rgba(255,45,117,${0.03 + cardEnergy * 0.16}) 0%, rgba(168,85,247,${0.04 + cardEnergy * 0.14}) 48%, rgba(34,211,238,${0.02 + cardEnergy * 0.16}) 100%),
+      radial-gradient(circle at ${cardPrismCenterX}% ${cardPrismCenterY}%, rgba(255,255,255,${0.04 + cardEnergy * 0.08}) 0%, rgba(255,255,255,0) 45%)
+    `,
+    boxShadow: `inset 0 1px 0 rgba(255,255,255,${0.08 + cardEnergy * 0.2}), inset 0 -26px 70px rgba(0,0,0,${0.16 + cardEnergy * 0.22})`,
+    transition: 'background 160ms ease, box-shadow 160ms ease',
+    willChange: 'background, box-shadow',
+  };
 
   const handleGoogleSignIn = async () => {
     if (signInLoading) return;
@@ -396,6 +547,28 @@ export default function FriendPartyPage() {
           70% { box-shadow: 0 0 0 15px rgba(255, 45, 117, 0); }
           100% { box-shadow: 0 0 0 0 rgba(255, 45, 117, 0); }
         }
+        @keyframes fp-card-prism {
+          0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+          50% { background-position: 100% 50%; filter: hue-rotate(24deg); }
+          100% { background-position: 200% 50%; filter: hue-rotate(0deg); }
+        }
+        @keyframes fp-card-halo-wave {
+          0%, 100% { filter: blur(14px); opacity: 0.82; }
+          50% { filter: blur(22px); opacity: 1; }
+        }
+        @keyframes fp-card-halo-spin {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+        @keyframes fp-beat {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.04); opacity: 0.9; }
+        }
+        .fp-card-prism {
+          animation: fp-card-prism 8s linear infinite;
+          background-size: 240% 240%;
+          will-change: transform, opacity, filter;
+        }
         .fp-stagger-1 { animation: fp-slide-up 0.7s ease-out 0.1s both; }
         .fp-stagger-2 { animation: fp-slide-up 0.7s ease-out 0.25s both; }
         .fp-stagger-3 { animation: fp-slide-up 0.7s ease-out 0.4s both; }
@@ -435,6 +608,10 @@ export default function FriendPartyPage() {
         <DiscoLightsCanvas
           isMajorDrop={isMajorDrop}
           majorDropStrength={majorDropStrength}
+          buildUpStrength={buildUpStrength}
+          scenePhase={scenePhase}
+          postDropStrength={postDropStrength}
+          phaseVariant={phaseVariant}
         />
       </div>
 
@@ -465,7 +642,7 @@ export default function FriendPartyPage() {
           className="fp-stagger-1"
           style={{
             // Use ambient animations on the wrapper (float, glow)
-            animation: mounted ? 'fp-float 6s ease-in-out infinite, fp-glow-pulse 4s ease-in-out infinite' : 'none',
+            animation: 'fp-float 6s ease-in-out infinite, fp-glow-pulse 4s ease-in-out infinite',
           }}
         >
           <div
@@ -501,7 +678,7 @@ export default function FriendPartyPage() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             backgroundSize: '200% auto',
-            animation: mounted ? 'fp-shimmer 4s linear infinite' : 'none',
+            animation: 'fp-shimmer 4s linear infinite',
             filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.5))'
           }}
         >
@@ -573,10 +750,12 @@ export default function FriendPartyPage() {
           <div id="ticket-display" className="w-full max-w-md mb-12 fp-stagger-1 perspective-1000">
             {/* Holographic border */}
             <div
-              className="rounded-2xl p-[2px] relative overflow-hidden transform transition-transform hover:rotate-x-2 hover:scale-[1.02] duration-300"
+              className="rounded-2xl p-[2px] relative overflow-hidden"
               style={{
                 background: `linear-gradient(135deg, ${ACCENT_PINK}, ${ACCENT_PURPLE}, ${ACCENT_CYAN})`,
                 boxShadow: `0 20px 50px -10px ${ACCENT_PURPLE}40`,
+                transform: `perspective(1200px) translateY(${cardLift * 0.45}px) rotateX(${cardTiltX * 0.55}deg) rotateY(${cardTiltY * 0.45}deg) scale(${1 + cardEnergy * 0.025})`,
+                transition: `transform ${ticketTransformMs}ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease`,
               }}
             >
               {/* Shine sweep */}
@@ -606,15 +785,7 @@ export default function FriendPartyPage() {
 
                 {/* QR Code */}
                 <div className="bg-white p-3 rounded-lg shadow-2xl">
-                  {QRCode ? (
-                    <QRCode value={ticketCode} size={160} />
-                  ) : (
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(ticketCode)}`}
-                      alt="Ticket QR Code"
-                      className="w-[160px] h-[160px]"
-                    />
-                  )}
+                  <QRCode value={ticketCode} size={160} />
                 </div>
 
                 <div className="space-y-2">
@@ -631,7 +802,7 @@ export default function FriendPartyPage() {
 
                 <div
                   className="flex items-center gap-2 opacity-50"
-                  style={{ animation: mounted ? 'fp-beat 2s ease-in-out infinite' : 'none' }}
+                  style={{ animation: 'fp-beat 2s ease-in-out infinite' }}
                 >
                   <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                   <p className="text-[9px] uppercase tracking-widest" style={{ fontFamily: "'Press Start 2P', monospace" }}>
@@ -655,13 +826,36 @@ export default function FriendPartyPage() {
               </p>
             </div>
             <div className="fp-stagger-5 w-full max-w-md relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
+              <div
+                className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-cyan-500 rounded-2xl blur transition duration-300"
+                style={{
+                  opacity: cardGlowOpacity,
+                  transform: `scale(${cardHaloScale}) rotate(${cardPrismAngle * 0.15}deg)`,
+                  backgroundSize: '220% 220%',
+                  animation: `fp-card-halo-wave ${cardHaloPulseDuration}s ease-in-out infinite, fp-card-halo-spin ${cardHaloSpinDuration}s linear infinite`,
+                }}
+              ></div>
 
 
               {/* Glass card */}
-              <div className="relative rounded-2xl backdrop-blur-xl border border-white/10 p-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}>
-                <div className="rounded-xl bg-white/[0.03] p-6 md:p-8">
-                  <div className="flex flex-col gap-6 text-center">
+              <div className="relative rounded-2xl backdrop-blur-xl border p-1" style={cardOuterStyle}>
+                <div className="rounded-xl p-6 md:p-8 relative overflow-hidden" style={cardInnerStyle}>
+                  <div
+                    className="absolute inset-0 pointer-events-none mix-blend-screen fp-card-prism"
+                    style={{
+                      opacity: cardPrismOpacity,
+                      transform: `translate3d(${cardPrismShiftX}px, ${cardPrismShiftY}px, 0) scale(${1.04 + cardEnergy * 0.08})`,
+                      animationDuration: `${cardPrismDuration}s`,
+                      background: `conic-gradient(from ${cardPrismAngle}deg at ${cardPrismCenterX}% ${cardPrismCenterY}%, rgba(255,45,117,0.24), rgba(168,85,247,0.12), rgba(34,211,238,0.22), rgba(249,115,22,0.12), rgba(255,45,117,0.24))`,
+                    }}
+                  ></div>
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at ${100 - cardPrismCenterX}% ${100 - cardPrismCenterY}%, rgba(255,255,255,${0.05 + cardEnergy * 0.11}) 0%, rgba(255,255,255,0) 55%)`,
+                    }}
+                  ></div>
+                  <div className="relative z-[1] flex flex-col gap-6 text-center">
                     <p className="text-white/60 text-sm leading-relaxed" style={{ fontFamily: "'Outfit', sans-serif" }}>
                       Sign in with Google and see who you get matched with.
                     </p>
@@ -684,7 +878,6 @@ export default function FriendPartyPage() {
                       {signInLoading ? 'Redirecting...' : 'Sign in with Google'}
                     </button>
                   </div>
-
                 </div>
               </div>
             </div>
