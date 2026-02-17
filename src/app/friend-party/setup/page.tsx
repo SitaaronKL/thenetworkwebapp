@@ -100,7 +100,7 @@ export default function ProfileSetup() {
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
     const [formData, setFormData] = useState({
-        networks: '',
+        networks: 'McMaster University',
         birthday: '',
         work: '',
         instagram: ''
@@ -146,11 +146,11 @@ export default function ProfileSetup() {
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent'
                         }}>
-                            Profile Uplink
+                            Profile Setup
                         </span>
                     </h1>
                     <p className="text-white/40 text-xs tracking-wider uppercase font-semibold">
-                        Initialize your party identity
+                        Make sure your party identity is up to date
                     </p>
                 </div>
 
@@ -179,7 +179,7 @@ export default function ProfileSetup() {
                     {/* Birthday */}
                     <div className="group">
                         <label className="block text-[10px] uppercase tracking-[0.15em] text-white/40 font-bold mb-2 ml-1">
-                            Date of Origin
+                            Date of Birth
                         </label>
                         <div className="relative">
                             <input
@@ -197,13 +197,13 @@ export default function ProfileSetup() {
                     {/* Work */}
                     <div className="group">
                         <label className="block text-[10px] uppercase tracking-[0.15em] text-white/40 font-bold mb-2 ml-1">
-                            Current Mission
+                            Current Obsession
                         </label>
                         <div className="relative">
                             <input
                                 required
                                 type="text"
-                                placeholder="What are you working on?"
+                                placeholder="What are you interested in?"
                                 value={formData.work}
                                 onChange={(e) => setFormData({ ...formData, work: e.target.value })}
                                 className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-cyan-500/50 focus:bg-white/[0.05] transition-all"
