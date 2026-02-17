@@ -3,6 +3,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase';
+import { YouTubeService } from '@/services/youtube';
+import { ensureFriendPartyAttendance } from '@/lib/friend-party-attendance';
 
 const THE_NETWORK_SVG = '/mcmaster/TheNetwork.svg';
 
@@ -12,6 +15,7 @@ const ACCENT_PINK = '#ff2d75';
 const ACCENT_PURPLE = '#a855f7';
 const ACCENT_ORANGE = '#f97316';
 const ACCENT_CYAN = '#22d3ee';
+const MCMASTER_SCHOOL = 'McMaster University';
 
 /* ─── Floating Particles Background (Reused) ─── */
 function FloatingParticles() {
@@ -99,21 +103,210 @@ function FloatingParticles() {
 export default function ProfileSetup() {
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
-        networks: 'McMaster University',
+        networks: MCMASTER_SCHOOL,
         birthday: '',
         work: '',
         instagram: ''
     });
 
-    useEffect(() => { setMounted(true); }, []);
+    const normalizeNetworksWithMcMaster = (networks: unknown): string[] => {
+        const existing = Array.isArray(networks)
+            ? networks
+                .map((network) => String(network || '').trim())
+                .filter((network) => network.length > 0)
+            : [];
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // In a real app, we would save this data to the backend here.
-        // For now, just redirect to the dashboard.
-        router.push('/friend-party/dashboard');
+        const withoutMcMaster = existing.filter(
+            (network) => network.toLowerCase() !== MCMASTER_SCHOOL.toLowerCase()
+        );
+        return [MCMASTER_SCHOOL, ...withoutMcMaster];
     };
+
+    const isFriendPartyProfileComplete = (extras: {
+        age?: number | null;
+        working_on?: string | null;
+    } | null) => {
+        const hasValidAge = typeof extras?.age === 'number' && extras.age >= 13 && extras.age <= 120;
+        const hasWorkingOn = typeof extras?.working_on === 'string' && extras.working_on.trim().length > 0;
+        return hasValidAge && hasWorkingOn;
+    };
+
+    const extractInstagramHandle = (value: string | null | undefined) => {
+        if (!value) return '';
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+        return trimmed
+            .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+            .replace(/^@/, '')
+            .replace(/\/$/, '');
+    };
+
+    useEffect(() => {
+        setMounted(true);
+
+        const checkAuth = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                router.replace('/friend-party');
+                return;
+            }
+
+            const { data: extras } = await supabase
+                .from('user_profile_extras')
+                .select('age, working_on, instagram_url, networks')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (isFriendPartyProfileComplete(extras)) {
+                router.replace('/friend-party/enrich');
+                return;
+            }
+
+            const normalizedNetworks = normalizeNetworksWithMcMaster(extras?.networks);
+            setFormData({
+                networks: normalizedNetworks.join(', '),
+                birthday: '',
+                work: extras?.working_on || '',
+                instagram: extractInstagramHandle(extras?.instagram_url),
+            });
+
+            setUserId(user.id);
+            setIsCheckingAuth(false);
+
+            await ensureFriendPartyAttendance('link');
+
+            // Keep YouTube sync running in the background.
+            YouTubeService.syncYouTubeData(user.id).catch(() => {
+                // Non-blocking by design.
+            });
+
+            // Re-trigger backend enrichment from setup to ensure it continues
+            // even if the callback page was closed quickly.
+            fetch('/api/background-profile-enrichment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                keepalive: true,
+                body: JSON.stringify({
+                    user_id: user.id,
+                    trigger_source: 'FRIEND_PARTY_SETUP',
+                }),
+            }).catch(() => {
+                // Non-blocking by design.
+            });
+        };
+
+        checkAuth();
+    }, [router]);
+
+    const calculateAge = (birthday: string) => {
+        const dob = new Date(`${birthday}T00:00:00`);
+        if (Number.isNaN(dob.getTime())) return null;
+
+        const now = new Date();
+        let age = now.getFullYear() - dob.getFullYear();
+        const monthDiff = now.getMonth() - dob.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) {
+            age -= 1;
+        }
+
+        return age;
+    };
+
+    const normalizeInstagramUrl = (raw: string) => {
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+        const handle = trimmed.replace(/^@/, '');
+        return handle ? `https://instagram.com/${handle}` : null;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userId || isSaving) return;
+
+        setIsSaving(true);
+        setErrorMessage(null);
+
+        const age = calculateAge(formData.birthday);
+        if (age === null || age < 13 || age > 120) {
+            setErrorMessage('Please provide a valid birth date.');
+            setIsSaving(false);
+            return;
+        }
+
+        const networks = formData.networks
+            .split(',')
+            .map((network) => network.trim())
+            .filter((network) => network.length > 0);
+        const normalizedNetworks = normalizeNetworksWithMcMaster(networks);
+
+        const supabase = createClient();
+
+        const { data: mcmasterSchool } = await supabase
+            .from('schools')
+            .select('id, name')
+            .ilike('name', 'McMaster%')
+            .limit(1)
+            .maybeSingle();
+
+        const { error: extrasError } = await supabase
+            .from('user_profile_extras')
+            .upsert({
+                user_id: userId,
+                age,
+                networks: normalizedNetworks,
+                college: MCMASTER_SCHOOL,
+                working_on: formData.work.trim(),
+                instagram_url: normalizeInstagramUrl(formData.instagram),
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' });
+
+        if (extrasError) {
+            setErrorMessage('Could not save your profile. Please try again.');
+            setIsSaving(false);
+            return;
+        }
+
+        const profileUpdate: Record<string, unknown> = {
+            school: MCMASTER_SCHOOL,
+        };
+        if (mcmasterSchool?.id) {
+            profileUpdate.school_id = mcmasterSchool.id;
+        }
+
+        const { error: profileUpdateError } = await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('id', userId);
+
+        if (profileUpdateError && mcmasterSchool?.id) {
+            await supabase
+                .from('profiles')
+                .update({ school: MCMASTER_SCHOOL })
+                .eq('id', userId);
+        }
+
+        await ensureFriendPartyAttendance('link');
+
+        router.push('/friend-party/enrich');
+    };
+
+    if (isCheckingAuth) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: BG_BLACK }}>
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen text-white overflow-x-hidden selection:bg-pink-500/30" style={{ backgroundColor: BG_BLACK }}>
@@ -230,17 +423,22 @@ export default function ProfileSetup() {
                         </div>
                     </div>
 
+                    {errorMessage && (
+                        <p className="text-red-400 text-xs text-center">{errorMessage}</p>
+                    )}
+
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        className="w-full mt-8 py-4 rounded-xl font-bold text-sm uppercase tracking-[0.15em] transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden group"
+                        disabled={isSaving}
+                        className="w-full mt-8 py-4 rounded-xl font-bold text-sm uppercase tracking-[0.15em] transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden group disabled:opacity-60 disabled:hover:scale-100"
                         style={{
                             fontFamily: "'Outfit', sans-serif",
                             background: `linear-gradient(135deg, ${ACCENT_PINK}, ${ACCENT_PURPLE})`,
                             boxShadow: `0 0 20px -5px ${ACCENT_PINK}40`
                         }}
                     >
-                        <span className="relative z-10">Initialize Party Pass</span>
+                        <span className="relative z-10">{isSaving ? 'Saving...' : 'Initialize Party Pass'}</span>
                         <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
                     </button>
 

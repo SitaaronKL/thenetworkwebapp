@@ -4,6 +4,9 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { YouTubeService } from '@/services/youtube';
+import { ensureFriendPartyAttendance } from '@/lib/friend-party-attendance';
+
+const MCMASTER_SCHOOL = 'McMaster University';
 
 function AuthCallbackContent() {
     const router = useRouter();
@@ -69,6 +72,48 @@ function AuthCallbackContent() {
                 router.replace('/');
                 return;
             }
+
+            const normalizeRedirect = (redirect: string | null) => {
+                if (!redirect) return null;
+                if (redirect.startsWith('/')) return redirect;
+
+                try {
+                    const url = new URL(redirect);
+                    if (url.origin === window.location.origin) {
+                        return `${url.pathname}${url.search}${url.hash}`;
+                    }
+                } catch (e) {
+                    // Ignore invalid redirects
+                }
+
+                return null;
+            };
+
+            const safeCustomRedirect = normalizeRedirect(customRedirect);
+            const isFriendPartyFlow = safeCustomRedirect?.startsWith('/friend-party') ?? false;
+
+            const normalizeNetworksWithMcMaster = (networks: unknown): string[] => {
+                const existing = Array.isArray(networks)
+                    ? networks
+                        .map((network) => String(network || '').trim())
+                        .filter((network) => network.length > 0)
+                    : [];
+
+                const withoutMcMaster = existing.filter(
+                    (network) => network.toLowerCase() !== MCMASTER_SCHOOL.toLowerCase()
+                );
+
+                return [MCMASTER_SCHOOL, ...withoutMcMaster];
+            };
+
+            const isFriendPartyProfileComplete = (extras: {
+                age?: number | null;
+                working_on?: string | null;
+            } | null) => {
+                const hasValidAge = typeof extras?.age === 'number' && extras.age >= 13 && extras.age <= 120;
+                const hasWorkingOn = typeof extras?.working_on === 'string' && extras.working_on.trim().length > 0;
+                return hasValidAge && hasWorkingOn;
+            };
 
             // Check for YouTube permissions (provider_token)
             // If no provider_token, user likely didn't grant YouTube access
@@ -211,6 +256,67 @@ function AuthCallbackContent() {
                 // Don't throw - this is background sync, user can continue
             });
 
+            let friendPartyExtras: {
+                age?: number | null;
+                working_on?: string | null;
+                networks?: string[] | null;
+            } | null = null;
+
+            if (isFriendPartyFlow) {
+                try {
+                    const { data: mcmasterSchool } = await supabase
+                        .from('schools')
+                        .select('id, name')
+                        .ilike('name', 'McMaster%')
+                        .limit(1)
+                        .maybeSingle();
+
+                    const profileUpdate: Record<string, unknown> = { school: MCMASTER_SCHOOL };
+                    if (mcmasterSchool?.id) {
+                        profileUpdate.school_id = mcmasterSchool.id;
+                    }
+
+                    const { error: profileUpdateError } = await supabase
+                        .from('profiles')
+                        .update(profileUpdate)
+                        .eq('id', userId);
+
+                    if (profileUpdateError && mcmasterSchool?.id) {
+                        await supabase
+                            .from('profiles')
+                            .update({ school: MCMASTER_SCHOOL })
+                            .eq('id', userId);
+                    }
+                } catch (e) {
+                    // Non-blocking for auth flow.
+                }
+
+                const { data: extras } = await supabase
+                    .from('user_profile_extras')
+                    .select('age, working_on, networks')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                const normalizedNetworks = normalizeNetworksWithMcMaster(extras?.networks);
+
+                await supabase
+                    .from('user_profile_extras')
+                    .upsert({
+                        user_id: userId,
+                        college: MCMASTER_SCHOOL,
+                        networks: normalizedNetworks,
+                        updated_at: new Date().toISOString(),
+                    }, { onConflict: 'user_id' });
+
+                await ensureFriendPartyAttendance('link');
+
+                friendPartyExtras = {
+                    age: extras?.age ?? null,
+                    working_on: extras?.working_on ?? null,
+                    networks: normalizedNetworks,
+                };
+            }
+
             // Determine if user needs to complete profile setup
 
             // Check if user has already completed onboarding
@@ -260,13 +366,42 @@ function AuthCallbackContent() {
                 router.push('/network');
             };
 
+            // Kick off backend enrichment in the background.
+            // This keeps sign-in fast while derive_interests + DNA run server-side.
+            if (isFriendPartyFlow || isNew || isPartial) {
+                fetch('/api/background-profile-enrichment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    keepalive: true,
+                    body: JSON.stringify({
+                        user_id: userId,
+                        trigger_source: isFriendPartyFlow ? 'FRIEND_PARTY_SIGNIN' : 'AUTH_CALLBACK_SIGNIN',
+                    }),
+                }).catch(() => {
+                    // Don't block login flow on background failures.
+                });
+            }
+
+            // Friend-party should always continue to registration setup after OAuth.
+            if (isFriendPartyFlow) {
+                setStatus('Preparing your profile...');
+                if (isFriendPartyProfileComplete(friendPartyExtras)) {
+                    router.push('/friend-party/enrich');
+                    return;
+                }
+                router.push('/friend-party/setup');
+                return;
+            }
+
             // Skip onboarding if user has already completed it (unless FORCE_ONBOARDING is true)
             if (hasCompletedOnboarding && !FORCE_ONBOARDING) {
                 setStatus('Welcome back!');
 
                 // Check for custom redirect (e.g., party page)
-                if (customRedirect) {
-                    router.push(customRedirect);
+                if (safeCustomRedirect) {
+                    router.push(safeCustomRedirect);
                     return;
                 }
 
@@ -294,7 +429,7 @@ function AuthCallbackContent() {
         };
 
         handleAuthCallback();
-    }, [router, hasAuthError]);
+    }, [router, hasAuthError, customRedirect]);
 
     if (hasAuthError) {
         return null;

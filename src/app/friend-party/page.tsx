@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
 
 let QRCode: any = null;
 try {
@@ -278,7 +278,7 @@ function DiscoLightsCanvas({
 import { useAudioParty } from '../../hooks/useAudioParty';
 
 export default function FriendPartyPage() {
-  const router = useRouter();
+  const supabase = createClient();
   const {
     startParty,
     hasStarted,
@@ -291,6 +291,7 @@ export default function FriendPartyPage() {
 
   const [ticketCode, setTicketCode] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [signInLoading, setSignInLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -335,6 +336,28 @@ export default function FriendPartyPage() {
 
   const transformStyle = getTransform();
   const flashOpacity = isMajorDrop ? Math.min(0.55, majorDropStrength * 0.6) : 0;
+
+  const handleGoogleSignIn = async () => {
+    if (signInLoading) return;
+    setSignInLoading(true);
+
+    const returnUrl = '/friend-party/setup';
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(returnUrl)}`,
+          scopes: 'email profile https://www.googleapis.com/auth/youtube.readonly',
+        },
+      });
+      if (error) {
+        setSignInLoading(false);
+      }
+    } catch {
+      setSignInLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen overflow-x-hidden text-white relative" style={{ backgroundColor: BG_BLACK }}>
@@ -634,7 +657,7 @@ export default function FriendPartyPage() {
             <div className="fp-stagger-5 w-full max-w-md relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
 
-         
+
               {/* Glass card */}
               <div className="relative rounded-2xl backdrop-blur-xl border border-white/10 p-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}>
                 <div className="rounded-xl bg-white/[0.03] p-6 md:p-8">
@@ -644,8 +667,9 @@ export default function FriendPartyPage() {
                     </p>
 
                     <button
-                      onClick={() => router.push('/friend-party/setup')}
+                      onClick={handleGoogleSignIn}
                       type="button"
+                      disabled={signInLoading}
                       className="w-full py-4 rounded-lg font-bold text-sm uppercase tracking-[0.2em] transition-all duration-500 hover:tracking-[0.3em] hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] flex items-center justify-center gap-3 bg-white text-black hover:bg-white/90"
                       style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
@@ -657,9 +681,10 @@ export default function FriendPartyPage() {
                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                       </svg>
-                      Sign in with Google
+                      {signInLoading ? 'Redirecting...' : 'Sign in with Google'}
                     </button>
                   </div>
+
                 </div>
               </div>
             </div>
