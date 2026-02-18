@@ -22,6 +22,7 @@ const TAU = Math.PI * 2;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const fract = (value: number) => value - Math.floor(value);
 type ScenePhase = 'normal' | 'build' | 'drop' | 'afterglow';
+const POST_AUTH_REDIRECT_KEY = 'tn_post_auth_redirect';
 
 /* ─── Disco Light Canvas Background ─── */
 function DiscoLightsCanvas({
@@ -493,12 +494,17 @@ export default function FriendPartyPage() {
     setSignInLoading(true);
 
     const returnUrl = '/friend-party/setup';
+    try {
+      window.localStorage.setItem(POST_AUTH_REDIRECT_KEY, returnUrl);
+    } catch {
+      // Non-blocking storage fallback.
+    }
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(returnUrl)}`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           scopes: 'email profile https://www.googleapis.com/auth/youtube.readonly',
         },
       });

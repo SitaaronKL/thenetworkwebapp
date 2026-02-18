@@ -10,6 +10,7 @@ const GLOW_COLORS = [
     [34, 211, 238], [59, 130, 246], [168, 85, 247], [236, 72, 153],
     [249, 115, 22], [234, 179, 8], [34, 197, 94],
 ];
+const POST_AUTH_REDIRECT_KEY = 'tn_post_auth_redirect';
 
 // Types
 interface Party {
@@ -183,12 +184,17 @@ export default function PartyPage() {
 
     const handleSignIn = async () => {
         // Store return URL with postAuth flag
-        const returnUrl = `${window.location.origin}/party/${slug}?postAuth=1${refParty ? `&ref_party=${refParty}` : ''}`;
+        const returnUrl = `/party/${slug}?postAuth=1${refParty ? `&ref_party=${refParty}` : ''}`;
+        try {
+            window.localStorage.setItem(POST_AUTH_REDIRECT_KEY, returnUrl);
+        } catch {
+            // Non-blocking storage fallback.
+        }
 
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(returnUrl)}`,
+                redirectTo: `${window.location.origin}/auth/callback`,
                 scopes: 'email profile https://www.googleapis.com/auth/youtube.readonly'
             }
         });

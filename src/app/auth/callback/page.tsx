@@ -7,6 +7,7 @@ import { YouTubeService } from '@/services/youtube';
 import { ensureFriendPartyAttendance } from '@/lib/friend-party-attendance';
 
 const MCMASTER_SCHOOL = 'McMaster University';
+const POST_AUTH_REDIRECT_KEY = 'tn_post_auth_redirect';
 
 function AuthCallbackContent() {
     const router = useRouter();
@@ -89,7 +90,22 @@ function AuthCallbackContent() {
                 return null;
             };
 
-            const safeCustomRedirect = normalizeRedirect(customRedirect);
+            const storedRedirect = (() => {
+                try {
+                    return window.localStorage.getItem(POST_AUTH_REDIRECT_KEY);
+                } catch {
+                    return null;
+                }
+            })();
+            const redirectCandidate = customRedirect || storedRedirect;
+            const safeCustomRedirect = normalizeRedirect(redirectCandidate);
+            if (storedRedirect) {
+                try {
+                    window.localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+                } catch {
+                    // Non-blocking storage fallback.
+                }
+            }
             const isFriendPartyFlow = safeCustomRedirect?.startsWith('/friend-party') ?? false;
 
             const normalizeNetworksWithMcMaster = (networks: unknown): string[] => {
