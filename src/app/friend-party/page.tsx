@@ -822,7 +822,7 @@ export default function FriendPartyPage() {
                 Wazzup party people!!!!
               </p>
               <p className="text-sm font-medium text-white/80 leading-relaxed mt-2" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                Have you ever talked to someone you’ve known for a long time only to realize you’re more similar than you thought? It’s way too common to pass by people you probably should’ve already met. So tonight we’re running a little experiment.
+                Have you ever talked to someone you’ve known for a long time only to realize you’re more similar than you thought? It’s way too common to pass by people you probably should’ve already met. Tonight we’re running a little experiment.
               </p>
             </div>
             <div className="fp-stagger-5 w-full max-w-md relative group">
