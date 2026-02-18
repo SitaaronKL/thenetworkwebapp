@@ -320,8 +320,7 @@ export default function FriendPartyEnrichPage() {
           <div className="rounded-xl border border-white/10 bg-gradient-to-r from-white/[0.04] to-white/[0.01] p-5 md:p-6">
             <div className="flex flex-col items-center text-center gap-3">
               <p className="text-base md:text-[1.22rem] font-semibold text-white/90 leading-relaxed max-w-3xl">
-                Read a short note from a fellow McMaster student.
-              </p>
+                From us, to you.              </p>
               <p className="text-sm md:text-base text-white/60 leading-relaxed max-w-3xl">
                 Why The Network exists, and how better introductions can unlock opportunities, friendships, and
                 momentum on campus.
@@ -330,7 +329,7 @@ export default function FriendPartyEnrichPage() {
                 href={MCMASTER_STATEMENT_URL}
                 className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/85 hover:text-white hover:border-white/30 transition-colors"
               >
-                Open statement
+                Open
                 <span className="transition-transform hover:translate-x-0.5">↗</span>
               </Link>
             </div>

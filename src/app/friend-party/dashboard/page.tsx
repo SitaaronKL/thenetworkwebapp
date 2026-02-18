@@ -262,7 +262,7 @@ export default function PartyDashboard() {
           <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Party Pass Active</p>
           <h1 className="text-3xl md:text-4xl font-black leading-tight">You&apos;re in. Match drops soon.</h1>
           <p className="text-sm md:text-base text-white/65 leading-relaxed">
-            Your match reveal goes live on February 27 at 12:00 PM ET. Use this page to track countdown and who is in.
+            Your match reveal goes live on February 28 at 8:00 PM ET. Use this page to track countdown and who is in.
           </p>
         </section>
 
