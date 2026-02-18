@@ -323,7 +323,7 @@ export default function FriendPartyEnrichPage() {
                 Built for you.
               </p>
               <p className="text-sm md:text-base text-white/60 leading-relaxed max-w-3xl">
-                The Network turns your signal into meaningful introductions that unlock opportunity, friendship, and momentum, both on campus and in the real world.
+                Curious how The Network began? Read our origin story below.
               </p>
               <Link
                 href={MCMASTER_STATEMENT_URL}
