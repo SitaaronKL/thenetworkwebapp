@@ -320,10 +320,10 @@ export default function FriendPartyEnrichPage() {
           <div className="rounded-xl border border-white/10 bg-gradient-to-r from-white/[0.04] to-white/[0.01] p-5 md:p-6">
             <div className="flex flex-col items-center text-center gap-3">
               <p className="text-base md:text-[1.22rem] font-semibold text-white/90 leading-relaxed max-w-3xl">
-                From us, to you.              </p>
+                Built for you.
+              </p>
               <p className="text-sm md:text-base text-white/60 leading-relaxed max-w-3xl">
-                Why The Network exists, and how better introductions can unlock opportunities, friendships, and
-                momentum on campus.
+                The Network turns your signal into meaningful introductions that unlock opportunity, friendship, and momentum, both on campus and in the real world.
               </p>
               <Link
                 href={MCMASTER_STATEMENT_URL}
