@@ -597,7 +597,7 @@ export default function FriendPartyPage() {
               Click to Enter
             </p>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tighter" style={{ fontFamily: "'Outfit', sans-serif" }}>
-              THE PARTY
+              YOUR INVITE
             </h1>
           </div>
         </div>
