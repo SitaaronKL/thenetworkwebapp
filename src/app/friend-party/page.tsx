@@ -703,7 +703,7 @@ export default function FriendPartyPage() {
             </p>
           </div>
           <p className="text-xs font-medium tracking-widest text-white/50 uppercase">
-            Feb 28 · 10 PM · Limited Entry
+            Feb 28 · 8 PM · Limited Entry
           </p>
         </div>
 
