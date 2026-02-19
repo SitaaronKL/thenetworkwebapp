@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 
@@ -120,10 +120,21 @@ function PartyBackground() {
     return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full z-0 pointer-events-none" aria-hidden />;
 }
 
+const FRIEND_PARTY_SLUG = 'friend-party';
+
 export default function PartyPage() {
     const params = useParams();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const slug = params.slug as string;
+
+    // Send /party/friend-party to the dedicated Friend Party invite page
+    useEffect(() => {
+        if (slug === FRIEND_PARTY_SLUG) {
+            const qs = searchParams.toString();
+            router.replace(qs ? `/friend-party?${qs}` : '/friend-party');
+        }
+    }, [slug, router, searchParams]);
 
     const [party, setParty] = useState<Party | null>(null);
     const [userRsvp, setUserRsvp] = useState<UserRsvp | null>(null);
@@ -139,6 +150,7 @@ export default function PartyPage() {
     const refParty = searchParams.get('ref_party');
 
     useEffect(() => {
+        if (slug === FRIEND_PARTY_SLUG) return;
         async function loadData() {
             try {
                 // Fetch party data
@@ -249,6 +261,18 @@ export default function PartyPage() {
                     <Link href="/" className="text-amber-400 hover:text-amber-300">
                         Go to The Network →
                     </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // While redirecting /party/friend-party → /friend-party, show minimal loading
+    if (slug === FRIEND_PARTY_SLUG) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-white/60 text-sm">Taking you to the invite...</p>
                 </div>
             </div>
         );

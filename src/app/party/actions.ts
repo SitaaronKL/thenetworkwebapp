@@ -6,6 +6,44 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const ADMIN_PASSWORD = 'Superman1234@';
+const FRIEND_PARTY_SLUG = 'friend-party';
+
+export async function getFriendPartySignups(password: string) {
+  if (password !== ADMIN_PASSWORD) {
+    return { error: 'Invalid password' };
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return { error: 'Service configuration error' };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  try {
+    const { data: party, error: partyError } = await supabase
+      .from('parties')
+      .select('id, slug, title')
+      .eq('slug', FRIEND_PARTY_SLUG)
+      .maybeSingle();
+
+    if (partyError || !party?.id) {
+      return { data: { party: null, stats: null, rsvps: [] } };
+    }
+
+    const result = await getPartyStats(password, party.id);
+    if (result.error) return result;
+    return {
+      data: {
+        party: party as { id: string; slug: string; title: string },
+        stats: result.data?.stats ?? null,
+        rsvps: result.data?.rsvps ?? [],
+      },
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to load Friend Party signups';
+    return { error: message };
+  }
+}
 
 export async function getPartyAdminData(password: string) {
   if (password !== ADMIN_PASSWORD) {
@@ -207,20 +245,39 @@ export async function getPartyStats(password: string, partyId: string) {
 
     if (detailError) throw detailError;
 
-    // Get user profiles separately to avoid join issues
+    // Get user profiles (only columns that exist in all envs)
     const userIds = detailedRsvps?.map((r: any) => r.user_id).filter(Boolean) || [];
-    const userProfiles: Record<string, any> = {};
-    
+    const userProfiles: Record<string, { full_name?: string | null }> = {};
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
+        .select('id, full_name')
         .in('id', userIds);
-      
       if (!profilesError && profiles) {
         profiles.forEach((p: any) => {
-          userProfiles[p.id] = p;
+          userProfiles[p.id] = { full_name: p.full_name };
         });
+      }
+    }
+
+    // Get name + email from Auth for every user (email is only in auth, not profiles)
+    const authDetails: Record<string, { name: string | null; email: string | null }> = {};
+    const seenUids = new Set<string>();
+    for (const rsvp of detailedRsvps ?? []) {
+      const uid = rsvp.user_id;
+      if (!uid || seenUids.has(uid)) continue;
+      seenUids.add(uid);
+      try {
+        const { data: { user }, error } = await supabase.auth.admin.getUserById(uid);
+        if (error || !user) {
+          authDetails[uid] = { name: null, email: null };
+          continue;
+        }
+        const name = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split('@')[0] ?? null)?.trim() || null;
+        const email = user.email ?? null;
+        authDetails[uid] = { name, email };
+      } catch {
+        authDetails[uid] = { name: null, email: null };
       }
     }
 
@@ -230,6 +287,9 @@ export async function getPartyStats(password: string, partyId: string) {
     // Add authenticated user RSVPs
     detailedRsvps?.forEach((rsvp: any) => {
       const profile = rsvp.user_id ? userProfiles[rsvp.user_id] : null;
+      const auth = rsvp.user_id ? authDetails[rsvp.user_id] : null;
+      const userName = profile?.full_name?.trim() || auth?.name || null;
+      const userEmail = auth?.email ?? null;
       details.push({
         id: rsvp.id,
         user_id: rsvp.user_id,
@@ -237,8 +297,8 @@ export async function getPartyStats(password: string, partyId: string) {
         ticket_code: rsvp.ticket_code,
         rsvped_at: rsvp.rsvped_at,
         source: rsvp.source,
-        user_name: profile?.full_name || null,
-        user_email: profile?.email || null,
+        user_name: userName,
+        user_email: userEmail,
         waitlist_name: null,
         waitlist_email: null,
       });
