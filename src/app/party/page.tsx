@@ -141,7 +141,6 @@ export default function PartyAdminPage() {
 
       // Refresh the stats
       if (selectedParty) {
-        // Clear cached stats to force reload
         setPartyStats(prev => {
           const newStats = { ...prev };
           delete newStats[selectedParty];
@@ -152,7 +151,6 @@ export default function PartyAdminPage() {
           delete newDetails[selectedParty];
           return newDetails;
         });
-        // Reload
         loadPartyStats(selectedParty);
       }
     } catch (err: any) {

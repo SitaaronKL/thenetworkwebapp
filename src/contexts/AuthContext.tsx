@@ -13,6 +13,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const POST_AUTH_REDIRECT_KEY = 'tn_post_auth_redirect';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -51,6 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const signInWithGoogle = async () => {
+        try {
+            window.localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+        } catch {
+            // Non-blocking storage fallback.
+        }
+
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {

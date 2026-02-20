@@ -9,7 +9,7 @@ const ACCENT_PINK = '#ff2d75';
 const ACCENT_PURPLE = '#a855f7';
 const ACCENT_CYAN = '#22d3ee';
 
-const MATCH_REVEAL_DATE = new Date('2026-02-27T12:00:00-05:00');
+const MATCH_REVEAL_DATE = new Date('2026-02-28T20:00:00-05:00');
 
 type RsvpAttendee = {
   id: string;

@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/utils/supabase/server';
 import { FRIEND_PARTY_SLUG } from '@/lib/friend-party-attendance';
 
-const FRIEND_PARTY_MATCH_REVEAL_ISO = '2026-02-27T12:00:00-05:00';
+const FRIEND_PARTY_MATCH_REVEAL_ISO = '2026-02-28T20:00:00-05:00';
 
 type PartyRow = {
   id: string;
