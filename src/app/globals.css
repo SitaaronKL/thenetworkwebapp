@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 /* Hide scrollbar utility */
@@ -11,87 +11,110 @@
   display: none;
 }
 
-/* Derived from UnboardingUI/src/styles/theme.css */
-
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --font-size: 16px;
-  /* Dark mode is default - global invert filter handles light mode */
+
+  /* Brand Palette — Void Black Canvas */
   --background: #000000;
   --foreground: #ffffff;
-  --card: #1a1a1a;
+  --card: #0A0A0A;
   --card-foreground: #ffffff;
-  --popover: #1a1a1a;
+  --popover: #111111;
   --popover-foreground: #ffffff;
   --primary: #ffffff;
   --primary-foreground: #000000;
-  --secondary: #2a2a2a;
+  --secondary: #0A0A0A;
   --secondary-foreground: #ffffff;
-  --muted: #333333;
-  --muted-foreground: #a0a0a0;
-  --accent: #2a2a2a;
+  --muted: #1A1A1A;
+  --muted-foreground: #A0A0A0;
+  --accent: #111111;
   --accent-foreground: #ffffff;
-  --destructive: #d4183d;
+  --destructive: #EF4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.06);
   --input: transparent;
-  --input-background: #1a1a1a;
-  --switch-background: #444444;
+  --input-background: #0A0A0A;
+  --switch-background: #333333;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --ring: rgba(255, 255, 255, 0.24);
+
+  /* Functional colors */
+  --chart-1: #E8E8E8;
+  --chart-2: #A0A0A0;
+  --chart-3: #666666;
+  --chart-4: #333333;
+  --chart-5: #1A1A1A;
+
+  /* Brand radius — sharp, not bubbly */
+  --radius: 0.25rem;
+
+  --sidebar: #0A0A0A;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #111111;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: rgba(255, 255, 255, 0.12);
+
+  /* Brand text tiers */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-tertiary: #666666;
+  --text-disabled: #444444;
+
+  /* Border tiers */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.24);
+  --border-focus: #ffffff;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 500ms;
+  --duration-reveal: 800ms;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #0A0A0A;
+  --card-foreground: #ffffff;
+  --popover: #111111;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #0A0A0A;
+  --secondary-foreground: #ffffff;
+  --muted: #1A1A1A;
+  --muted-foreground: #A0A0A0;
+  --accent: #111111;
+  --accent-foreground: #ffffff;
+  --destructive: #EF4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: rgba(255, 255, 255, 0.24);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --chart-1: #E8E8E8;
+  --chart-2: #A0A0A0;
+  --chart-3: #666666;
+  --chart-4: #333333;
+  --chart-5: #1A1A1A;
+  --sidebar: #0A0A0A;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #111111;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: rgba(255, 255, 255, 0.24);
 }
 
 @theme inline {
@@ -121,10 +144,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -135,10 +158,11 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   /* Font Family Overrides */
-  --font-sans: "Inter", "SF Pro Display", system-ui, sans-serif;
-  --font-display: "SF Pro Display", "Inter", system-ui, sans-serif;
-  --font-brand: 'Feature Deck Condensed', 'Saans', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Saans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, 'Apple Color Emoji', Arial, sans-serif, 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --font-sans: "Inter", "SF Pro Display", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "SF Pro Display", "Inter", system-ui, sans-serif;
+  --font-brand: 'Feature Deck Condensed', 'Space Grotesk', 'Saans', sans-serif;
+  --font-ui: 'Saans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Consolas", monospace;
 }
 
 @font-face {
@@ -189,6 +213,8 @@
     width: 100vw;
     height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html {
@@ -197,47 +223,52 @@
   }
 
   h1 {
-    font-size: 2.5rem;
-    /* text-4xl approx */
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
   }
 
   h2 {
-    font-size: 2rem;
-    /* text-3xl approx */
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
   }
 
   h3 {
+    font-family: var(--font-display);
     font-size: 1.75rem;
-    /* text-2xl */
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
   }
 
   h4 {
     font-size: 1.5rem;
-    /* text-xl */
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
   }
 
   label {
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
+    color: var(--text-secondary);
   }
 
   button {
-    font-size: 1rem;
-    font-weight: var(--font-weight-medium);
+    font-size: 0.875rem;
+    font-weight: 600;
     line-height: 1.5;
+    letter-spacing: 0.02em;
   }
 
   input {
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
@@ -245,11 +276,11 @@
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.5s var(--ease-out);
   }
 
   .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
+    animation: fadeInUp 0.8s var(--ease-out) forwards;
   }
 
   .animate-float-slow {
@@ -284,6 +315,14 @@
     font-family: var(--font-ui);
   }
 
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
   .hero3d {
     position: absolute;
     inset: 0;
@@ -301,6 +340,25 @@
 
   .h-100svh {
     height: 100svh;
+  }
+
+  /* Brand text glow for hero elements */
+  .text-glow {
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+  }
+
+  /* Brand edge glow on interactive elements */
+  .edge-glow {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  }
+
+  /* Overline typography utility */
+  .overline {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
   }
 
   .btn-pulse {
@@ -325,7 +383,7 @@
   }
 
   .btn-pulse-active::before {
-    animation: pulse-ring 0.7s ease-out forwards;
+    animation: pulse-ring 0.7s var(--ease-out) forwards;
   }
 
   .btn-glow {
@@ -367,7 +425,7 @@
   @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(12px);
     }
 
     to {
@@ -389,7 +447,7 @@
   }
 
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.3s var(--ease-out);
   }
 
   @keyframes float {
@@ -403,48 +461,24 @@
       transform: translateY(-20px);
     }
   }
+
+  @keyframes staggerReveal {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-stagger-reveal {
+    animation: staggerReveal var(--duration-reveal) var(--ease-out) forwards;
+    opacity: 0;
+  }
 }
 
-
-
-/* =============================================================================
-   THEME SYSTEM DOCUMENTATION
-   =============================================================================
-   
-   HOW IT WORKS:
-   -------------
-   This app uses a simple invert-based theme system:
-   
-   1. LIGHT MODE (default for new users):
-      - CSS filter `invert(1) hue-rotate(180deg)` applied to <html>
-      - Class `theme-light` added to <html>
-      - The filter inverts ALL colors: black→white, white→black
-      - The hue-rotate(180deg) corrects color distortion from inversion
-   
-   2. DARK MODE:
-      - No filter applied to <html>
-      - No special class on <html>
-      - All pages render with their native dark styling (black bg, white text)
-   
-   IMPORTANT RULES:
-   ----------------
-   - Components should ONLY define their dark mode styles (this is the default)
-   - The global invert filter automatically creates light mode
-   - NO component should add special `.theme-light` overrides for colors
-   - The ONLY exception is media (images, videos) which need counter-inversion
-   
-   MEDIA HANDLING:
-   ---------------
-   Images and videos would get double-inverted (looking weird) in light mode.
-   Use the `.invert-media` class on <img>/<video> to counter-invert them.
-   
-   TOGGLE LOCATION:
-   ----------------
-   The theme toggle is in Menu.tsx. It:
-   - Saves preference to localStorage as 'theme_mode' ('dark' or 'light')
-   - Applies/removes the filter and class on <html>
-   
-   ============================================================================= */
 
 /* Force Sigma.js labels to white on Digital DNA page */
 .sigma-container,
@@ -457,17 +491,11 @@
   color: #000000 !important;
 }
 
-/* -----------------------------------------------------------------------------
-   MEDIA COUNTER-INVERSION
-   When light mode is active, images get inverted by the global filter.
-   Apply .invert-media to any <img> or <video> to preserve its original colors.
-   ----------------------------------------------------------------------------- */
+/* Media counter-inversion for invert-based light mode */
 .invert-media {
-  /* No filter in dark mode - image displays normally */
   filter: none;
 }
 
-/* In light mode, counter-invert to cancel out the global invert */
 .theme-light .invert-media {
   filter: invert(1) hue-rotate(180deg);
 }

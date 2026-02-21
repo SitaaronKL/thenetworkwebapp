@@ -48,97 +48,75 @@ export default function GlowdownBackground() {
             canvas.style.height = `${h}px`;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-            // Re seed particles on resize for consistent density
-            const density = prefersReducedMotion ? 0.00003 : 0.00006;
+            const density = prefersReducedMotion ? 0.00002 : 0.00004;
             const count = Math.floor(w * h * density);
             particlesRef.current = new Array(count).fill(null).map(() => {
-                const r = 1 + Math.random() * 3.5;
+                const r = 0.5 + Math.random() * 2;
                 return {
                     x: Math.random() * w,
                     y: Math.random() * h,
                     r,
-                    vx: (-0.15 + Math.random() * 0.3) * (prefersReducedMotion ? 0.4 : 1),
-                    vy: (-0.08 + Math.random() * 0.16) * (prefersReducedMotion ? 0.4 : 1),
-                    alpha: 0.15 + Math.random() * 0.35,
-                    alphaV: (-0.003 + Math.random() * 0.006) * (prefersReducedMotion ? 0.5 : 1),
+                    vx: (-0.1 + Math.random() * 0.2) * (prefersReducedMotion ? 0.3 : 1),
+                    vy: (-0.05 + Math.random() * 0.1) * (prefersReducedMotion ? 0.3 : 1),
+                    alpha: 0.08 + Math.random() * 0.2,
+                    alphaV: (-0.002 + Math.random() * 0.004) * (prefersReducedMotion ? 0.4 : 1),
                 };
             });
-        };
-
-        const drawBackground = (w: number, h: number) => {
-            // Base: deep black with subtle purple tint
-            const g = ctx.createRadialGradient(w * 0.5, h * 0.35, 0, w * 0.5, h * 0.35, Math.max(w, h));
-            g.addColorStop(0, "rgba(15, 12, 25, 1)");
-            g.addColorStop(0.55, "rgba(6, 6, 12, 1)");
-            g.addColorStop(1, "rgba(0, 0, 0, 1)");
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, w, h);
-
-            // Soft vignette
-            const v = ctx.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.2, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
-            v.addColorStop(0, "rgba(0, 0, 0, 0)");
-            v.addColorStop(1, "rgba(0, 0, 0, 0.55)");
-            ctx.fillStyle = v;
-            ctx.fillRect(0, 0, w, h);
         };
 
         const step = () => {
             const w = canvas.clientWidth;
             const h = canvas.clientHeight;
 
-            drawBackground(w, h);
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, w, h);
 
             const particles = particlesRef.current;
             const mouse = mouseRef.current;
 
-            // Mouse glow hotspot
             if (mouse.active) {
-                const mg = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 220);
-                mg.addColorStop(0, "rgba(255, 255, 255, 0.10)");
-                mg.addColorStop(0.35, "rgba(255, 255, 255, 0.06)");
+                const mg = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 180);
+                mg.addColorStop(0, "rgba(255, 255, 255, 0.06)");
+                mg.addColorStop(0.4, "rgba(255, 255, 255, 0.03)");
                 mg.addColorStop(1, "rgba(255, 255, 255, 0)");
                 ctx.fillStyle = mg;
                 ctx.fillRect(0, 0, w, h);
             }
 
-            // Particles
             for (const p of particles) {
                 p.x += p.vx;
                 p.y += p.vy;
 
-                // Wrap
                 if (p.x < -20) p.x = w + 20;
                 if (p.x > w + 20) p.x = -20;
                 if (p.y < -20) p.y = h + 20;
                 if (p.y > h + 20) p.y = -20;
 
                 p.alpha += p.alphaV;
-                if (p.alpha < 0.12 || p.alpha > 0.55) p.alphaV *= -1;
-                p.alpha = clamp(p.alpha, 0.12, 0.55);
+                if (p.alpha < 0.06 || p.alpha > 0.3) p.alphaV *= -1;
+                p.alpha = clamp(p.alpha, 0.06, 0.3);
 
-                // Slight attraction to mouse
                 if (mouse.active && !prefersReducedMotion) {
                     const dx = mouse.x - p.x;
                     const dy = mouse.y - p.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 220) {
-                        const pull = (1 - dist / 220) * 0.015;
+                    if (dist < 180) {
+                        const pull = (1 - dist / 180) * 0.01;
                         p.vx += (dx / (dist + 0.001)) * pull;
                         p.vy += (dy / (dist + 0.001)) * pull;
-                        p.vx = clamp(p.vx, -0.35, 0.35);
-                        p.vy = clamp(p.vy, -0.25, 0.25);
+                        p.vx = clamp(p.vx, -0.25, 0.25);
+                        p.vy = clamp(p.vy, -0.15, 0.15);
                     }
                 }
 
-                // Glow dot
-                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 9);
+                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 6);
                 grad.addColorStop(0, `rgba(255, 255, 255, ${p.alpha})`);
-                grad.addColorStop(0.45, `rgba(255, 255, 255, ${p.alpha * 0.35})`);
+                grad.addColorStop(0.5, `rgba(255, 255, 255, ${p.alpha * 0.25})`);
                 grad.addColorStop(1, "rgba(255, 255, 255, 0)");
 
                 ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r * 9, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.r * 6, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -187,17 +165,6 @@ export default function GlowdownBackground() {
                     display: "block",
                     width: "100%",
                     height: "100%",
-                }}
-            />
-            {/* Optional soft film grain overlay */}
-            <div
-                style={{
-                    position: "absolute",
-                    inset: 0,
-                    opacity: 0.08,
-                    mixBlendMode: "overlay",
-                    backgroundImage:
-                        "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E\")",
                 }}
             />
         </div>

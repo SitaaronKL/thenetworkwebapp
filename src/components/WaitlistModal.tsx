@@ -18,7 +18,7 @@ interface WaitlistResult {
   has_launch_party_ticket: boolean;
 }
 
-export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: WaitlistModalProps) {
+export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [school, setSchool] = useState('');
@@ -32,7 +32,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
   const [copied, setCopied] = useState(false);
   const [isLoadingExisting, setIsLoadingExisting] = useState(false);
 
-  // Load campaign code and referral code from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedCampaignCode = localStorage.getItem('marketing_campaign_code');
@@ -48,7 +47,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
     }
   }, []);
 
-  // When modal opens and we have a persisted waitlist signup, fetch their entry to show the referral screen
   useEffect(() => {
     if (!isOpen || typeof window === 'undefined') return;
     const storedEmail = localStorage.getItem('waitlist_signed_up_email');
@@ -97,7 +95,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       const supabase = createClient();
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Check if email already exists on waitlist
       const { data: existingEntry, error: checkError } = await supabase
         .rpc('get_waitlist_entry_by_email', { p_email: normalizedEmail });
 
@@ -106,7 +103,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       }
 
       if (existingEntry && existingEntry.length > 0) {
-        // User already on waitlist - show their existing invite code
         setWaitlistResult({
           id: existingEntry[0].id,
           invite_code: existingEntry[0].invite_code,
@@ -122,7 +118,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         return;
       }
 
-      // Get campaign_id if we have a campaign code
       let campaignId = null;
       if (campaignCode) {
         const { data: campaign } = await supabase
@@ -136,7 +131,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         }
       }
 
-      // Use the database function to create entry with invite code
       const { data: result, error: insertError } = await supabase
         .rpc('create_waitlist_entry', {
           p_name: name.trim(),
@@ -162,13 +156,11 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         });
       }
 
-      // Reset form and show success state
       setName('');
       setEmail('');
       setSchool('');
       setIsSubmitted(true);
 
-      // Clear campaign and referral data from localStorage after successful signup
       if (typeof window !== 'undefined') {
         localStorage.removeItem('marketing_campaign_code');
         localStorage.removeItem('marketing_campaign_name');
@@ -201,7 +193,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = link;
         document.body.appendChild(textArea);
@@ -230,35 +221,23 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
       <div
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: theme === 'dark' ? '#ffffff' : '#000000',
-          color: theme === 'dark' ? '#000000' : '#ffffff',
-        }}
       >
-        <button
-          className={styles.closeButton}
-          onClick={handleClose}
-          style={{
-            color: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-          }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <button className={styles.closeButton} onClick={handleClose}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
 
         {isLoadingExisting ? (
-          // Loading existing waitlist entry (returning user)
           <div className={styles.successState}>
             <div className={styles.loadingSpinner} />
             <h2 className={styles.titleSuccess}>You&apos;re on the waitlist!</h2>
             <p className={styles.subtitleCompact}>Loading your invite link...</p>
           </div>
         ) : (isSubmitted || waitlistResult) ? (
-          // Success State with Invite Link
           <div className={styles.successState}>
             <div className={styles.successIcon}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
@@ -273,19 +252,17 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
               >Insta</a> to stay updated.
             </p>
 
-            {/* Referral Section */}
             <div className={styles.referralSection}>
               <h3 className={styles.referralTitle}>Want to skip the line?</h3>
               <p className={styles.referralSubtitle}>
                 Invite friends to unlock exclusive rewards
               </p>
 
-              {/* Reward Tiers */}
               <div className={styles.rewardTiers}>
                 <div className={`${styles.rewardTier} ${isEarlyTester ? styles.rewardUnlocked : ''}`}>
                   <div className={styles.rewardIcon}>
                     {isEarlyTester ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                         <polyline points="22 4 12 14.01 9 11.01" />
                       </svg>
@@ -302,7 +279,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                 <div className={`${styles.rewardTier} ${hasLaunchTicket ? styles.rewardUnlocked : ''}`}>
                   <div className={styles.rewardIcon}>
                     {hasLaunchTicket ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                         <polyline points="22 4 12 14.01 9 11.01" />
                       </svg>
@@ -317,7 +294,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div className={styles.progressContainer}>
                 <div className={styles.progressBar}>
                   <div
@@ -332,25 +308,11 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                 </div>
               </div>
 
-              {/* Invite Link */}
               <div className={styles.inviteLinkSection}>
                 <p className={styles.inviteLinkLabel}>Your personal invite link</p>
-                <div
-                  className={styles.inviteLinkBox}
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
-                    borderColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
-                  }}
-                >
+                <div className={styles.inviteLinkBox}>
                   <span className={styles.inviteLink}>{getInviteLink()}</span>
-                  <button
-                    onClick={handleCopyLink}
-                    className={styles.copyButton}
-                    style={{
-                      backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-                      color: theme === 'dark' ? '#ffffff' : '#000000',
-                    }}
-                  >
+                  <button onClick={handleCopyLink} className={styles.copyButton}>
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
@@ -358,7 +320,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
             </div>
           </div>
         ) : (
-          // Form State
           <>
             <h2 className={styles.title}>Join the Waitlist</h2>
             <p className={styles.subtitle}>
@@ -374,11 +335,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                   onChange={(e) => setName(e.target.value)}
                   required
                   className={styles.input}
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
-                    borderColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)',
-                    color: theme === 'dark' ? '#000000' : '#ffffff',
-                  }}
                 />
               </div>
 
@@ -390,11 +346,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className={styles.input}
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
-                    borderColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)',
-                    color: theme === 'dark' ? '#000000' : '#ffffff',
-                  }}
                 />
               </div>
 
@@ -406,21 +357,10 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                   onChange={(e) => setSchool(e.target.value)}
                   required
                   className={styles.input}
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)',
-                    borderColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)',
-                    color: theme === 'dark' ? '#000000' : '#ffffff',
-                  }}
                 />
               </div>
 
-              {/* Beta Tester Interest Checkbox */}
-              <label
-                className={styles.checkboxLabel}
-                style={{
-                  color: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)',
-                }}
-              >
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   checked={interestedInBeta}
@@ -433,7 +373,7 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
               </label>
 
               {error && (
-                <div className={styles.error} style={{ color: theme === 'dark' ? '#ef4444' : '#fca5a5' }}>
+                <div className={styles.error}>
                   {error}
                 </div>
               )}
@@ -442,12 +382,6 @@ export default function WaitlistModal({ isOpen, onClose, theme = 'dark' }: Waitl
                 type="submit"
                 disabled={isSubmitting || !name || !email || !school}
                 className={styles.submitButton}
-                style={{
-                  backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-                  color: theme === 'dark' ? '#ffffff' : '#000000',
-                  opacity: (isSubmitting || !name || !email || !school) ? 0.6 : 1,
-                  cursor: (isSubmitting || !name || !email || !school) ? 'not-allowed' : 'pointer',
-                }}
               >
                 {isSubmitting ? 'Submitting...' : 'Join Waitlist'}
               </button>
