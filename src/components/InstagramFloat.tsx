@@ -57,7 +57,7 @@ export default function InstagramFloat({ variant = 'floating', isOnDarkBackgroun
     <button
       onClick={handleClick}
       className={`flex items-center justify-center transition-all duration-700 ease-in-out hover:scale-110 active:scale-95
-        ${isFloating ? 'fixed z-50 bottom-12 left-4 w-6 h-6 mix-blend-difference md:bottom-24 md:left-6 md:w-14 md:h-14 md:mix-blend-difference' : 'w-12 h-12 md:w-16 md:h-16'}
+        ${isFloating ? 'fixed z-50 bottom-12 left-4 w-6 h-6 mix-blend-difference md:bottom-24 md:left-6 md:w-14 md:h-14 md:mix-blend-difference' : 'w-8 h-8 md:w-10 md:h-10'}
         ${
           isFloating
             ? isDark
@@ -72,7 +72,7 @@ export default function InstagramFloat({ variant = 'floating', isOnDarkBackgroun
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         fill="currentColor"
-        className={`w-6 h-6 md:w-7 md:h-7 transition-all duration-300 ${
+        className={`w-full h-full transition-all duration-300 ${
           isFloating 
             ? 'brightness-0 invert' 
             : isOnDarkBackground 

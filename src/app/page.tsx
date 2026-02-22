@@ -412,7 +412,7 @@ function LandingPageContent() {
         >
           <iframe
             src="https://my.spline.design/ticktockinteractivelanding-jnoiMLvNHVsT06I0IhOQImfb/"
-            style={{ width: '100%', height: '100%', border: 'none' }}
+            style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
             allow="autoplay; fullscreen"
             loading="lazy"
           />
@@ -466,14 +466,14 @@ function LandingPageContent() {
         />
 
         {/* Footer links pinned to bottom */}
-        <div className="absolute bottom-6 left-0 right-0 z-[4] flex items-center justify-center gap-6">
-          <Link href="/privacy-policy" className="text-xs text-[#666666] hover:text-[#A0A0A0] transition-colors duration-200 no-underline">
+        <div className="absolute bottom-6 left-0 right-0 z-[60] flex items-center justify-center gap-6 pointer-events-auto">
+          <Link href="/privacy-policy" className="text-xs text-[#666666] hover:text-white transition-colors duration-200 no-underline">
             Privacy
           </Link>
-          <Link href="/terms-of-service" className="text-xs text-[#666666] hover:text-[#A0A0A0] transition-colors duration-200 no-underline">
+          <Link href="/terms-of-service" className="text-xs text-[#666666] hover:text-white transition-colors duration-200 no-underline">
             Terms
           </Link>
-          <Link href="/terms-of-use" className="text-xs text-[#666666] hover:text-[#A0A0A0] transition-colors duration-200 no-underline">
+          <Link href="/terms-of-use" className="text-xs text-[#666666] hover:text-white transition-colors duration-200 no-underline">
             Use Policy
           </Link>
         </div>
@@ -482,14 +482,12 @@ function LandingPageContent() {
       {/* ================================================================
           FIXED NAVIGATION — Desktop
           ================================================================ */}
-      <nav className="hidden md:block fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
-        <div className="relative w-full h-28 pointer-events-auto">
-          <div className="absolute bottom-1 left-4 z-20">
-            <InstagramFloat variant="navbar" isOnDarkBackground={true} />
-          </div>
+      <nav className="hidden md:flex fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
+        <div className="flex items-center justify-between w-full pointer-events-auto px-8 pb-8">
+          <InstagramFloat variant="navbar" isOnDarkBackground={true} />
           <button
             onClick={handleLogoDoubleTap}
-            className="absolute bottom-8 right-8 z-20 w-16 h-16 cursor-pointer bg-transparent border-none p-0"
+            className="w-12 h-12 cursor-pointer bg-transparent border-none p-0"
             aria-label="Network Icon - Double tap to login"
           >
             <img
@@ -498,24 +496,18 @@ function LandingPageContent() {
               className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity"
             />
           </button>
-
-          <div className="absolute bottom-16 left-6 right-28 z-10">
-            <div className="h-[1px] bg-white/20" />
-          </div>
         </div>
       </nav>
 
       {/* ================================================================
           FIXED NAVIGATION — Mobile
           ================================================================ */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
-        <div className="relative w-full pointer-events-auto px-4 pb-4">
-          <div className="absolute bottom-0 left-2 z-20 translate-y-[10px]">
-            <InstagramFloat variant="navbar" isOnDarkBackground={true} />
-          </div>
+      <nav className="md:hidden flex fixed bottom-0 left-0 right-0 z-50 pointer-events-none mix-blend-difference">
+        <div className="flex items-center justify-between w-full pointer-events-auto px-4 pb-4">
+          <InstagramFloat variant="navbar" isOnDarkBackground={true} />
           <button
             onClick={handleLogoDoubleTap}
-            className="absolute bottom-2 right-4 w-12 h-12 cursor-pointer z-20 bg-transparent border-none p-0"
+            className="w-10 h-10 cursor-pointer bg-transparent border-none p-0"
             aria-label="Network Icon - Double tap to login"
           >
             <img
@@ -524,10 +516,6 @@ function LandingPageContent() {
               className="w-full h-full brightness-0 invert hover:opacity-70 transition-opacity"
             />
           </button>
-
-          <div className="absolute bottom-8 left-4 right-20 z-10">
-            <div className="h-[1px] bg-white/20" />
-          </div>
         </div>
       </nav>
 
