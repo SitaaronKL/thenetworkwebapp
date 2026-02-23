@@ -235,27 +235,16 @@ function AuthCallbackContent() {
                     }
                 }
             } else {
-                // Profile exists - update Google name and picture if they're missing or different
+                // Profile exists - update full_name only if different. Never overwrite avatar_url
+                // with Google picture so custom/storage avatars are preserved (same as mobile).
                 const userMetadata = session.user.user_metadata || {};
                 const googleName = userMetadata.name || userMetadata.full_name;
-                const googlePicture = userMetadata.picture || userMetadata.avatar_url;
+                const nameChanged = googleName && profileData.full_name !== googleName;
 
-                const needsUpdate =
-                    (googleName && profileData.full_name !== googleName) ||
-                    (googlePicture && profileData.avatar_url !== googlePicture);
-
-                if (needsUpdate) {
-                    const updateData: any = {};
-                    if (googleName && profileData.full_name !== googleName) {
-                        updateData.full_name = googleName;
-                    }
-                    if (googlePicture && profileData.avatar_url !== googlePicture) {
-                        updateData.avatar_url = googlePicture;
-                    }
-
+                if (nameChanged) {
                     const { data: updatedProfile } = await supabase
                         .from('profiles')
-                        .update(updateData)
+                        .update({ full_name: googleName })
                         .eq('id', userId)
                         .select('id, interests, personality_archetypes, doppelgangers, full_name, avatar_url, has_completed_onboarding')
                         .single();

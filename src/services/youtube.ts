@@ -2,6 +2,14 @@ import { createClient } from '@/lib/supabase';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 
+/** YouTube returns these for private/deleted videos; store null so we don't use them in "Why you're connected". */
+const PLACEHOLDER_VIDEO_TITLES = ['private video', 'deleted video'];
+function isPlaceholderVideoTitle(title: string | null | undefined): boolean {
+  if (title == null || typeof title !== 'string') return true;
+  const t = title.trim().toLowerCase();
+  return PLACEHOLDER_VIDEO_TITLES.includes(t);
+}
+
 interface YouTubeSubscription {
   snippet: {
     title: string;
@@ -224,10 +232,11 @@ export const YouTubeService = {
         const videoId = item.snippet?.resourceId?.videoId;
         if (!videoId) return null;
 
+        const rawTitle = item.snippet?.title ?? null;
         return {
           user_id: userId,
           video_id: videoId,
-          title: item.snippet?.title || null,
+          title: rawTitle && !isPlaceholderVideoTitle(rawTitle) ? rawTitle : null,
           channel_title: item.snippet?.channelTitle || null,
           thumbnail_url: item.snippet?.thumbnails?.default?.url || null,
           published_at: item.snippet?.publishedAt || null,

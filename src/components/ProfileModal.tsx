@@ -389,17 +389,19 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                 .eq('user_b_id', userBId)
                                 .maybeSingle();
 
-                            if (cached && cached.description) {
+                            const cachedText = typeof cached?.description === 'string' ? cached.description : '';
+                            const isNeutralFormat = /\byou two\b/i.test(
+                                (() => { try { const p = JSON.parse(cachedText); return p.paragraph || cachedText; } catch { return cachedText; } })()
+                            );
+                            if (cached && cached.description && isNeutralFormat) {
                                 applyReasonToState(cached.description, isAlreadyConnected);
                             } else {
-                                // No cache: call edge function to generate and persist to user_compatibility_descriptions
                                 const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
                                     'generate-suggestion-reason',
                                     {
                                         body: {
                                             userAId: user.id,
                                             userBId: person.id,
-                                            otherPersonName: person.full_name?.split(' ')[0] || person.name,
                                             isConnected: isAlreadyConnected,
                                             userProfile: {
                                                 interests: userInterests,
@@ -409,7 +411,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                                 interests: otherInterests,
                                                 bio: ''
                                             },
-                                            similarity: 0.5 // Default similarity for connected users
+                                            similarity: 0.5
                                         }
                                     }
                                 );
@@ -562,17 +564,19 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     .eq('user_b_id', userBId)
                     .maybeSingle();
 
-                if (cached && cached.description) {
+                const discoveryCachedText = typeof cached?.description === 'string' ? cached.description : '';
+                const discoveryIsNeutral = /\byou two\b/i.test(
+                    (() => { try { const p = JSON.parse(discoveryCachedText); return p.paragraph || discoveryCachedText; } catch { return discoveryCachedText; } })()
+                );
+                if (cached && cached.description && discoveryIsNeutral) {
                     applyReasonToState(cached.description, false);
                 } else {
-                    // No cache: call edge function to generate and persist to user_compatibility_descriptions
                     const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
                         'generate-suggestion-reason',
                         {
                             body: {
                                 userAId: user.id,
                                 userBId: person.id,
-                                otherPersonName: person.full_name?.split(' ')[0] || person.name,
                                 isConnected: false,
                                 userProfile: {
                                     interests: userInterests,

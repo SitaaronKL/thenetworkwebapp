@@ -155,7 +155,7 @@ export default function WrappedPage() {
 
         try {
             const { data, error } = await supabase.functions.invoke('delete-account', {
-                body: {},
+                body: { schedule: true },
                 headers: {
                     Authorization: `Bearer ${session.access_token}`,
                 },
@@ -164,6 +164,9 @@ export default function WrappedPage() {
             if (error) throw error;
             if (data?.error) throw new Error(data.error);
 
+            alert(
+                'Your account has been closed. It will remain accessible for 15 days, after which your data will be permanently deleted and you will not be able to reactivate it.'
+            );
             await supabase.auth.signOut();
             router.push('/');
         } catch (error: any) {

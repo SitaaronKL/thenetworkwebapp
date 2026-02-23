@@ -317,17 +317,16 @@ export default function EditProfile() {
 
   const handleDeleteAccount = async () => {
     // Confirm deletion
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data, connections, and messages.'
-    );
+    const warning =
+      'Your account will be closed. It will remain accessible for 15 days, after which your data will be permanently deleted and you will not be able to reactivate it.';
+    const confirmed = window.confirm(warning);
 
     if (!confirmed) {
       return;
     }
 
-    // Double confirmation
     const doubleConfirmed = window.confirm(
-      'This is your last chance. Are you absolutely sure you want to delete your account?'
+      'Type OK to confirm. Your account will be closed now; after 15 days it will be permanently deleted and you cannot reactivate.'
     );
 
     if (!doubleConfirmed) {
@@ -345,15 +344,14 @@ export default function EditProfile() {
     }
 
     try {
-      // Get the session token for the edge function
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No active session');
       }
 
-      // Call the delete-account edge function
+      // Schedule account closure (15-day grace period; actual deletion is done by cron)
       const { data, error } = await supabase.functions.invoke('delete-account', {
-        body: {},
+        body: { schedule: true },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -367,8 +365,9 @@ export default function EditProfile() {
         throw new Error(data.error);
       }
 
-      // Success - sign out and redirect
-      alert('Your account has been deleted successfully.');
+      alert(
+        'Your account has been closed. It will remain accessible for 15 days, after which your data will be permanently deleted and you will not be able to reactivate it.'
+      );
       await supabase.auth.signOut();
       router.push('/');
     } catch (error: any) {
