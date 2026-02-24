@@ -232,7 +232,7 @@ export default function PrivacyPolicyPage() {
                         <p className={styles.sectionText}>We may share limited information only:</p>
                         <ul className={styles.list}>
                             <li>with service providers that help us run the Services (e.g., hosting/database providers (Supabase), infrastructure and security tooling) under contractual confidentiality and security obligations, and only as necessary to provide the Services</li>
-                            <li>when required by law or to protect rights and safety (see Section 8)</li>
+                            <li>when required by law or to protect rights and safety (see Section 9)</li>
                         </ul>
                         <p className={styles.sectionText}>
                             We do not share Google/YouTube user data with data brokers or advertisers.
@@ -258,7 +258,7 @@ export default function PrivacyPolicyPage() {
                         <ul className={styles.list}>
                             <li>view, edit, export, or delete your data</li>
                             <li>disconnect connected platforms (like YouTube) at any time</li>
-                            <li>request deletion of your account and associated data (see Section 7)</li>
+                            <li>request deletion of your account and associated data (see Section 8)</li>
                         </ul>
                     </section>
 
@@ -272,11 +272,39 @@ export default function PrivacyPolicyPage() {
                         </p>
                     </section>
 
-                    {/* Section 7 */}
-                    <section id="youtube" className={styles.section}>
-                        <h2 className={styles.sectionTitle}>7. Revoking YouTube Access, Deleting Data, and Data Retention</h2>
+                    {/* Section 7 - SMS and Phone Verification */}
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>7. SMS Messaging and Phone Verification</h2>
+                        <p className={styles.sectionText}>
+                            TheNetwork uses SMS messaging solely to deliver one-time verification codes (OTP) during account signup and login to verify ownership of a phone number and secure user accounts.
+                        </p>
+                        <p className={styles.sectionText}>
+                            We collect and process your phone number for authentication purposes when you voluntarily enter it within the TheNetwork mobile application and request verification.
+                        </p>
+                        <p className={styles.sectionText}><strong>SMS messages:</strong></p>
+                        <ul className={styles.list}>
+                            <li>are strictly transactional and not promotional;</li>
+                            <li>are sent only after you initiate the verification process;</li>
+                            <li>contain a single-use authentication code;</li>
+                            <li>are not used for marketing or advertising;</li>
+                            <li>may be subject to message and data rates depending on your mobile carrier.</li>
+                        </ul>
+                        <p className={styles.sectionText}>
+                            You may reply STOP to opt out of SMS messages at any time. You may reply HELP for assistance.
+                        </p>
+                        <p className={styles.sectionText}>
+                            SMS delivery may be handled by third-party service providers acting on our behalf under contractual confidentiality and security obligations.
+                        </p>
+                        <p className={styles.sectionText}>
+                            We do not sell or share phone numbers collected for SMS verification with third parties for advertising or marketing purposes.
+                        </p>
+                    </section>
 
-                        <h3 className={styles.subsectionTitle}>7.1 Revoking access</h3>
+                    {/* Section 8 */}
+                    <section id="youtube" className={styles.section}>
+                        <h2 className={styles.sectionTitle}>8. Revoking YouTube Access, Deleting Data, and Data Retention</h2>
+
+                        <h3 className={styles.subsectionTitle}>8.1 Revoking access</h3>
                         <p className={styles.sectionText}>
                             You can revoke TheNetwork's access to YouTube at any time:
                         </p>
@@ -299,7 +327,7 @@ export default function PrivacyPolicyPage() {
                             <li>You can also request immediate deletion from within the app (YouTube Data Review / Settings) or by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.</li>
                         </ul>
 
-                        <h3 className={styles.subsectionTitle}>7.2 Data deletion requests</h3>
+                        <h3 className={styles.subsectionTitle}>8.2 Data deletion requests</h3>
                         <p className={styles.sectionText}>
                             You can delete imported YouTube data from within the app (YouTube Data Review / Settings) or by contacting{' '}
                             <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
@@ -313,7 +341,7 @@ export default function PrivacyPolicyPage() {
                             fraud prevention logs) and will protect it under this policy.
                         </p>
 
-                        <h3 className={styles.subsectionTitle}>7.3 Retention</h3>
+                        <h3 className={styles.subsectionTitle}>8.3 Retention</h3>
                         <p className={styles.sectionText}>
                             We retain personal data only as long as needed to:
                         </p>
@@ -326,16 +354,16 @@ export default function PrivacyPolicyPage() {
                             Retention periods may vary by data type. You may request deletion at any time.
                         </p>
 
-                        <h3 className={styles.subsectionTitle}>7.4 Data Refresh and Retention</h3>
+                        <h3 className={styles.subsectionTitle}>8.4 Data Refresh and Retention</h3>
                         <p className={styles.sectionText}>
                             We refresh your YouTube data every 30 days to ensure it remains current. If authorization is revoked
                             or expires, we delete all stored YouTube data within 7 calendar days. You can delete your YouTube data at any time from within the app (YouTube Data Review / Settings) or by contacting <a href="mailto:privacy@thenetwork.life" className={styles.link}>privacy@thenetwork.life</a>.
                         </p>
                     </section>
 
-                    {/* Section 8 */}
+                    {/* Section 9 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>8. Security</h2>
+                        <h2 className={styles.sectionTitle}>9. Security</h2>
                         <p className={styles.sectionText}>
                             We use reasonable administrative, technical, and organizational safeguards designed to protect your information.
                         </p>
@@ -351,9 +379,9 @@ export default function PrivacyPolicyPage() {
                         </p>
                     </section>
 
-                    {/* Section 9 */}
+                    {/* Section 10 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>9. Third-Party Integrations</h2>
+                        <h2 className={styles.sectionTitle}>10. Third-Party Integrations</h2>
                         <p className={styles.sectionText}>
                             Our integrations with YouTube and other platforms comply with applicable API terms and policies. You can
                             revoke connections at any time. We do not collect or store passwords for third-party platforms.
@@ -363,18 +391,18 @@ export default function PrivacyPolicyPage() {
                         </p>
                     </section>
 
-                    {/* Section 10 */}
+                    {/* Section 11 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>10. International Data Transfers</h2>
+                        <h2 className={styles.sectionTitle}>11. International Data Transfers</h2>
                         <p className={styles.sectionText}>
                             If you access the Services from outside the United States, your data may be transferred and processed in
                             the U.S. or other jurisdictions. Where required, we use appropriate safeguards to protect transferred data.
                         </p>
                     </section>
 
-                    {/* Section 11 */}
+                    {/* Section 12 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>11. Children's Privacy</h2>
+                        <h2 className={styles.sectionTitle}>12. Children's Privacy</h2>
                         <p className={styles.sectionText}>
                             TheNetwork does not knowingly collect personal data from children under 13 (or under 16 in the EEA/UK).
                         </p>
@@ -383,9 +411,9 @@ export default function PrivacyPolicyPage() {
                         </p>
                     </section>
 
-                    {/* Section 12 */}
+                    {/* Section 13 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>12. Your Rights</h2>
+                        <h2 className={styles.sectionTitle}>13. Your Rights</h2>
                         <p className={styles.sectionText}>
                             Depending on your location, you may have rights to:
                         </p>
@@ -401,18 +429,18 @@ export default function PrivacyPolicyPage() {
                         </p>
                     </section>
 
-                    {/* Section 13 */}
+                    {/* Section 14 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>13. Changes to This Policy</h2>
+                        <h2 className={styles.sectionTitle}>14. Changes to This Policy</h2>
                         <p className={styles.sectionText}>
                             We may update this Privacy Policy to reflect product or legal changes. When we do, we will update the
                             "Last Updated" date and may notify users via email or in-app notice where appropriate.
                         </p>
                     </section>
 
-                    {/* Section 14 */}
+                    {/* Section 15 */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>14. Contact Us</h2>
+                        <h2 className={styles.sectionTitle}>15. Contact Us</h2>
                         <div className={styles.contactInfo}>
                             <p><strong>TheNetwork Labs, Inc.</strong></p>
                             <p>

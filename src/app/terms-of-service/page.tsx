@@ -88,6 +88,26 @@ export default function TermsOfServicePage() {
                             We may suspend or restrict access to the Services to protect users, the platform, or the public, including to
                             investigate suspected abuse, fraud, or security threats.
                         </p>
+
+                        <h3 className={styles.subsectionTitle}>3.4 SMS Verification</h3>
+                        <p className={styles.sectionText}>
+                            TheNetwork may send one-time SMS verification messages to users during account signup and login to verify ownership of a phone number and secure user accounts.
+                        </p>
+                        <p className={styles.sectionText}>
+                            By entering your phone number within the TheNetwork mobile application and requesting verification, you consent to receive a single-use authentication code via SMS.
+                        </p>
+                        <ul className={styles.list}>
+                            <li>Message and data rates may apply.</li>
+                            <li>Message frequency: one message per verification request.</li>
+                            <li>You may reply STOP to opt out of SMS messages at any time.</li>
+                            <li>You may reply HELP for assistance.</li>
+                        </ul>
+                        <p className={styles.sectionText}>
+                            For support, contact <a href="mailto:support@thenetwork.life" className={styles.link}>support@thenetwork.life</a>.
+                        </p>
+                        <p className={styles.sectionText}>
+                            TheNetwork does not send marketing or promotional SMS messages under this verification program.
+                        </p>
                     </section>
 
                     {/* Section 4 */}
