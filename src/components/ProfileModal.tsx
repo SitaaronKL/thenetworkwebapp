@@ -83,6 +83,38 @@ interface SharedNetwork {
     type: string;
 }
 
+const COMPATIBILITY_CACHE_VERSION = 3;
+
+const extractCompatibilityParagraph = (
+    raw: unknown
+): { paragraph: string | null; version: number | null } => {
+    if (raw == null) return { paragraph: null, version: null };
+    if (typeof raw !== 'string') return { paragraph: String(raw), version: null };
+
+    const trimmed = raw.trim();
+    if (!trimmed) return { paragraph: null, version: null };
+
+    if (trimmed.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+            const version = typeof parsed.version === 'number' ? parsed.version : null;
+            if (typeof parsed.paragraph === 'string' && parsed.paragraph.trim()) {
+                return { paragraph: parsed.paragraph.trim(), version };
+            }
+
+            const details = typeof parsed.sharedInterestsDetails === 'string' ? parsed.sharedInterestsDetails : '';
+            const activity = typeof parsed.suggestedActivity === 'string' ? parsed.suggestedActivity : '';
+            const network = typeof parsed.networkContext === 'string' ? parsed.networkContext : '';
+            const merged = [details, activity, network].filter(Boolean).join(' ').trim();
+            if (merged) return { paragraph: merged, version };
+        } catch {
+            return { paragraph: trimmed, version: null };
+        }
+    }
+
+    return { paragraph: trimmed, version: null };
+};
+
 export default function ProfileModal({ person, onClose, isEmbedded = false, onUnfriend }: ProfileModalProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -389,12 +421,11 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                                 .eq('user_b_id', userBId)
                                 .maybeSingle();
 
-                            const cachedText = typeof cached?.description === 'string' ? cached.description : '';
-                            const isNeutralFormat = /\byou two\b/i.test(
-                                (() => { try { const p = JSON.parse(cachedText); return p.paragraph || cachedText; } catch { return cachedText; } })()
-                            );
-                            if (cached && cached.description && isNeutralFormat) {
-                                applyReasonToState(cached.description, isAlreadyConnected);
+                            const parsedCached = extractCompatibilityParagraph(cached?.description);
+                            const isNeutralFormat = parsedCached.paragraph != null && /\byou two\b/i.test(parsedCached.paragraph);
+                            const isCurrentVersion = parsedCached.version === COMPATIBILITY_CACHE_VERSION;
+                            if (cached && parsedCached.paragraph && isNeutralFormat && isCurrentVersion) {
+                                applyReasonToState(parsedCached.paragraph, isAlreadyConnected);
                             } else {
                                 const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
                                     'generate-suggestion-reason',
@@ -418,7 +449,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
 
                                 if (!reasonError && reasonData && !reasonData.error) {
                                     if (reasonData.cached && typeof reasonData.reason === 'string') {
-                                        applyReasonToState(reasonData.reason, isAlreadyConnected);
+                                        applyReasonToState(reasonData.paragraph || reasonData.reason, isAlreadyConnected);
                                     } else {
                                         applyReasonToState(reasonData, isAlreadyConnected);
                                     }
@@ -564,12 +595,11 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
                     .eq('user_b_id', userBId)
                     .maybeSingle();
 
-                const discoveryCachedText = typeof cached?.description === 'string' ? cached.description : '';
-                const discoveryIsNeutral = /\byou two\b/i.test(
-                    (() => { try { const p = JSON.parse(discoveryCachedText); return p.paragraph || discoveryCachedText; } catch { return discoveryCachedText; } })()
-                );
-                if (cached && cached.description && discoveryIsNeutral) {
-                    applyReasonToState(cached.description, false);
+                const parsedCached = extractCompatibilityParagraph(cached?.description);
+                const discoveryIsNeutral = parsedCached.paragraph != null && /\byou two\b/i.test(parsedCached.paragraph);
+                const isCurrentVersion = parsedCached.version === COMPATIBILITY_CACHE_VERSION;
+                if (cached && parsedCached.paragraph && discoveryIsNeutral && isCurrentVersion) {
+                    applyReasonToState(parsedCached.paragraph, false);
                 } else {
                     const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
                         'generate-suggestion-reason',
@@ -593,7 +623,7 @@ export default function ProfileModal({ person, onClose, isEmbedded = false, onUn
 
                     if (!reasonError && reasonData && !reasonData.error) {
                         if (reasonData.cached && typeof reasonData.reason === 'string') {
-                            applyReasonToState(reasonData.reason, false);
+                            applyReasonToState(reasonData.paragraph || reasonData.reason, false);
                         } else {
                             applyReasonToState(reasonData, false);
                         }

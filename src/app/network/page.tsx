@@ -42,6 +42,50 @@ const getAvatarUrl = (path?: string | null) => {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-images/${path}`;
 };
 
+const COMPATIBILITY_CACHE_VERSION = 3;
+
+const extractCompatibilityParagraph = (
+  raw: unknown
+): { paragraph: string | null; version: number | null } => {
+  if (raw == null) return { paragraph: null, version: null };
+  if (typeof raw !== 'string') return { paragraph: String(raw), version: null };
+
+  const trimmed = raw.trim();
+  if (!trimmed) return { paragraph: null, version: null };
+
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      const version = typeof parsed.version === 'number' ? parsed.version : null;
+      if (typeof parsed.paragraph === 'string' && parsed.paragraph.trim()) {
+        return { paragraph: parsed.paragraph.trim(), version };
+      }
+
+      const details =
+        typeof parsed.sharedInterestsDetails === 'string'
+          ? parsed.sharedInterestsDetails
+          : '';
+      const activity =
+        typeof parsed.suggestedActivity === 'string' ? parsed.suggestedActivity : '';
+      const network =
+        typeof parsed.networkContext === 'string' ? parsed.networkContext : '';
+      const merged = [details, activity, network].filter(Boolean).join(' ').trim();
+      if (merged) return { paragraph: merged, version };
+    } catch {
+      return { paragraph: trimmed, version: null };
+    }
+  }
+
+  return { paragraph: trimmed, version: null };
+};
+
+const getCurrentCacheParagraph = (raw: unknown): string | null => {
+  const parsed = extractCompatibilityParagraph(raw);
+  if (!parsed.paragraph) return null;
+  if (parsed.version !== COMPATIBILITY_CACHE_VERSION) return null;
+  return parsed.paragraph;
+};
+
 // Embedded Panel Components
 function FriendRequestsPanel({ onClose, onRequestAccepted, onCountChange }: { onClose: () => void; onRequestAccepted?: () => void; onCountChange?: () => void }) {
   const router = useRouter();
@@ -1207,8 +1251,9 @@ export default function Home() {
                       .eq('user_b_id', userBId)
                       .maybeSingle();
 
-                    if (cached && cached.description) {
-                      reason = cached.description;
+                    const cachedReason = getCurrentCacheParagraph(cached?.description);
+                    if (cachedReason) {
+                      reason = cachedReason;
                     } else {
                       // No cache found, call edge function to generate and store
                       const { data: reasonData, error: reasonError } = await supabase.functions.invoke(
@@ -1235,8 +1280,8 @@ export default function Home() {
                         return null; // Don't show suggestion if we can't generate reason
                       }
 
-                      if (reasonData?.reason) {
-                        reason = reasonData.reason;
+                      if (reasonData?.paragraph || reasonData?.reason) {
+                        reason = reasonData.paragraph || reasonData.reason;
                       } else if (reasonData?.error) {
                         return null; // Don't show suggestion if error
                       } else {
@@ -1442,8 +1487,9 @@ export default function Home() {
               .eq('user_b_id', userBId)
               .maybeSingle();
 
-            if (cached && cached.description) {
-              reason = cached.description;
+            const cachedReason = getCurrentCacheParagraph(cached?.description);
+            if (cachedReason) {
+              reason = cachedReason;
             } else {
               // No cache found, try edge function to generate and store
               try {
@@ -1467,8 +1513,8 @@ export default function Home() {
                   }
                 );
 
-                if (!reasonError && reasonData?.reason) {
-                  reason = reasonData.reason;
+                if (!reasonError && (reasonData?.paragraph || reasonData?.reason)) {
+                  reason = reasonData.paragraph || reasonData.reason;
                 } else {
                   // Use fallback reason if edge function fails
                   reason = 'You might have shared interests!';
@@ -1616,7 +1662,7 @@ export default function Home() {
                   similarity: existingDrop.similarity_score || 0.8
                 }
               });
-              reason = reasonData?.reason || '';
+              reason = reasonData?.paragraph || reasonData?.reason || '';
             }
 
             setMondayDrop({
@@ -1756,7 +1802,7 @@ export default function Home() {
             similarity: selected.similarity
           }
         });
-        reason = reasonData?.reason || '';
+        reason = reasonData?.paragraph || reasonData?.reason || '';
       }
 
       const { data: newDrop, error: insertError } = await supabase
