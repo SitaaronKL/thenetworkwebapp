@@ -319,9 +319,14 @@ function LandingPageContent() {
               THE<br />NETWORK.
             </h1>
           </div>
-          <div className="hidden md:flex flex-col items-end gap-1 pt-1">
-            <span className="overline">social discovery</span>
-            <span className="overline">designed for real life</span>
+          <div className="hidden md:flex flex-col items-end pt-1">
+            <a
+              href="/about"
+              className="font-brand text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-none hover:opacity-70 transition-opacity"
+              style={{ letterSpacing: '-0.03em' }}
+            >
+              ABOUT.
+            </a>
           </div>
         </header>
 

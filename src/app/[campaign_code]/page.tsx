@@ -17,7 +17,6 @@ const RESERVED_ROUTES = [
   'invite-friends',
   'invite-leaderboard',
   'memo',
-  'msg-aria',
   'network',
   'network-profile',
   'privacy-policy',

@@ -1,57 +1,108 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import styles from './page.module.css';
+
 export default function AboutPage() {
-  return (
-    <main className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6 flex justify-between items-center mix-blend-difference text-white">
-        <Link href="/" className="text-xl font-bold font-brand tracking-tighter">
-          TheNetwork
-        </Link>
-        <Link href="/" className="text-sm font-medium hover:opacity-70 transition-opacity">
-          Back to Home
-        </Link>
-      </nav>
+    const cardRef = useRef<HTMLDivElement>(null);
 
-      <div className="pt-32 px-6 pb-20 max-w-4xl mx-auto">
-        <h1 className="text-5xl md:text-7xl font-bold mb-12 font-brand tracking-tight">
-          About TheNetwork
-        </h1>
+    useEffect(() => {
+        const isMobile = window.innerWidth <= 640;
+        const rootMargin = isMobile ? '0px 0px -40px 0px' : '0px 0px -80px 0px';
 
-        <div className="space-y-8 text-lg md:text-xl leading-relaxed text-gray-800">
-          <p>
-            We are building the infrastructure for the next generation of social discovery.
-          </p>
-          
-          <p>
-            The internet is overflowing with signals—tiny digital clues about who you are, what you love, and where you belong. 
-            Currently, these signals are scattered, trapped in silos, or used solely to serve you ads.
-          </p>
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add(styles.visible);
+                    } else {
+                        entry.target.classList.remove(styles.visible);
+                    }
+                });
+            },
+            {
+                threshold: 0.1,
+                rootMargin
+            }
+        );
 
-          <p>
-            We believe these signals should serve <strong>you</strong>.
-          </p>
+        const card = cardRef.current;
+        if (card) {
+            const elements = card.querySelectorAll(`.${styles.reveal}`);
+            elements.forEach((el) => observer.observe(el));
+        }
 
-          <p>
-            TheNetwork runs on signal intelligence. We connect the dots between your digital life to help you discover 
-            people, communities, and opportunities that feel naturally right, not randomly generated.
-          </p>
+        return () => observer.disconnect();
+    }, []);
 
-          <p>
-            We're starting with a select group of campuses to ensure the density and quality of connections 
-            lives up to our promise.
-          </p>
+    return (
+        <div className={styles.container}>
+            <header className={styles.header}>
+                <Link href="/" className={styles.backLink}>
+                    <span className={styles.backArrow}>&larr;</span>
+                    THE NETWORK.
+                </Link>
+            </header>
 
-          <div className="pt-12">
-            <h3 className="text-2xl font-bold mb-4 font-brand">Our Mission</h3>
-            <p>
-              To replace the noise of the feed with the clarity of connection.
-            </p>
-          </div>
+            <div className={styles.memoWrapper}>
+                <div className={styles.memoCard} ref={cardRef}>
+                    <div className={`${styles.memoHeader} ${styles.reveal}`}>
+                        <h1 className={styles.memoTitle}>The Future of Social</h1>
+                    </div>
+
+                    <div className={styles.memoContent}>
+                        <p className={styles.reveal}>
+                            This is a little memo I'm writing so that our biggest fans have something cool to read.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            Social media today just sucks, plain and simple – we all know that.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            They aren't incentivized to show you the people you should talk to, and even if they did, they couldn't.
+                        </p>
+
+                        <p className={`${styles.question} ${styles.reveal}`}>Ok so how do we fix that?</p>
+
+                        <h2 className={`${styles.thesisTitle} ${styles.reveal}`}>Our Thesis</h2>
+
+                        <p className={styles.reveal}>
+                            Let's look at how community and friends are built in real life.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            Think about the friends you've already made; you met them at clubs, your dorm, or class. At the root of it all, it was about something you shared – whether it was an interest or a location.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            But we know forms suck. I could give you a thousand-question form and it still wouldn't capture who you really are – you're way more dimensional than that <span className={styles.emoji}>:)</span>
+                        </p>
+
+                        <p className={styles.reveal}>
+                            But I would wager that your YouTube and your TikTok, they probably know you really well.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            They are Skinner boxes that our generation has been feeding our personalities and lives into. You watch what you like, and keep only really watching that. But that implicitly tells who you are, your interests.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            I believe that by connecting you to people like that, we build a network who you can really talk to.
+                        </p>
+
+                        <p className={styles.reveal}>
+                            I know that as college (or really the world) gets lonelier and lonelier, something like The Network becomes even more necessary.
+                        </p>
+
+                        <div className={`${styles.signature} ${styles.reveal}`}>
+                            <span className={styles.signatureLine}></span>
+                            <span className={styles.signatureText}>from Dhruv Lalwani, co-founder of TheNetwork</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </main>
-  );
+    );
 }
-

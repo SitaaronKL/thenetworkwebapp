@@ -18,9 +18,9 @@ const pageDescriptions: Record<string, { title: string; description: string }> =
     title: 'Digital DNA',
     description: "This is your Digital DNA page, showing a visual representation of your interests, personality archetypes, and digital twins. Your interests are displayed as an interactive graph where you can explore the relationships between different topics. Explore your archetypes to understand your core traits, and discover your digital twins—the people you share the strongest connections with based on your shared footprints."
   },
-  '/msg-aria': {
-    title: 'ARI',
-    description: "This is the ARI page where you can read about The Network's vision and mission. Here you'll find information about how The Network works, our philosophy on building meaningful connections, and how we use your digital footprint (like YouTube and TikTok data) to help you find people you'll genuinely connect with."
+  '/about': {
+    title: 'About',
+    description: "This is the About page where you can read about The Network's vision and mission. Here you'll find information about how The Network works, our philosophy on building meaningful connections, and how we use your digital footprint (like YouTube and TikTok data) to help you find people you'll genuinely connect with."
   },
   '/invite-leaderboard': {
     title: 'Invite Leaderboard',
@@ -99,7 +99,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 </p>
               </div>
               <div className={styles.pageItem}>
-                <strong className={styles.pageName}>ARI</strong>
+                <strong className={styles.pageName}>About</strong>
                 <p className={styles.pageDesc}>
                   Learn about The Network's vision, mission, and how we help you build meaningful connections.
                 </p>

@@ -134,13 +134,6 @@ export default function Menu() {
               YOUR PROFILE
             </Link>
 
-            <Link
-              href="/msg-aria"
-              onClick={() => setIsOpen(false)}
-            >
-              ARI
-            </Link>
-
             {/* Settings Toggle */}
             <div 
               className={styles.settingsSection}
