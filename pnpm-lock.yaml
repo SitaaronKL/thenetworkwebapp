@@ -222,6 +222,9 @@ importers:
       '@types/three':
         specifier: ^0.182.0
         version: 0.182.0
+      baseline-browser-mapping:
+        specifier: ^2.10.0
+        version: 2.10.0
       eslint:
         specifier: ^9
         version: 9.39.3(jiti@2.6.1)
