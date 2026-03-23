@@ -1,10 +1,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const PLAYLIST = [
-    { src: '/mcmaster/Chris Lake - Savana [Official Visualizer].mp3' },
-];
-const START_OFFSET_SECONDS = 18;
+const DEFAULT_SRC = '/mcmaster/Chris Lake - Savana [Official Visualizer].mp3';
+const DEFAULT_START_OFFSET_SECONDS = 18;
 const POST_DROP_WINDOW_MS = 12000;
 
 type AudioWindow = Window & {
@@ -13,10 +11,22 @@ type AudioWindow = Window & {
 type ScenePhase = 'normal' | 'build' | 'drop' | 'afterglow';
 
 // 128 BPM = ~468ms per beat
-const BPM = 128;
-const BEAT_INTERVAL = (60 / BPM) * 1000;
+const DEFAULT_BPM = 128;
 
-export function useAudioParty() {
+export function useAudioParty(options?: {
+    src?: string;
+    startOffsetSeconds?: number;
+    bpm?: number;
+    volume?: number;
+    loop?: boolean;
+}) {
+    const audioSrc = options?.src ?? DEFAULT_SRC;
+    const startOffsetSeconds = options?.startOffsetSeconds ?? DEFAULT_START_OFFSET_SECONDS;
+    const bpm = options?.bpm ?? DEFAULT_BPM;
+    const beatInterval = (60 / bpm) * 1000;
+    const volume = options?.volume ?? 0.8;
+    const loop = options?.loop ?? true;
+
     const [hasStarted, setHasStarted] = useState(false);
     const [isBeatDrop, setIsBeatDrop] = useState(false);
     const [isBeat, setIsBeat] = useState(false);
@@ -77,7 +87,7 @@ export function useAudioParty() {
         let isBeatNow = false;
 
         // Check for beat (with debounce based on BPM)
-        if (normalizedBass > threshold && normalizedBass > 0.4 && timeSinceLastBeat > BEAT_INTERVAL * 0.65) {
+        if (normalizedBass > threshold && normalizedBass > 0.4 && timeSinceLastBeat > beatInterval * 0.65) {
             isBeatNow = true;
             lastBeatTimeRef.current = now;
             currentBeatStrength = (normalizedBass - avgBass) * 2; // enhance peak
@@ -161,16 +171,16 @@ export function useAudioParty() {
 
         const audio = new Audio();
         audio.crossOrigin = 'anonymous';
-        audio.src = PLAYLIST[0].src;
-        audio.loop = true;
-        audio.volume = 0.8;
+        audio.src = audioSrc;
+        audio.loop = loop;
+        audio.volume = volume;
         audio.preload = 'auto';
         audioRef.current = audio;
 
         const seekToStartOffset = () => {
-            if (Number.isFinite(audio.duration) && audio.duration <= START_OFFSET_SECONDS) return;
+            if (Number.isFinite(audio.duration) && audio.duration <= startOffsetSeconds) return;
             try {
-                audio.currentTime = START_OFFSET_SECONDS;
+                audio.currentTime = startOffsetSeconds;
             } catch {
                 // Some browsers reject seeking before metadata is available.
             }
