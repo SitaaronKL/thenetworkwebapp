@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { YouTubeService } from '@/services/youtube';
 import { ensureFriendPartyAttendance } from '@/lib/friend-party-attendance';
+import { ensureFinalMcmasterPartyAttendance } from '@/lib/final-mcmaster-party-attendance';
 
 const MCMASTER_SCHOOL = 'McMaster University';
 const POST_AUTH_REDIRECT_KEY = 'tn_post_auth_redirect';
@@ -107,6 +108,7 @@ function AuthCallbackContent() {
                 }
             }
             const isFriendPartyFlow = safeCustomRedirect?.startsWith('/friend-party') ?? false;
+            const isFinalMcmasterPartyFlow = safeCustomRedirect?.startsWith('/final-mcmaster-party') ?? false;
 
             const normalizeNetworksWithMcMaster = (networks: unknown): string[] => {
                 const existing = Array.isArray(networks)
@@ -135,38 +137,39 @@ function AuthCallbackContent() {
             // If no provider_token, user likely didn't grant YouTube access
             const hasProviderToken = !!session.provider_token;
 
-            if (!hasProviderToken) {
-                // No YouTube access token - redirect to homepage with warning
-                setStatus('YouTube access required. Redirecting...');
-                await supabase.auth.signOut();
-                setTimeout(() => router.push('/?youtube_required=true'), 1500);
-                return;
-            }
-
-            // Try to verify YouTube access by making a test API call
-            try {
-                const testResponse = await fetch(
-                    'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=1',
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${session.provider_token}`,
-                        },
-                    }
-                );
-
-                if (!testResponse.ok) {
-                    // YouTube API rejected the token - user didn't grant YouTube scope
+            // Final McMaster Party flow: YouTube is optional (no data = random match)
+            // All other flows: YouTube is required
+            if (!isFinalMcmasterPartyFlow) {
+                if (!hasProviderToken) {
                     setStatus('YouTube access required. Redirecting...');
                     await supabase.auth.signOut();
                     setTimeout(() => router.push('/?youtube_required=true'), 1500);
                     return;
                 }
-            } catch (error) {
-                // YouTube API call failed - assume no access
-                setStatus('YouTube access required. Redirecting...');
-                await supabase.auth.signOut();
-                setTimeout(() => router.push('/?youtube_required=true'), 1500);
-                return;
+
+                // Try to verify YouTube access by making a test API call
+                try {
+                    const testResponse = await fetch(
+                        'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=1',
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${session.provider_token}`,
+                            },
+                        }
+                    );
+
+                    if (!testResponse.ok) {
+                        setStatus('YouTube access required. Redirecting...');
+                        await supabase.auth.signOut();
+                        setTimeout(() => router.push('/?youtube_required=true'), 1500);
+                        return;
+                    }
+                } catch (error) {
+                    setStatus('YouTube access required. Redirecting...');
+                    await supabase.auth.signOut();
+                    setTimeout(() => router.push('/?youtube_required=true'), 1500);
+                    return;
+                }
             }
 
             // Create or get profile - ensure profile exists with Google data
@@ -370,6 +373,60 @@ function AuthCallbackContent() {
                 // }
                 router.push('/network');
             };
+
+            // Final McMaster Party flow: set school, RSVP, and redirect back
+            if (isFinalMcmasterPartyFlow) {
+                try {
+                    const { data: mcmasterSchool } = await supabase
+                        .from('schools')
+                        .select('id, name')
+                        .ilike('name', 'McMaster%')
+                        .limit(1)
+                        .maybeSingle();
+
+                    const profileUpdate: Record<string, unknown> = { school: MCMASTER_SCHOOL };
+                    if (mcmasterSchool?.id) {
+                        profileUpdate.school_id = mcmasterSchool.id;
+                    }
+
+                    await supabase
+                        .from('profiles')
+                        .update(profileUpdate)
+                        .eq('id', userId);
+                } catch {
+                    // Non-blocking
+                }
+
+                // Ensure extras row exists with McMaster
+                const normalizedNetworks = normalizeNetworksWithMcMaster([]);
+                await supabase
+                    .from('user_profile_extras')
+                    .upsert({
+                        user_id: userId,
+                        college: MCMASTER_SCHOOL,
+                        networks: normalizedNetworks,
+                        updated_at: new Date().toISOString(),
+                    }, { onConflict: 'user_id' });
+
+                await ensureFinalMcmasterPartyAttendance('link');
+
+                // Background enrichment (only if they granted YouTube)
+                if (hasProviderToken) {
+                    fetch('/api/background-profile-enrichment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        keepalive: true,
+                        body: JSON.stringify({
+                            user_id: userId,
+                            trigger_source: 'FINAL_MCMASTER_PARTY_SIGNIN',
+                        }),
+                    }).catch(() => {});
+                }
+
+                setStatus('You\'re in!');
+                router.push('/final-mcmaster-party');
+                return;
+            }
 
             // Kick off backend enrichment in the background.
             // This keeps sign-in fast while derive_interests + DNA run server-side.

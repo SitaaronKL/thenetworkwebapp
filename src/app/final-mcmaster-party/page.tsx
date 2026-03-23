@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useAudioParty } from '../../hooks/useAudioParty';
+import { ensureFinalMcmasterPartyAttendance } from '@/lib/final-mcmaster-party-attendance';
 
 /* Sunset / ember — warm red-orange, not purple-brown */
 const BG_PAGE_GRADIENT =
@@ -12,9 +13,56 @@ const BG_PAGE_GRADIENT =
 const FONT_DISPLAY = "'Bebas Neue', sans-serif";
 const FONT_BODY = "'Inter', system-ui, sans-serif";
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const fract = (value: number) => value - Math.floor(value);
 const POST_AUTH_REDIRECT_KEY = 'tn_post_auth_redirect';
+const MATCH_REVEAL_DATE = new Date('2026-03-28T00:00:00-04:00');
+
+type RsvpAttendee = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  source: 'network' | 'waitlist';
+  rsvped_at: string | null;
+};
+
+type MatchCard = {
+  matchId: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  age: number | null;
+  currentObsession: string | null;
+  compatibilityDescription: string;
+};
+
+type MatchResponse = {
+  status?: 'pending' | 'ready' | 'unavailable';
+  revealAt?: string;
+  match?: MatchCard;
+  error?: string;
+};
+
+type AuthState = 'loading' | 'signed-out' | 'signed-in';
+
+/* ─── Countdown ─── */
+function getTimeLeft(target: Date) {
+  const diff = Math.max(0, target.getTime() - Date.now());
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+    total: diff,
+  };
+}
+
+function useCountdown(target: Date) {
+  const [timeLeft, setTimeLeft] = useState(getTimeLeft(target));
+  useEffect(() => {
+    const interval = setInterval(() => setTimeLeft(getTimeLeft(target)), 1000);
+    return () => clearInterval(interval);
+  }, [target]);
+  return timeLeft;
+}
 
 /* ─── Tasteful ambient confetti (always on, low contrast) ─── */
 function BackgroundConfetti() {
@@ -70,16 +118,13 @@ function BackgroundConfetti() {
 }
 
 /* ─── Main Page ─── */
-export default function FriendPartyPage() {
+export default function FinalMcmasterPartyPage() {
   const supabase = createClient();
   const {
     startParty,
     hasStarted,
-    dropStrength,
     isMajorDrop,
     majorDropStrength,
-    beatStrength,
-    dropPulse,
   } = useAudioParty({
     src: '/mcmaster/Daft Punk - One More Time (Official Audio) (1).mp3',
     startOffsetSeconds: 20,
@@ -88,20 +133,102 @@ export default function FriendPartyPage() {
   });
 
   const [signInLoading, setSignInLoading] = useState(false);
-  const [confettiBursts, setConfettiBursts] = useState<number[]>([]);
+  const [authState, setAuthState] = useState<AuthState>('loading');
+  const [userName, setUserName] = useState<string | null>(null);
+  const [hasYouTube, setHasYouTube] = useState<boolean | null>(null);
 
+  // RSVP state
+  const [attendees, setAttendees] = useState<RsvpAttendee[]>([]);
+  const [isRsvpLoading, setIsRsvpLoading] = useState(true);
+
+  // Match state
+  const [matchCard, setMatchCard] = useState<MatchCard | null>(null);
+  const [matchStatus, setMatchStatus] = useState<'idle' | 'loading' | 'pending' | 'ready' | 'unavailable' | 'error'>('idle');
+
+  const countdown = useCountdown(MATCH_REVEAL_DATE);
+  const isRevealLive = countdown.total <= 0;
   const flashOpacity = isMajorDrop ? Math.min(0.55, majorDropStrength * 0.6) : 0;
+
+  // Check auth on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setAuthState('signed-in');
+        setUserName(session.user.user_metadata?.name || session.user.email?.split('@')[0] || null);
+
+        // Skip the CD splash — go straight to invitation
+        startParty();
+
+        // Auto-RSVP
+        ensureFinalMcmasterPartyAttendance('link').catch(() => {});
+
+        // Check YouTube status
+        const { count } = await supabase
+          .from('youtube_subscriptions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', session.user.id);
+
+        setHasYouTube((count ?? 0) > 0);
+      } else {
+        setAuthState('signed-out');
+      }
+    };
+    checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load RSVPs (only when signed in)
+  const loadAttendees = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsRsvpLoading(true);
+    try {
+      const res = await fetch('/api/final-mcmaster-party/rsvps');
+      const data = await res.json();
+      if (res.ok) setAttendees(data.attendees || []);
+    } catch {}
+    if (showLoading) setIsRsvpLoading(false);
+  }, []);
+
+  // Load match
+  const loadMatch = useCallback(async () => {
+    setMatchStatus('loading');
+    try {
+      const res = await fetch('/api/final-mcmaster-party/match');
+      const data = (await res.json()) as MatchResponse;
+      if (data.status === 'ready' && data.match) {
+        setMatchCard(data.match);
+        setMatchStatus('ready');
+      } else if (data.status === 'pending') {
+        setMatchStatus('pending');
+      } else {
+        setMatchStatus('unavailable');
+      }
+    } catch {
+      setMatchStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authState !== 'signed-in') return;
+    const kickoff = window.setTimeout(() => { void loadAttendees(true); }, 0);
+    const interval = window.setInterval(() => { void loadAttendees(false); }, 30_000);
+    return () => { window.clearTimeout(kickoff); window.clearInterval(interval); };
+  }, [authState, loadAttendees]);
+
+  useEffect(() => {
+    if (authState !== 'signed-in') return;
+    const kickoff = window.setTimeout(() => { void loadMatch(); }, 0);
+    const interval = window.setInterval(() => { void loadMatch(); }, 20_000);
+    return () => { window.clearTimeout(kickoff); window.clearInterval(interval); };
+  }, [authState, loadMatch]);
 
   const handleGoogleSignIn = async () => {
     if (signInLoading) return;
     setSignInLoading(true);
 
-    const returnUrl = '/friend-party/setup';
     try {
-      window.localStorage.setItem(POST_AUTH_REDIRECT_KEY, returnUrl);
-    } catch {
-      // Non-blocking storage fallback.
-    }
+      window.localStorage.setItem(POST_AUTH_REDIRECT_KEY, '/final-mcmaster-party');
+    } catch {}
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -111,41 +238,19 @@ export default function FriendPartyPage() {
           scopes: 'email profile https://www.googleapis.com/auth/youtube.readonly',
         },
       });
-      if (error) {
-        setSignInLoading(false);
-      }
+      if (error) setSignInLoading(false);
     } catch {
       setSignInLoading(false);
     }
   };
 
-  const throwConfetti = () => {
-    if (!hasStarted) return;
-    const burstId = Date.now();
-    setConfettiBursts((prev) => [...prev, burstId]);
-    window.setTimeout(() => {
-      setConfettiBursts((prev) => prev.filter((id) => id !== burstId));
-    }, 2200);
-  };
-
-  const GOLD_CONFETTI = [
-    'rgba(253, 224, 71, 0.98)',
-    'rgba(250, 204, 21, 0.98)',
-    'rgba(234, 179, 8, 0.95)',
-    'rgba(251, 191, 36, 0.96)',
-    'rgba(255, 248, 220, 0.95)',
-    'rgba(252, 211, 77, 0.95)',
-  ] as const;
-
   return (
     <div className="min-h-screen text-white relative min-h-[100dvh]" style={{ background: BG_PAGE_GRADIENT }}>
-      {/* Bebas Neue (display) + Inter (body) + Playfair Display (hero serif) */}
       <link
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap"
         rel="stylesheet"
       />
 
-      {/* Inline styles */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes fp-float {
@@ -288,6 +393,10 @@ export default function FriendPartyPage() {
         .fp-vinyl-sheen {
           animation: fp-vinyl-sheen 14s linear infinite;
         }
+        @keyframes fp-pulse-ring {
+          0% { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
       `}} />
 
       <BackgroundConfetti />
@@ -398,7 +507,7 @@ export default function FriendPartyPage() {
               className="mt-10 md:mt-12 text-[1.35rem] md:text-[1.85rem] tracking-[0.42em] text-white/95 uppercase"
               style={{ fontFamily: FONT_DISPLAY }}
             >
-              PRESS PLAY <span className="inline-block ml-1 align-middle text-2xl md:text-3xl" aria-hidden>▶</span>
+              PRESS PLAY <span className="inline-block ml-1 align-middle text-2xl md:text-3xl" aria-hidden>&#9654;</span>
             </p>
           </div>
         </div>
@@ -424,46 +533,12 @@ export default function FriendPartyPage() {
         aria-hidden
       />
 
-      {/* Gold confetti burst (from record tap) */}
-      {confettiBursts.map((burstId) => (
-        <div key={burstId} className="fixed inset-0 pointer-events-none z-[34] overflow-hidden">
-          {Array.from({ length: 42 }).map((_, i) => {
-            const spread = 140 + (i % 9) * 14;
-            const tx = `${Math.cos((i / 42) * Math.PI * 2 + burstId * 0.001) * spread}px`;
-            const tyJitter = fract(Math.sin((i + 1) * 12.9898 + burstId * 0.001) * 43758.5453) * 72;
-            const ty = `${-160 - (i % 11) * 18 - tyJitter}px`;
-            const rot = `${(i * 47 + burstId % 360)}deg`;
-            const w = 5 + (i % 4);
-            const h = 7 + (i % 5);
-            return (
-              <span
-                key={`${burstId}-c-${i}`}
-                className="absolute rounded-[2px]"
-                style={{
-                  left: '50%',
-                  bottom: '44px',
-                  width: `${w}px`,
-                  height: `${h}px`,
-                  background: GOLD_CONFETTI[i % GOLD_CONFETTI.length],
-                  boxShadow: '0 0 10px rgba(253, 224, 71, 0.55)',
-                  animation: 'fp-confetti-gold 1.35s cubic-bezier(0.18, 0.85, 0.22, 1) forwards',
-                  ...( {
-                    '--tx': tx,
-                    '--ty': ty,
-                    '--rot': rot,
-                  } as CSSProperties ),
-                }}
-              />
-            );
-          })}
-        </div>
-      ))}   
 
-      {/* ─── Sleeve-style invite ─── */}
+      {/* ─── Main content ─── */}
       <main className={`relative z-10 min-h-[100svh] w-screen transition-all duration-1000 ${hasStarted ? 'opacity-100' : 'opacity-0'}`}>
         <div className="absolute left-0 right-0 top-5 md:top-7 z-[5] text-center pointer-events-none">
           <p className="text-[11px] md:text-xs tracking-[0.18em] uppercase text-orange-100/55" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
-            The Network · Vol. 03
+            The Network &middot; Vol. 03
           </p>
         </div>
 
@@ -488,7 +563,7 @@ export default function FriendPartyPage() {
                 }}
                 aria-hidden
               />
-              {/* Vinyl sheen — slow-rotating conic highlight */}
+              {/* Vinyl sheen */}
               <div
                 className="pointer-events-none absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] md:w-[420px] md:h-[420px] rounded-full fp-vinyl-sheen"
                 style={{
@@ -497,17 +572,7 @@ export default function FriendPartyPage() {
                 }}
                 aria-hidden
               />
-              {/* Concentric groove arcs behind headline area */}
-              <div
-                className="pointer-events-none absolute left-1/2 top-[32%] -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] md:w-[360px] md:h-[360px] rounded-full opacity-[0.04]"
-                style={{
-                  background:
-                    'repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 6px, rgba(255,200,160,0.8) 6px, rgba(255,200,160,0.8) 7px)',
-                }}
-                aria-hidden
-              />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" aria-hidden />
-              {/* Bottom edge highlight */}
               <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-300/25 to-transparent" aria-hidden />
 
               <div className="relative p-6 sm:p-8 md:p-11">
@@ -525,7 +590,6 @@ export default function FriendPartyPage() {
 
                 {/* ─── Gold glamorous EVE centerpiece ─── */}
                 <div className="relative mt-4 flex flex-col items-center fp-eve-drift">
-                  {/* Halo glow behind the word */}
                   <div
                     className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[55%] w-[min(88vw,420px)] h-[120px] md:h-[160px] rounded-full"
                     style={{
@@ -555,7 +619,7 @@ export default function FriendPartyPage() {
                     EVE
                   </h1>
 
-                  {/* Sparkle particles floating around EVE */}
+                  {/* Sparkle particles */}
                   {[
                     { sx: '-70px', sy: '-20px', sdx: '12px', sdy: '-18px', d: '2.8s', dl: '0s', sz: 3 },
                     { sx: '65px', sy: '-30px', sdx: '-8px', sdy: '-12px', d: '3.3s', dl: '0.6s', sz: 2.5 },
@@ -587,7 +651,7 @@ export default function FriendPartyPage() {
 
                 <div className="mt-8 space-y-1.5 text-center">
                   <p className="text-sm md:text-[15px] text-white/78 tracking-wide" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
-                    Saturday, March 28 · 10 PM
+                    Saturday, March 28 &middot; 10 PM
                   </p>
                   <p className="text-xs md:text-sm text-white/45" style={{ fontFamily: FONT_BODY }}>
                     location released upon RSVP
@@ -597,145 +661,331 @@ export default function FriendPartyPage() {
                   </p>
                 </div>
 
-                {/* Body copy with faint circular emboss behind */}
-                <div className="relative mt-10">
-                  <div
-                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[220px] md:w-[280px] md:h-[280px] rounded-full opacity-[0.025]"
-                    style={{ border: '1.5px solid rgba(255,200,160,0.9)' }}
-                    aria-hidden
-                  />
-                  <p className="relative text-center text-base md:text-lg leading-relaxed text-white/88" style={{ fontFamily: FONT_BODY, fontWeight: 400 }}>
-                    Last time was nuts, so we had to do it again.
-                  </p>
-                  <p className="relative mt-5 text-center text-sm md:text-base leading-relaxed text-white/72" style={{ fontFamily: FONT_BODY, fontWeight: 400 }}>
-                    Before everyone goes their own way, we are ending the year together one last night, one more time!!!!
-                  </p>
-                </div>
-
-                {/* ─── Mini vinyl — DJ Bobby Bobby ─── */}
-                <div className="mt-12 flex justify-center">
-                  <div className="relative">
-                    {/* Warm glow behind vinyl */}
-                    <div
-                      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full blur-[20px]"
-                      style={{ background: 'radial-gradient(circle, rgba(255, 160, 80, 0.15), transparent 70%)' }}
-                      aria-hidden
-                    />
-                    <div
-                      className="fp-mini-vinyl-spin relative w-20 h-20 md:w-24 md:h-24 rounded-full"
-                      style={{
-                        background: `
-                          radial-gradient(circle at 36% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.04) 20%, transparent 42%),
-                          conic-gradient(from 180deg, #1c1410 0%, #3a2a22 12%, #8a7a72 25%, #c8c0bb 35%, #6a5e58 48%, #2a201c 60%, #4a3c36 74%, #1a1210 100%)
-                        `,
-                        boxShadow: '0 6px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,200,160,0.1), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -4px 12px rgba(0,0,0,0.35)',
-                      }}
-                    >
-                      {/* Grooves */}
+                {/* ─── SIGNED OUT: Landing content ─── */}
+                {(authState === 'loading' || authState === 'signed-out') && (
+                  <>
+                    <div className="relative mt-10">
                       <div
-                        className="absolute inset-[12%] rounded-full pointer-events-none"
-                        style={{
-                          background: 'repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 1.5px, rgba(255,255,255,0.03) 1.5px, rgba(255,255,255,0.03) 2.5px)',
-                          opacity: 0.5,
-                        }}
-                      />
-                      {/* Label */}
-                      <div
-                        className="absolute inset-[22%] rounded-full flex flex-col items-center justify-center text-center border border-white/10"
-                        style={{
-                          background: 'radial-gradient(circle at 50% 40%, rgba(22,12,8,0.97) 0%, rgba(8,4,3,0.99) 70%)',
-                          boxShadow: 'inset 0 0 16px rgba(0,0,0,0.4)',
-                        }}
-                      >
-                        <p className="text-[5px] md:text-[6px] tracking-[0.2em] uppercase text-orange-200/70 leading-tight" style={{ fontFamily: FONT_BODY, fontWeight: 600 }}>
-                          Now spinning
-                        </p>
-                        <p className="mt-0.5 text-[6px] md:text-[7px] tracking-[0.08em] uppercase text-white/85 font-bold leading-tight" style={{ fontFamily: FONT_DISPLAY }}>
-                          DJDAVIBABI
-                        </p>
-                      </div>
-                      {/* Spindle */}
-                      <div
-                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/18"
-                        style={{ background: 'radial-gradient(circle at 30% 30%, #3a2820, #0c0806)' }}
+                        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[220px] md:w-[280px] md:h-[280px] rounded-full opacity-[0.025]"
+                        style={{ border: '1.5px solid rgba(255,200,160,0.9)' }}
                         aria-hidden
                       />
+                      <p className="relative text-center text-base md:text-lg leading-relaxed text-white/88" style={{ fontFamily: FONT_BODY, fontWeight: 400 }}>
+                        Last time was nuts, so we had to do it again.
+                      </p>
+                      <p className="relative mt-5 text-center text-sm md:text-base leading-relaxed text-white/72" style={{ fontFamily: FONT_BODY, fontWeight: 400 }}>
+                        Before everyone goes their own way, we are ending the year together one last night, one more time!!!!
+                      </p>
                     </div>
-                  </div>
-                </div>
 
-                <div className="mt-10 w-full max-w-md mx-auto">
-                  <p className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-orange-200/90" style={{ fontFamily: FONT_BODY }}>
-                    RSVP TO GET THE ADDRESS
-                  </p>
-                  <p className="mt-2 text-center text-xs text-white/40" style={{ fontFamily: FONT_BODY }}>
-                    Curated Matches Included
-                  </p>
-
-                  <button
-                    onClick={handleGoogleSignIn}
-                    type="button"
-                    disabled={signInLoading}
-                    className="mt-7 w-full py-4 rounded-[2px] text-sm font-semibold uppercase tracking-[0.18em] transition-all duration-300 flex items-center justify-center gap-3 bg-white text-zinc-900 hover:bg-orange-50 hover:shadow-[0_0_48px_-8px_rgba(255,140,80,0.55)] disabled:opacity-60"
-                    style={{ fontFamily: FONT_BODY }}
-                  >
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                    </svg>
-                    {signInLoading ? 'Redirecting…' : 'Sign in to RSVP'}
-                  </button>
-                </div>
-
-                {/* ─── Scattered polaroid memories ─── */}
-                <div className="relative mt-16 mx-auto" style={{ height: '420px', maxWidth: '380px' }}>
-                  <p className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] tracking-[0.35em] uppercase text-white/35" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
-                    We can't wait to see you :D
-                  </p>
-                  {[
-                    { src: '/mcmaster/img-9.jpeg', x: '2%',  y: '4%',   rot: -7,  z: 9 },
-                    { src: '/mcmaster/img-2.jpeg', x: '28%', y: '0%',   rot: 4,   z: 8 },
-                    { src: '/mcmaster/img-3.jpeg', x: '54%', y: '3%',   rot: -3,  z: 7 },
-                    { src: '/mcmaster/img-6.jpeg', x: '12%', y: '24%',  rot: -4,  z: 4 },
-                    { src: '/mcmaster/img-7.jpeg', x: '44%', y: '21%',  rot: 6,   z: 3 },
-                    { src: '/mcmaster/img-5.jpeg', x: '6%',  y: '48%',  rot: 5,   z: 6 },
-                    { src: '/mcmaster/img-4.jpeg', x: '36%', y: '44%',  rot: -6,  z: 10 },
-                    { src: '/mcmaster/img-1.jpeg', x: '58%', y: '50%',  rot: 3,   z: 5 },
-                    { src: '/mcmaster/img-8.jpeg', x: '20%', y: '68%',  rot: -2,  z: 2 },
-                  ].map((photo, i) => (
-                    <div
-                      key={i}
-                      className="absolute transition-transform duration-300 hover:scale-110 hover:z-20"
-                      style={{
-                        left: photo.x,
-                        top: photo.y,
-                        zIndex: photo.z,
-                        transform: `rotate(${photo.rot}deg)`,
-                      }}
-                    >
-                      <div
-                        className="bg-white/90 p-[3px] pb-[14px] rounded-[1px]"
-                        style={{
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3)',
-                          width: '105px',
-                        }}
-                      >
-                        <img
-                          src={photo.src}
-                          alt=""
-                          className="w-full aspect-[4/3] object-cover rounded-[0.5px]"
-                          loading="lazy"
-                          draggable={false}
+                    {/* Mini vinyl — DJ */}
+                    <div className="mt-12 flex justify-center">
+                      <div className="relative">
+                        <div
+                          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-32 md:h-32 rounded-full blur-[20px]"
+                          style={{ background: 'radial-gradient(circle, rgba(255, 160, 80, 0.15), transparent 70%)' }}
+                          aria-hidden
                         />
+                        <div
+                          className="fp-mini-vinyl-spin relative w-20 h-20 md:w-24 md:h-24 rounded-full"
+                          style={{
+                            background: `
+                              radial-gradient(circle at 36% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.04) 20%, transparent 42%),
+                              conic-gradient(from 180deg, #1c1410 0%, #3a2a22 12%, #8a7a72 25%, #c8c0bb 35%, #6a5e58 48%, #2a201c 60%, #4a3c36 74%, #1a1210 100%)
+                            `,
+                            boxShadow: '0 6px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,200,160,0.1), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -4px 12px rgba(0,0,0,0.35)',
+                          }}
+                        >
+                          <div
+                            className="absolute inset-[12%] rounded-full pointer-events-none"
+                            style={{
+                              background: 'repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 1.5px, rgba(255,255,255,0.03) 1.5px, rgba(255,255,255,0.03) 2.5px)',
+                              opacity: 0.5,
+                            }}
+                          />
+                          <div
+                            className="absolute inset-[22%] rounded-full flex flex-col items-center justify-center text-center border border-white/10"
+                            style={{
+                              background: 'radial-gradient(circle at 50% 40%, rgba(22,12,8,0.97) 0%, rgba(8,4,3,0.99) 70%)',
+                              boxShadow: 'inset 0 0 16px rgba(0,0,0,0.4)',
+                            }}
+                          >
+                            <p className="text-[5px] md:text-[6px] tracking-[0.2em] uppercase text-orange-200/70 leading-tight" style={{ fontFamily: FONT_BODY, fontWeight: 600 }}>
+                              Now spinning
+                            </p>
+                            <p className="mt-0.5 text-[6px] md:text-[7px] tracking-[0.08em] uppercase text-white/85 font-bold leading-tight" style={{ fontFamily: FONT_DISPLAY }}>
+                              DJDAVIBABI
+                            </p>
+                          </div>
+                          <div
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/18"
+                            style={{ background: 'radial-gradient(circle at 30% 30%, #3a2820, #0c0806)' }}
+                            aria-hidden
+                          />
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="mt-10 w-full max-w-md mx-auto">
+                      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-orange-200/90" style={{ fontFamily: FONT_BODY }}>
+                        RSVP TO GET THE ADDRESS
+                      </p>
+                      <p className="mt-2 text-center text-xs text-white/40" style={{ fontFamily: FONT_BODY }}>
+                        Curated Matches Included
+                      </p>
+
+                      <button
+                        onClick={handleGoogleSignIn}
+                        type="button"
+                        disabled={signInLoading || authState === 'loading'}
+                        className="mt-7 w-full py-4 rounded-[2px] text-sm font-semibold uppercase tracking-[0.18em] transition-all duration-300 flex items-center justify-center gap-3 bg-white text-zinc-900 hover:bg-orange-50 hover:shadow-[0_0_48px_-8px_rgba(255,140,80,0.55)] disabled:opacity-60"
+                        style={{ fontFamily: FONT_BODY }}
+                      >
+                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                        </svg>
+                        {signInLoading ? 'Redirecting\u2026' : 'Sign in to RSVP'}
+                      </button>
+                    </div>
+
+                    {/* Scattered polaroid memories */}
+                    <div className="relative mt-16 mx-auto" style={{ height: '420px', maxWidth: '380px' }}>
+                      <p className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] tracking-[0.35em] uppercase text-white/35" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
+                        We can&apos;t wait to see you :D
+                      </p>
+                      {[
+                        { src: '/mcmaster/img-9.jpeg', x: '2%',  y: '4%',   rot: -7,  z: 9 },
+                        { src: '/mcmaster/img-2.jpeg', x: '28%', y: '0%',   rot: 4,   z: 8 },
+                        { src: '/mcmaster/img-3.jpeg', x: '54%', y: '3%',   rot: -3,  z: 7 },
+                        { src: '/mcmaster/img-6.jpeg', x: '12%', y: '24%',  rot: -4,  z: 4 },
+                        { src: '/mcmaster/img-7.jpeg', x: '44%', y: '21%',  rot: 6,   z: 3 },
+                        { src: '/mcmaster/img-5.jpeg', x: '6%',  y: '48%',  rot: 5,   z: 6 },
+                        { src: '/mcmaster/img-4.jpeg', x: '36%', y: '44%',  rot: -6,  z: 10 },
+                        { src: '/mcmaster/img-1.jpeg', x: '58%', y: '50%',  rot: 3,   z: 5 },
+                        { src: '/mcmaster/img-8.jpeg', x: '20%', y: '68%',  rot: -2,  z: 2 },
+                      ].map((photo, i) => (
+                        <div
+                          key={i}
+                          className="absolute transition-transform duration-300 hover:scale-110 hover:z-20"
+                          style={{
+                            left: photo.x,
+                            top: photo.y,
+                            zIndex: photo.z,
+                            transform: `rotate(${photo.rot}deg)`,
+                          }}
+                        >
+                          <div
+                            className="bg-white/90 p-[3px] pb-[14px] rounded-[1px]"
+                            style={{
+                              boxShadow: '0 4px 16px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3)',
+                              width: '105px',
+                            }}
+                          >
+                            <img
+                              src={photo.src}
+                              alt=""
+                              className="w-full aspect-[4/3] object-cover rounded-[0.5px]"
+                              loading="lazy"
+                              draggable={false}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* ─── SIGNED IN: Invitation + Match + RSVPs ─── */}
+                {authState === 'signed-in' && (
+                  <div className="mt-10 space-y-6">
+                    {/* Confirmation */}
+                    <div className="rounded-[3px] border border-orange-300/20 bg-black/30 backdrop-blur-sm p-5 text-center space-y-3">
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-orange-200/80" style={{ fontFamily: FONT_BODY, fontWeight: 600 }}>
+                        Party Pass Active
+                      </p>
+                      <p className="text-xl md:text-2xl font-bold text-white/95" style={{ fontFamily: FONT_DISPLAY, letterSpacing: '0.04em' }}>
+                        {userName ? `${userName}, you\u2019re in.` : 'You\u2019re in.'}
+                      </p>
+                      <p className="text-sm text-white/60" style={{ fontFamily: FONT_BODY }}>
+                        Your curated match drops March 28 at 12 AM.
+                      </p>
+                    </div>
+
+                    {/* YouTube Status Badge */}
+                    {hasYouTube !== null && (
+                      <div className="flex items-center justify-center gap-2.5">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{
+                            background: hasYouTube ? '#34d399' : 'rgba(255,255,255,0.3)',
+                            boxShadow: hasYouTube ? '0 0 8px rgba(52, 211, 153, 0.5)' : 'none',
+                          }}
+                        />
+                        <p className="text-xs text-white/55" style={{ fontFamily: FONT_BODY }}>
+                          {hasYouTube ? 'YouTube Connected — smarter match incoming' : 'YouTube not connected — you\u2019ll get a random match'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Countdown */}
+                    <div className="rounded-[3px] border border-orange-300/15 bg-black/25 backdrop-blur-sm p-5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-orange-200/60 mb-3 text-center" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
+                        Match Reveal Countdown
+                      </p>
+                      <div className="flex justify-center gap-3">
+                        {[
+                          { value: countdown.days, label: 'Days' },
+                          { value: countdown.hours, label: 'Hrs' },
+                          { value: countdown.minutes, label: 'Min' },
+                          { value: countdown.seconds, label: 'Sec' },
+                        ].map((unit) => (
+                          <div key={unit.label} className="rounded-[2px] border border-orange-200/10 bg-black/30 px-3 py-2.5 text-center min-w-[3.4rem]">
+                            <p className="font-black tabular-nums text-xl text-white/90" style={{ fontFamily: FONT_DISPLAY }}>
+                              {String(unit.value).padStart(2, '0')}
+                            </p>
+                            <p className="text-[9px] uppercase tracking-[0.14em] text-white/40 mt-0.5" style={{ fontFamily: FONT_BODY }}>
+                              {unit.label}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Match Card Area */}
+                    <div className="rounded-[3px] border border-orange-300/15 bg-black/25 backdrop-blur-sm p-5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-orange-200/60 mb-3" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
+                        Your Match
+                      </p>
+
+                      {!isRevealLive && (
+                        <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-4 text-center">
+                          <p className="text-sm text-white/65" style={{ fontFamily: FONT_BODY }}>
+                            Match card unlocks March 28 at 12 AM.
+                          </p>
+                          <p className="text-xs text-white/40 mt-1.5" style={{ fontFamily: FONT_BODY }}>
+                            We&apos;re computing compatibility in the background.
+                          </p>
+                        </div>
+                      )}
+
+                      {isRevealLive && (matchStatus === 'idle' || matchStatus === 'loading') && (
+                        <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-4 text-center">
+                          <p className="text-sm text-white/55" style={{ fontFamily: FONT_BODY }}>Loading your match card...</p>
+                        </div>
+                      )}
+
+                      {isRevealLive && matchStatus === 'pending' && (
+                        <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-4 text-center">
+                          <p className="text-sm text-white/65" style={{ fontFamily: FONT_BODY }}>Finalizing your match. Refresh in a moment.</p>
+                        </div>
+                      )}
+
+                      {isRevealLive && matchStatus === 'unavailable' && (
+                        <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-4 text-center">
+                          <p className="text-sm text-white/65" style={{ fontFamily: FONT_BODY }}>No match yet. We&apos;ll update this automatically.</p>
+                        </div>
+                      )}
+
+                      {isRevealLive && matchStatus === 'error' && (
+                        <div className="rounded-[2px] border border-red-400/20 bg-red-500/5 p-4 text-center space-y-2">
+                          <p className="text-sm text-red-200" style={{ fontFamily: FONT_BODY }}>Failed to load your match.</p>
+                          <button
+                            type="button"
+                            onClick={loadMatch}
+                            className="text-xs text-red-100 underline underline-offset-2"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                      {isRevealLive && matchStatus === 'ready' && matchCard && (
+                        <div className="rounded-[2px] border border-orange-300/20 bg-gradient-to-b from-white/[0.06] to-white/[0.01] p-4 space-y-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {matchCard.avatarUrl ? (
+                              <img
+                                src={matchCard.avatarUrl}
+                                alt={`${matchCard.name}`}
+                                className="w-12 h-12 rounded-full border border-orange-200/20 object-cover shrink-0"
+                              />
+                            ) : (
+                              <span className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 via-amber-500 to-yellow-500 inline-flex items-center justify-center text-lg font-bold shrink-0">
+                                {matchCard.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-lg font-bold text-white truncate" style={{ fontFamily: FONT_BODY }}>{matchCard.name}</p>
+                              <p className="text-xs text-white/50" style={{ fontFamily: FONT_BODY }}>
+                                {typeof matchCard.age === 'number' ? `${matchCard.age} years old` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          {matchCard.currentObsession && (
+                            <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-3">
+                              <p className="text-[10px] uppercase tracking-[0.14em] text-orange-200/50 mb-1" style={{ fontFamily: FONT_BODY }}>Current Obsession</p>
+                              <p className="text-sm text-white/80 leading-relaxed" style={{ fontFamily: FONT_BODY }}>{matchCard.currentObsession}</p>
+                            </div>
+                          )}
+
+                          <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-3">
+                            <p className="text-[10px] uppercase tracking-[0.14em] text-orange-200/50 mb-1" style={{ fontFamily: FONT_BODY }}>Why You Matched</p>
+                            <p className="text-sm text-white/75 leading-relaxed" style={{ fontFamily: FONT_BODY }}>{matchCard.compatibilityDescription}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RSVP Roster */}
+                    <div className="rounded-[3px] border border-orange-300/15 bg-black/25 backdrop-blur-sm p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-orange-200/60" style={{ fontFamily: FONT_BODY, fontWeight: 500 }}>
+                          RSVP Roster
+                        </p>
+                        <p className="text-xs text-white/40" style={{ fontFamily: FONT_BODY }}>
+                          {attendees.length} {attendees.length === 1 ? 'person' : 'people'}
+                        </p>
+                      </div>
+
+                      {isRsvpLoading ? (
+                        <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-4 text-center">
+                          <p className="text-sm text-white/45" style={{ fontFamily: FONT_BODY }}>Loading...</p>
+                        </div>
+                      ) : attendees.length === 0 ? (
+                        <div className="rounded-[2px] border border-orange-200/10 bg-black/30 p-4 text-center">
+                          <p className="text-sm text-white/45" style={{ fontFamily: FONT_BODY }}>No RSVPs yet.</p>
+                        </div>
+                      ) : (
+                        <div className="max-h-[240px] overflow-y-auto pr-1 space-y-1.5">
+                          {attendees.map((attendee, index) => (
+                            <div
+                              key={`${attendee.id}-${index}`}
+                              className="rounded-[2px] border border-orange-200/8 bg-black/25 px-3 py-2 flex items-center gap-3"
+                            >
+                              {attendee.avatar_url ? (
+                                <img
+                                  src={attendee.avatar_url}
+                                  alt=""
+                                  className="w-7 h-7 rounded-full border border-orange-200/15 object-cover shrink-0"
+                                />
+                              ) : (
+                                <span className="w-7 h-7 rounded-full border border-orange-200/10 bg-white/[0.04] inline-flex items-center justify-center text-[10px] font-semibold text-white/65 shrink-0">
+                                  {attendee.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                              <p className="text-sm text-white/75 truncate" style={{ fontFamily: FONT_BODY }}>{attendee.name}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <footer className="relative mt-6 pt-6 text-center">
-                  {/* Curved arc rule — album inner sleeve detail */}
                   <svg className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-5 overflow-visible opacity-[0.18]" viewBox="0 0 160 20" fill="none" aria-hidden>
                     <path d="M 4 18 Q 80 0 156 18" stroke="rgba(255,200,160,1)" strokeWidth="0.6" />
                   </svg>
@@ -743,7 +993,7 @@ export default function FriendPartyPage() {
                     The Network
                   </p>
                   <p className="mt-3 text-xs text-white/25" style={{ fontFamily: FONT_BODY }}>
-                    © 2026
+                    &copy; 2026
                   </p>
                 </footer>
               </div>
