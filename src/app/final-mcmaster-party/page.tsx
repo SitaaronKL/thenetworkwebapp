@@ -654,7 +654,7 @@ export default function FinalMcmasterPartyPage() {
                     Saturday, March 28 &middot; 10 PM
                   </p>
                   <p className="text-xs md:text-sm text-white/45" style={{ fontFamily: FONT_BODY }}>
-                    location released upon RSVP
+                    {authState === 'signed-in' ? '19 Kingsmount Street South' : 'location released upon RSVP'}
                   </p>
                   <p className="text-[11px] text-orange-200/65 tracking-wide" style={{ fontFamily: FONT_BODY }}>
                     BYOB
